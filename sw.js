@@ -1,10 +1,10 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v1';
+const VERSION = 'jplate-v2';
 const ASSETS = [
   './',
   'index.html',
   'manifest.webmanifest',
-  'icon.svg',
+  'assets/logo.jpg',
   'icon-192.png',
   'icon-512.png',
   'src/styles.css',

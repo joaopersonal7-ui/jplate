@@ -651,10 +651,33 @@ async function renderSettings() {
       ${persisted ? '' : '<div class="btn-row"><button class="btn small" data-persist>Proteger armazenamento</button></div>'}
     </section>
 
-    <section class="card small">
-      <h2>Sobre</h2>
-      <p class="muted">Base de alimentos: Tabela Brasileira de Composição de Alimentos (TACO), 4ª edição, NEPA/UNICAMP, 2011. Valores por 100 g do alimento como descrito; “traços” contam como zero e valores não analisados aparecem como “sem dado”.</p>
-      <p class="muted">Os números são estimativas para acompanhamento pessoal e não substituem orientação profissional.</p>
+    <div class="about-hero">
+      <img src="assets/logo.jpg" alt="Logo JPCOMPANY">
+      <div><h2>JPlate</h2><p>by JPCOMPANY</p></div>
+    </div>
+
+    <section class="card about">
+      <h3>O app</h3>
+      <p>O JPlate é um diário alimentar simples e direto: você busca o alimento, escolhe a porção e acompanha calorias, macros e peso ao longo dos dias. Foi pensado para o uso real do dia a dia, rápido de lançar e fácil de entender.</p>
+
+      <h3>A JPCOMPANY</h3>
+      <p>A JPCOMPANY cria ferramentas digitais para quem leva a sério o treino, a alimentação e a evolução física. Cada produto nasce da prática: o que funciona no acompanhamento de verdade vira recurso no app.</p>
+
+      <h3>Nosso propósito</h3>
+      <p>Dar clareza sobre o que você come, sem complicação. Quando você enxerga os números, decide melhor, e consistência vira resultado.</p>
+
+      <h3>Seus dados, só seus</h3>
+      <ul class="muted small">
+        <li>Sem cadastro e sem login.</li>
+        <li>Tudo fica guardado neste aparelho; nada é enviado para servidores.</li>
+        <li>Funciona offline depois de instalado.</li>
+        <li>Backup em arquivo, sob o seu controle.</li>
+      </ul>
+
+      <h3>Fonte dos dados</h3>
+      <p class="muted small">Tabela Brasileira de Composição de Alimentos (TACO), 4ª edição, NEPA/UNICAMP, 2011. Valores por 100 g do alimento como descrito; “traços” contam como zero e valores não analisados aparecem como “sem dado”.</p>
+      <p class="muted small">Os números são estimativas para acompanhamento pessoal e não substituem orientação de nutricionista ou médico.</p>
+      <p class="muted small">© ${new Date().getFullYear()} JPCOMPANY. Todos os direitos reservados.</p>
     </section>`;
 
   const macroKcal = () => {
@@ -722,6 +745,15 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+// Abertura: fica até a animação terminar e o app carregar; um toque pula.
+const splash = $('#splash');
+const hideSplash = () => {
+  splash.classList.add('hide');
+  setTimeout(() => splash.remove(), 500);
+};
+splash.addEventListener('click', hideSplash, { once: true });
+const splashMin = new Promise((r) => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 800 : 2300));
+
 load().then(render).catch((err) => {
   view.innerHTML = `<div class="card">Não foi possível abrir o app: ${esc(err.message)}</div>`;
-});
+}).finally(() => splashMin.then(hideSplash));

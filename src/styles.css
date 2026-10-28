@@ -1,16 +1,17 @@
 :root {
-  --bg: #f6f7f5;
+  --bg: #f8f4f0;
   --card: #ffffff;
-  --text: #1c2420;
-  --muted: #66716b;
-  --line: #e3e7e4;
-  --accent: #1f7a4d;
-  --accent-soft: #e3f2ea;
-  --carbs: #d08a1e;
-  --protein: #2f6fb8;
-  --fat: #b8487a;
+  --text: #2a1d16;
+  --muted: #7a675b;
+  --line: #ecdfd5;
+  --accent: #b5531f;
+  --accent-soft: #f7e6da;
+  --carbs: #c9962a;
+  --protein: #7a4a33;
+  --fat: #e0875a;
   --danger: #b3261e;
   --warn: #8a5a00;
+  --bronze: linear-gradient(135deg, #f3b07a, #c8692f 45%, #8a3f1a);
   --radius: 14px;
   --tabbar-h: 64px;
   color-scheme: light dark;
@@ -18,16 +19,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111513;
-    --card: #1a201d;
-    --text: #e8ece9;
-    --muted: #9aa69f;
-    --line: #2a322e;
-    --accent: #4cbf86;
-    --accent-soft: #1d3328;
-    --carbs: #e6a640;
-    --protein: #6aa3e6;
-    --fat: #e07aa6;
+    --bg: #150f0c;
+    --card: #1f1612;
+    --text: #f1e7df;
+    --muted: #a8968a;
+    --line: #3a2a22;
+    --accent: #e8834a;
+    --accent-soft: #3a2216;
+    --carbs: #e6b85c;
+    --protein: #d9b8a0;
+    --fat: #f0a27a;
     --danger: #ff8a80;
     --warn: #e0b45c;
   }
@@ -141,7 +142,7 @@ h3 { font-size: .95rem; margin: 0; }
   padding: 10px 14px; cursor: pointer; font-weight: 500;
 }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-@media (prefers-color-scheme: dark) { .btn.primary { color: #0d1a13; } }
+@media (prefers-color-scheme: dark) { .btn.primary { color: #1f1009; } }
 .btn.danger { color: var(--danger); }
 .btn.small { padding: 6px 10px; font-size: .85rem; }
 .btn.block { width: 100%; }
@@ -196,7 +197,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .nutri-table tr:first-child td { border-top: 0; }
 
 .star { font-size: 1.3rem; line-height: 1; }
-.star[aria-pressed="true"] { color: #e0a800; }
+.star[aria-pressed="true"] { color: #e09a3c; }
 
 /* ---------- gráfico de peso ---------- */
 
@@ -213,3 +214,68 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
   transition: .2s; z-index: 20; max-width: calc(100% - 32px);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- abertura ---------- */
+
+.splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  background: radial-gradient(120% 80% at 50% 38%, #3a1f12 0%, #1d110b 55%, #0e0806 100%);
+  color: #f6e6d8; cursor: pointer;
+  transition: opacity .45s ease, visibility .45s;
+}
+.splash.hide { opacity: 0; visibility: hidden; }
+
+.splash-logo {
+  position: relative; width: min(84vw, 380px); aspect-ratio: 1240 / 1268; overflow: hidden;
+  -webkit-mask-image: radial-gradient(ellipse 46% 44% at 50% 50%, #000 62%, transparent 100%);
+          mask-image: radial-gradient(ellipse 46% 44% at 50% 50%, #000 62%, transparent 100%);
+  animation: splash-logo .7s cubic-bezier(.2, .7, .2, 1) both;
+}
+.splash-logo img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.9) contrast(1.08); }
+/* escurece a parede clara acima da logo */
+.splash-logo::before {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom, rgb(29 17 11 / .7), transparent 30%);
+}
+/* brilho que passa uma vez pela logo */
+.splash-logo::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 38%, rgb(255 226 196 / .75) 50%, transparent 62%);
+  background-size: 260% 100%; background-position: 130% 0;
+  mix-blend-mode: screen;
+  animation: splash-shine 1.1s .55s ease-in-out both;
+}
+
+.splash-text { text-align: center; animation: splash-text .6s .9s ease-out both; }
+.splash-text h1 {
+  margin: 0; font-size: 2.6rem; letter-spacing: .04em; font-weight: 800;
+  background: var(--bronze); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.splash-text p { margin: 6px 0 0; font-size: .8rem; letter-spacing: .32em; text-transform: uppercase; color: #c9a58a; }
+.splash-text b { color: #f0b98c; font-weight: 700; }
+
+@keyframes splash-logo { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes splash-shine { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@keyframes splash-text { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-logo, .splash-logo::after, .splash-text { animation: none; }
+  .splash-logo::after { display: none; }
+}
+
+/* ---------- sobre ---------- */
+
+.about-hero {
+  display: flex; align-items: center; gap: 14px;
+  margin: 12px 0 0; padding: 16px; border-radius: var(--radius);
+  background: radial-gradient(120% 140% at 0% 0%, #3a1f12, #1a0f0a); color: #f6e6d8;
+}
+.about-hero img { width: 64px; height: 64px; border-radius: 14px; object-fit: cover; flex: none; }
+.about-hero h2 { font-size: 1.3rem; background: var(--bronze); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.about-hero p { margin: 2px 0 0; font-size: .75rem; letter-spacing: .2em; text-transform: uppercase; color: #c9a58a; }
+.about h3 { margin-top: 14px; color: var(--accent); }
+.about h3:first-child { margin-top: 0; }
+.about p { margin: 4px 0 0; }
+.about ul { margin: 6px 0 0; padding-left: 18px; }
+.about li { margin-top: 4px; }

@@ -3,15 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1f7a4d">
+  <meta name="theme-color" content="#2a1810">
   <meta name="description" content="Diário alimentar pessoal, offline, com dados só no seu aparelho.">
   <title>JPlate</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-logo"><img src="assets/logo.jpg" alt=""></div>
+    <div class="splash-text">
+      <h1>JPlate</h1>
+      <p>by <b>JPCOMPANY</b></p>
+    </div>
+  </div>
   <header class="topbar" id="topbar"></header>
   <main id="view" tabindex="-1"></main>
   <nav class="tabbar" aria-label="Seções">
