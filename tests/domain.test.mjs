@@ -96,3 +96,82 @@ test('base TACO não tem linhas sem análise e kcal é numérico', () => {
   assert.ok(taco.every((f) => typeof f.n.kcal === 'number'));
   assert.ok(!taco.some((f) => f.name === 'Leite, de vaca, integral'));
 });
+
+// ---------- base ampliada, medidas, plano e produtos online ----------
+
+import { calcTargets, planItemNutrients, sourceLabel } from '../src/domain.js';
+import { defaultServings } from '../src/measures.js';
+import { offToFood } from '../src/off.js';
+
+const load = (f) => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url)));
+const usda = load('usda.json');
+const receitas = load('receitas.json');
+const all = [...receitas, ...taco, ...usda].map((f) => ({ ...f, _norm: normalize(f.name) }));
+
+test('base ampliada: ids únicos, kcal numérico e fonte em todo item', () => {
+  assert.ok(usda.length > 5000);
+  assert.ok(receitas.length > 100);
+  const ids = new Set(all.map((f) => f.id));
+  assert.equal(ids.size, all.length);
+  for (const f of all) {
+    assert.equal(typeof f.n.kcal, 'number', f.name);
+    assert.ok(['taco', 'usda', 'tempo', 'receita'].includes(f.source), f.name);
+  }
+  assert.ok(receitas.every((r) => r.recipe && r.servings.length));
+});
+
+test('nomes não se repetem entre TACO e USDA', () => {
+  const tacoNames = new Set(taco.map((f) => normalize(f.name)));
+  assert.ok(!usda.some((f) => tacoNames.has(normalize(f.name))));
+});
+
+test('busca por "ovo" traz as variações separadas', () => {
+  const names = searchFoods(all, 'ovo', { limit: 40 }).map((f) => f.name);
+  for (const want of [/clara/i, /gema/i, /frito/i, /cozid/i, /omelete/i, /mexido/i]) {
+    assert.ok(names.some((n) => want.test(n)), `faltou ${want}`);
+  }
+});
+
+test('medidas caseiras aparecem como porções aproximadas', () => {
+  const arroz = all.find((f) => f.name === 'Arroz, tipo 1, cozido');
+  assert.ok(defaultServings(arroz).some((s) => s.name === 'colher de servir'));
+  const opts = servingOptions(arroz);
+  assert.match(opts[1].label, /aprox/);
+  const pf = all.find((f) => f.source === 'receita');
+  assert.equal(defaultServings(pf)[0].g, pf.servings[0].g);
+  assert.deepEqual(defaultServings({ name: 'Arroz cozido', source: 'user', n: {} }), []);
+});
+
+test('metas pelo objetivo seguem Mifflin-St Jeor e fecham as calorias', () => {
+  const t = calcTargets({ sex: 'm', age: 30, height: 180, weight: 80, activity: 'moderate', objective: 'maintain' });
+  assert.equal(t.bmr, 1780);
+  assert.equal(t.tdee, 2759);
+  assert.equal(t.protein, 128);
+  assert.ok(Math.abs(t.protein * 4 + t.carbs * 4 + t.fat * 9 - t.kcal) <= 4);
+  assert.equal(t.fiber, Math.round((t.kcal / 1000) * 14));
+  const cut = calcTargets({ sex: 'f', age: 30, height: 165, weight: 65, activity: 'light', objective: 'lose' });
+  assert.ok(cut.kcal < cut.tdee);
+  assert.equal(calcTargets({ age: '', height: 170, weight: 70 }), null);
+});
+
+test('item do plano calcula nutrientes pela porção', () => {
+  const n = planItemNutrients(banana, { quantity: 2, amount: 70 });
+  assert.equal(n.kcal, Math.round(banana.n.kcal * 1.4 * 100) / 100);
+});
+
+test('produto do Open Food Facts vira alimento com sódio em mg e fonte', () => {
+  const f = offToFood({
+    code: '7890000000001', product_name: 'Biscoito X', brands: 'Marca A, Marca B', quantity: '200 g', serving_quantity: '30',
+    nutriments: { 'energy-kcal_100g': 450, carbohydrates_100g: 70, proteins_100g: 7, fat_100g: 16, fiber_100g: 2, sodium_100g: 0.4 },
+  });
+  assert.equal(f.id, 'off-7890000000001');
+  assert.equal(f.brand, 'Marca A');
+  assert.equal(f.n.sodium, 400);
+  assert.equal(f.baseUnit, 'g');
+  assert.equal(sourceLabel(f), 'Open Food Facts');
+  assert.deepEqual(f.servings, [{ name: 'porção do rótulo', g: 30 }]);
+  const suco = offToFood({ code: '1', product_name: 'Suco', quantity: '1 L', nutriments: { energy_100g: 200 } });
+  assert.equal(suco.baseUnit, 'ml');
+  assert.equal(suco.n.kcal, 48);
+  assert.equal(offToFood({ code: '2', product_name: 'Sem dados', nutriments: {} }), null);
+});

@@ -5,11 +5,15 @@ Diário alimentar pessoal, inspirado nos fluxos do FatSecret (buscar alimento, e
 ## O que tem
 
 - **Diário** por dia e por refeição (café, almoço, jantar, lanches), com navegação entre dias.
-- **Busca** em 593 alimentos da TACO, sem precisar de acento ("acucar" acha "Açúcar"), com recentes e favoritos.
+- **Base com cerca de 6.300 itens**: 593 da TACO, 138 pratos brasileiros calculados (crepioca, escondidinho, marmitas fit, cuscuz, PFs etc.) e cerca de 5.600 da USDA traduzidos. Cada item mostra a fonte.
+- **Busca** sem acento, que traz as variações separadas ("ovo" mostra ovo cozido, frito, clara, gema, omelete, crepioca), com recentes, favoritos e filtro de pratos prontos.
+- **Produtos de marca** pela internet (Open Food Facts), por nome ou código de barras (câmera no Android, número digitado no iPhone).
+- **Medidas caseiras** aproximadas (colher, concha, unidade, fatia) nos alimentos comuns.
+- **Dieta**: calcula calorias, proteína, carboidrato, gordura e fibra pelo objetivo (Mifflin-St Jeor) e deixa montar o cardápio por refeição, comparando com as metas e lançando no diário.
 - **Porções**: quantidade em g/ml ou porções que você salva (ex.: "1 unidade média = 86 g").
 - **Lançamento rápido** só com calorias, para restaurante ou estimativa.
 - **Meus alimentos**: cadastro de produtos de marca e receitas de casa, em g ou ml.
-- **Metas** de calorias e macros, com anel e barras de progresso. Mudar a meta não altera dias passados.
+- **Metas** de calorias, macros e fibras, com anel e barras de progresso. Mudar a meta não altera dias passados.
 - **Peso** com gráfico e linha de tendência (média dos últimos 7 registros).
 - **Backup** em JSON (exportar e importar) e lembrete a cada 14 dias.
 
@@ -38,7 +42,11 @@ No celular, publique a pasta num host estático gratuito (GitHub Pages, Netlify 
 | `src/app.js` | Telas e interações |
 | `src/domain.js` | Regras puras: datas, busca, porções, totais, metas, tendência, backup |
 | `src/db.js` | Armazenamento local (IndexedDB) |
-| `data/taco.json` | Base de alimentos gerada por `scripts/build-taco.mjs` |
+| `data/taco.json` | TACO, gerada por `scripts/build-taco.mjs` |
+| `data/usda.json` | USDA/TempoLife em português, gerada por `scripts/build-usda.mjs` com as traduções de `scripts/src/usda-pt.tsv` |
+| `data/receitas.json` | Pratos calculados, gerados por `scripts/build-receitas.mjs` a partir de `scripts/src/receitas.mjs` |
+| `src/measures.js` | Medidas caseiras |
+| `src/off.js` | Busca online no Open Food Facts e leitor de código de barras |
 | `sw.js`, `manifest.webmanifest` | Modo offline e instalação |
 | `tests/domain.test.mjs` | Testes das regras (`npm test`, Node 20+) |
 
@@ -48,5 +56,7 @@ Ao publicar uma versão nova, troque `VERSION` em `sw.js` para o celular baixar 
 
 - Base de alimentos: Tabela Brasileira de Composição de Alimentos (TACO), 4ª edição, NEPA/UNICAMP, 2011. "Traços" contam como zero; valores não analisados aparecem como "sem dado" e o resumo avisa que o total está incompleto.
 - Nenhum dado, texto, marca ou imagem do FatSecret foi usado. O site serviu só de referência para os fluxos.
-- A TACO não traz medidas caseiras (colher, unidade); por isso as porções são cadastradas por você.
+- USDA FoodData Central SR Legacy (domínio público), recebida pelo pacote aberto tempo-food-db (TempoLife, CC-BY 4.0); nomes traduzidos pela JPlate.
+- Produtos de marca: Open Food Facts (ODbL), consultado só quando o usuário pede.
+- Medidas caseiras e pratos calculados são estimativas e aparecem marcados como tal.
 - Os números são estimativas para acompanhamento pessoal e não substituem orientação profissional.

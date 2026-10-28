@@ -1,17 +1,22 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v2';
+const VERSION = 'jplate-v3';
 const ASSETS = [
   './',
   'index.html',
   'manifest.webmanifest',
   'assets/logo.jpg',
+  'assets/splash.jpg',
   'icon-192.png',
   'icon-512.png',
   'src/styles.css',
   'src/app.js',
   'src/db.js',
   'src/domain.js',
+  'src/measures.js',
+  'src/off.js',
   'data/taco.json',
+  'data/receitas.json',
+  'data/usda.json',
 ];
 
 self.addEventListener('install', (e) => {
@@ -28,6 +33,7 @@ self.addEventListener('activate', (e) => {
 
 // Cache primeiro; a rede só para o que não estiver no cache.
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  // Busca online (Open Food Facts) vai sempre para a rede.
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit ?? fetch(e.request)));
 });

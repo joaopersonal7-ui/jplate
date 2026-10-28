@@ -3,7 +3,9 @@ import {
   MEALS, NUTRIENTS, BACKUP_VERSION, localDate, addDays, parseLocalDate, formatDateLabel, normalize,
   searchFoods, servingOptions, baseUnit, scaleNutrients, entryAmount, sumTotals, groupByMeal, goalFor,
   buildEntry, buildQuickEntry, weightTrend, validateBackup, fmt, round, uid,
+  sourceLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES,
 } from './domain.js';
+import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -22,7 +24,7 @@ const icons = {
 const state = {
   tab: 'diary',
   date: localDate(),
-  taco: [],
+  base: [],
   userFoods: [],
   foods: [],
   foodsById: new Map(),
@@ -33,13 +35,17 @@ const state = {
   weights: [],
   lastBackup: null,
   firstUse: null,
+  plan: { profile: {}, items: [] },
 };
 
 // ---------- carga ----------
 
 async function load() {
-  const [taco, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse] = await Promise.all([
-    fetch('data/taco.json').then((r) => r.json()).then((list) => list.map((f) => ({ ...f, source: 'taco' }))),
+  const data = (f) => fetch(`data/${f}`).then((r) => r.json());
+  const [taco, receitas, usda, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan] = await Promise.all([
+    data('taco.json').then((list) => list.map((f) => ({ ...f, source: 'taco' }))),
+    data('receitas.json'),
+    data('usda.json'),
     db.getAll('foods'),
     db.getAll('goals'),
     db.getAll('weights'),
@@ -48,8 +54,10 @@ async function load() {
     db.kvGet('servings', {}),
     db.kvGet('lastBackup', null),
     db.kvGet('firstUse', null),
+    db.kvGet('plan', { profile: {}, items: [] }),
   ]);
-  Object.assign(state, { taco, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse });
+  const base = [...receitas, ...taco, ...usda];
+  Object.assign(state, { base, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan });
   if (!firstUse) {
     state.firstUse = localDate();
     await db.kvSet('firstUse', state.firstUse);
@@ -59,9 +67,9 @@ async function load() {
 
 function indexFoods() {
   const active = state.userFoods.filter((f) => !f.deletedAt);
-  state.foods = [...active, ...state.taco];
-  for (const f of state.foods) f._norm = normalize(f.name + ' ' + (f.brand ?? ''));
-  state.foodsById = new Map([...state.userFoods, ...state.taco].map((f) => [f.id, f]));
+  state.foods = [...active, ...state.base];
+  for (const f of state.foods) f._norm ??= normalize(f.name + ' ' + (f.brand ?? ''));
+  state.foodsById = new Map([...state.userFoods, ...state.base].map((f) => [f.id, f]));
 }
 
 // ---------- navegação ----------
@@ -79,7 +87,7 @@ document.querySelector('.tabbar').addEventListener('click', (e) => {
 });
 
 async function render() {
-  const renderers = { diary: renderDiary, weight: renderWeight, foods: renderFoods, settings: renderSettings };
+  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings };
   view.oninput = null;
   await renderers[state.tab]();
 }
@@ -161,22 +169,30 @@ function summaryHTML(totals, missing, goal) {
       ${macro('carbs', 'Carboidratos')}
       ${macro('protein', 'Proteínas')}
       ${macro('fat', 'Gorduras')}
+      ${macro('fiber', 'Fibras')}
       ${!goal ? '<p class="small muted" style="margin:6px 0 0">Defina suas metas em Ajustes.</p>' : ''}
     </div>
   </div>
   ${['carbs', 'protein', 'fat'].some((k) => missing[k]) ? '<p class="small warn" style="margin:10px 0 0">* Total incompleto: algum alimento não informa esse nutriente.</p>' : ''}`;
 }
 
+// "P 12 g · C 30 g · G 5 g" a partir de nutrientes (null vira "–").
+function macroLine(n, digits = 1) {
+  return `<span class="macros"><b class="p">P</b> ${fmt(n.protein, digits)} g · <b class="c">C</b> ${fmt(n.carbs, digits)} g · <b class="g">G</b> ${fmt(n.fat, digits)} g</span>`;
+}
+
 function mealHTML(meal, entries) {
-  const kcal = entries.reduce((s, e) => s + (e.nutrients.kcal ?? 0), 0);
+  const { totals } = sumTotals(entries);
   return `<section class="card" aria-label="${esc(meal.label)}">
     <div class="card-head">
-      <h2>${esc(meal.label)} <span class="muted small" style="font-weight:400">${entries.length ? `${fmt(kcal, 0)} kcal` : ''}</span></h2>
+      <h2>${esc(meal.label)} <span class="muted small" style="font-weight:400">${entries.length ? `${fmt(totals.kcal, 0)} kcal` : ''}</span></h2>
       <button class="add-btn" data-add-meal="${meal.id}" aria-label="Adicionar em ${esc(meal.label)}">+ Adicionar</button>
     </div>
-    ${entries.length ? `<ul class="list">${entries.map((e) => `<li><button class="row" data-entry="${e.id}">
+    ${entries.length ? `<p class="meal-total small">Total da refeição: ${macroLine(totals)}</p>
+    <ul class="list">${entries.map((e) => `<li><button class="row" data-entry="${e.id}">
         <span class="grow"><span class="name">${esc(e.label)}</span>
-        <span class="muted small">${entryDetail(e)}</span></span>
+        <span class="muted small">${entryDetail(e)}</span>
+        <span class="small">${macroLine(e.nutrients)}</span></span>
         <span class="num">${fmt(e.nutrients.kcal, 0)} kcal</span></button></li>`).join('')}</ul>` : ''}
   </section>`;
 }
@@ -207,22 +223,46 @@ sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); 
 
 // ---------- adicionar alimento ----------
 
-function openAdd(mealType, initial = { query: '', filter: 'recent' }) {
-  const ui = { ...initial };
+// mode 'diary' lança no dia aberto; mode 'plan' adiciona ao plano de dieta.
+function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'diary') {
+  const ui = { online: null, ...initial };
+  const back = () => openAdd(mealType, ui, mode);
+  const detail = (food) => openFoodDetail(food, { mealType, back, mode });
   openSheet({
-    title: `Adicionar em ${mealLabel(mealType)}`,
+    title: `${mode === 'plan' ? 'Plano' : 'Adicionar'}: ${mealLabel(mealType)}`,
     body: `
-      <input class="search" type="search" placeholder="Buscar alimento (ex.: arroz, banana)" autocomplete="off" value="${esc(ui.query)}" aria-label="Buscar alimento">
+      <input class="search" type="search" placeholder="Buscar entre ${fmt(state.foods.length, 0)} alimentos e pratos" autocomplete="off" value="${esc(ui.query)}" aria-label="Buscar alimento">
       <div class="chips" role="group" aria-label="Filtro">
         <button class="chip" data-filter="recent">Recentes</button>
         <button class="chip" data-filter="fav">Favoritos</button>
+        <button class="chip" data-filter="dishes">Pratos prontos</button>
         <button class="chip" data-filter="mine">Meus alimentos</button>
       </div>
-      <div class="btn-row"><button class="btn small" data-quick>Lançamento rápido</button><button class="btn small" data-new-food>Novo alimento</button></div>
-      <ul class="list" id="results"></ul>`,
+      <div class="btn-row">
+        ${mode === 'diary' ? '<button class="btn small" data-quick>Lançamento rápido</button>' : ''}
+        <button class="btn small" data-new-food>Novo alimento</button>
+        <button class="btn small" data-barcode>Código de barras</button>
+      </div>
+      <ul class="list" id="results"></ul>
+      <div id="online"></div>`,
     onMount(body) {
       const input = $('.search', body);
       const results = $('#results', body);
+      const online = $('#online', body);
+      const drawOnline = () => {
+        const q = ui.query.trim();
+        if (!q) { online.innerHTML = ''; return; }
+        if (!ui.online || ui.online.query !== q) {
+          online.innerHTML = `<button class="btn small block" data-online>Buscar "${esc(q)}" em produtos de marca (online)</button>
+            <p class="small muted" style="margin:6px 0 0">Consulta o Open Food Facts pela internet. Só o termo buscado é enviado.</p>`;
+          return;
+        }
+        const r = ui.online;
+        online.innerHTML = `<h3 class="section-title">Produtos de marca · Open Food Facts</h3>` + (r.loading ? '<p class="empty">Buscando…</p>'
+          : r.error ? `<p class="empty">${esc(r.error)}</p>`
+          : r.items.length ? `<ul class="list">${r.items.map((f, i) => foodRowHTML(f, `data-off="${i}"`)).join('')}</ul>`
+          : '<p class="empty">Nenhum produto com tabela nutricional encontrado.</p>');
+      };
       const draw = () => {
         let list;
         const q = ui.query.trim();
@@ -230,22 +270,39 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }) {
         if (q) list = searchFoods(state.foods, q, { favorites: state.favorites, recents: state.recents });
         else if (ui.filter === 'fav') list = state.favorites.map((id) => state.foodsById.get(id));
         else if (ui.filter === 'mine') list = state.userFoods.filter((f) => !f.deletedAt).sort((a, b) => a.name.localeCompare(b.name));
+        else if (ui.filter === 'dishes') list = state.base.filter((f) => f.source === 'receita');
         else list = state.recents.map((id) => state.foodsById.get(id));
         list = list.filter((f) => f && !f.deletedAt);
-        const emptyMsg = q ? 'Nada encontrado. Tente outra palavra ou cadastre o alimento.'
+        const emptyMsg = q ? 'Nada encontrado na base. Tente outra palavra, busque online abaixo ou cadastre o alimento.'
           : ui.filter === 'fav' ? 'Marque alimentos com a estrela para vê-los aqui.'
           : ui.filter === 'mine' ? 'Você ainda não cadastrou alimentos.'
           : 'Busque um alimento para começar.';
-        results.innerHTML = list.length ? list.map(foodRowHTML).join('') : `<li class="empty">${emptyMsg}</li>`;
+        results.innerHTML = list.length ? list.map((f) => foodRowHTML(f)).join('') : `<li class="empty">${emptyMsg}</li>`;
+        drawOnline();
       };
       input.addEventListener('input', () => { ui.query = input.value; draw(); });
-      body.onclick = (e) => {
+      body.onclick = async (e) => {
         const f = e.target.closest('[data-filter]');
         if (f) { ui.filter = f.dataset.filter; ui.query = ''; input.value = ''; draw(); return; }
+        const off = e.target.closest('[data-off]');
+        if (off) return detail(ui.online.items[Number(off.dataset.off)]);
         const row = e.target.closest('[data-food]');
-        if (row) return openFoodDetail(state.foodsById.get(row.dataset.food), { mealType, back: () => openAdd(mealType, ui) });
-        if (e.target.closest('[data-quick]')) return openQuick({ mealType, back: () => openAdd(mealType, ui) });
-        if (e.target.closest('[data-new-food]')) return openFoodForm({ name: ui.query }, { afterSave: (food) => openFoodDetail(food, { mealType, back: () => openAdd(mealType, ui) }), back: () => openAdd(mealType, ui) });
+        if (row) return detail(state.foodsById.get(row.dataset.food));
+        if (e.target.closest('[data-online]')) {
+          const query = ui.query.trim();
+          ui.online = { query, loading: true, items: [] };
+          drawOnline();
+          try {
+            ui.online = { query, items: await searchOnline(query) };
+          } catch {
+            ui.online = { query, items: [], error: 'Sem conexão com o Open Food Facts agora. Tente de novo mais tarde.' };
+          }
+          if (ui.query.trim() === query) drawOnline();
+          return;
+        }
+        if (e.target.closest('[data-barcode]')) return openBarcode({ mealType, back, mode });
+        if (e.target.closest('[data-quick]')) return openQuick({ mealType, back });
+        if (e.target.closest('[data-new-food]')) return openFoodForm({ name: ui.query }, { afterSave: detail, back });
       };
       draw();
       if (!matchMedia('(pointer: coarse)').matches || !ui.query) input.focus();
@@ -253,34 +310,97 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }) {
   });
 }
 
-function foodRowHTML(f) {
-  return `<li><button class="row" data-food="${esc(f.id)}">
-    <span class="grow"><span class="name">${esc(f.name)}${f.brand ? ` <span class="muted">· ${esc(f.brand)}</span>` : ''}${f.source === 'user' ? '<span class="badge">meu</span>' : ''}</span>
-    <span class="muted small">${esc(f.group ?? 'Meus alimentos')}</span></span>
+function foodRowHTML(f, attr = `data-food="${esc(f.id)}"`) {
+  const tag = f.source === 'user' ? '<span class="badge">meu</span>' : f.source === 'off' ? '<span class="badge">marca</span>' : f.source === 'receita' ? '<span class="badge">prato</span>' : '';
+  return `<li><button class="row" ${attr}>
+    <span class="grow"><span class="name">${esc(f.name)}${f.brand ? ` <span class="muted">· ${esc(f.brand)}</span>` : ''}${tag}</span>
+    <span class="muted small">${esc(f.group ?? 'Meus alimentos')} · ${esc(sourceLabel(f))}</span></span>
     <span class="num small muted">${fmt(f.n.kcal, 0)} kcal/100${baseUnit(f)}</span></button></li>`;
+}
+
+// ---------- código de barras ----------
+
+function openBarcode({ mealType, back, mode }) {
+  const scan = canScan();
+  openSheet({
+    title: 'Código de barras',
+    back,
+    body: `
+      ${scan ? '<div class="scanner"><video playsinline muted></video><p class="small muted">Aponte a câmera para o código de barras.</p></div>' : '<p class="small muted">Este navegador não lê código pela câmera. Digite os números que ficam embaixo das barras.</p>'}
+      <label class="field">Número do código<input name="code" inputmode="numeric" pattern="[0-9]*" placeholder="7891000100103"></label>
+      <div class="btn-row"><button class="btn primary" data-lookup>Buscar produto</button></div>
+      <p class="small muted" id="bc-status" style="margin:10px 0 0">A consulta é feita no Open Food Facts, base aberta mantida por colaboradores. Confira os valores com o rótulo.</p>`,
+    onMount(body) {
+      const status = $('#bc-status', body);
+      let stop = null;
+      const lookup = async (code) => {
+        code = String(code).replace(/\D/g, '');
+        if (code.length < 8) return toast('Digite o código completo (8 a 14 números).');
+        status.textContent = 'Buscando…';
+        try {
+          const food = await productByBarcode(code);
+          if (!food) { status.textContent = 'Produto não encontrado ou sem tabela nutricional. Você pode cadastrá-lo em "Novo alimento".'; return; }
+          stop?.();
+          openFoodDetail(food, { mealType, back, mode });
+        } catch {
+          status.textContent = 'Sem conexão com o Open Food Facts agora. Tente de novo mais tarde.';
+        }
+      };
+      if (scan) {
+        stop = scanBarcode($('video', body), (code) => { $('[name="code"]', body).value = code; lookup(code); }, () => {
+          status.textContent = 'Não foi possível abrir a câmera. Digite o número do código.';
+        });
+        sheet.addEventListener('close', () => stop?.(), { once: true });
+      }
+      body.onclick = (e) => { if (e.target.closest('[data-lookup]')) lookup($('[name="code"]', body).value); };
+    },
+  });
 }
 
 // ---------- detalhe do alimento (adicionar ou editar lançamento) ----------
 
-function openFoodDetail(food, { mealType, entry, back }) {
+// Produto vindo da busca online vira "meu alimento" (source 'off') na primeira vez que é usado,
+// para ficar disponível offline e no histórico.
+async function ensureStored(food) {
+  if (food.source !== 'off' || state.foodsById.has(food.id)) return state.foodsById.get(food.id) ?? food;
+  await db.put('foods', { ...stripRuntime(food), createdAt: Date.now(), updatedAt: Date.now() });
+  state.userFoods = await db.getAll('foods');
+  indexFoods();
+  return state.foodsById.get(food.id);
+}
+
+function sourceHTML(food) {
+  const parts = [sourceLabel(food)];
+  if (food.group) parts.push(food.group);
+  if (food.barcode) parts.push(`código ${food.barcode}`);
+  let note = '';
+  if (food.source === 'receita') note = `<p class="small muted recipe">Calculado a partir de: ${esc(food.recipe)}. Receita caseira típica; o seu preparo pode variar.</p>`;
+  if (food.source === 'off') note = '<p class="small muted recipe">Dados do Open Food Facts (ODbL), enviados por colaboradores. Confira com o rótulo.</p>';
+  if (food.source === 'usda' || food.source === 'tempo') note = '<p class="small muted recipe">Base americana (USDA) com nome traduzido. Prefira o item da TACO quando houver.</p>';
+  return `<p class="small muted" style="margin:4px 0 0">${parts.map(esc).join(' · ')} · por 100 ${baseUnit(food)}: ${fmt(food.n.kcal, 0)} kcal</p>${note}`;
+}
+
+function openFoodDetail(food, { mealType, entry, back, mode = 'diary', planItem }) {
   const unit = baseUnit(food);
   const saved = () => state.servings[food.id] ?? [];
   let options = servingOptions(food, saved());
-  const sel = { quantity: entry?.quantity ?? 100, servingId: entry?.servingId ?? unit, mealType: entry?.mealType ?? mealType };
-  if (!entry && saved().length) { sel.servingId = saved()[0].id; sel.quantity = 1; }
+  const current = entry ?? planItem;
+  const sel = { quantity: current?.quantity ?? 100, servingId: current?.servingId ?? unit, mealType: current?.mealType ?? mealType };
+  // Sem lançamento anterior, começa pela primeira porção (salva ou medida caseira).
+  if (!current && options.length > 1) { sel.servingId = options[1].id; sel.quantity = 1; }
   // Porção usada no lançamento foi apagada: volta para a quantidade em g/ml.
-  if (entry && !options.some((o) => o.id === sel.servingId)) { sel.servingId = unit; sel.quantity = entry.amount; }
+  if (current && !options.some((o) => o.id === sel.servingId)) { sel.servingId = unit; sel.quantity = current.amount; }
   const isFav = () => state.favorites.includes(food.id);
 
   openSheet({
-    title: entry ? 'Editar lançamento' : 'Adicionar',
+    title: mode === 'plan' ? (planItem ? 'Editar item do plano' : 'Adicionar ao plano') : entry ? 'Editar lançamento' : 'Adicionar',
     back,
     body: `
       <div class="card-head" style="margin-top:12px">
         <h3>${esc(food.name)}${food.brand ? ` <span class="muted">· ${esc(food.brand)}</span>` : ''}</h3>
         <button class="icon-btn star" data-fav aria-pressed="${isFav()}" aria-label="Favorito">${isFav() ? '★' : '☆'}</button>
       </div>
-      <p class="small muted" style="margin:4px 0 0">${food.source === 'taco' ? `TACO · ${esc(food.group)}` : 'Meu alimento'} · por 100 ${unit}: ${fmt(food.n.kcal, 0)} kcal</p>
+      ${sourceHTML(food)}
       <div class="grid2">
         <label class="field">Quantidade<input type="number" inputmode="decimal" min="0" step="any" name="quantity" value="${esc(sel.quantity)}"></label>
         <label class="field">Unidade<select name="serving"></select></label>
@@ -297,8 +417,8 @@ function openFoodDetail(food, { mealType, entry, back }) {
       ${entry ? `<label class="field">Data<input type="date" name="date" value="${esc(entry.date)}"></label>` : ''}
       <table class="nutri-table" id="preview"></table>
       <div class="btn-row">
-        ${entry ? '<button class="btn danger" data-delete>Excluir</button>' : ''}
-        <button class="btn primary" data-save>${entry ? 'Salvar' : 'Adicionar'}</button>
+        ${current ? '<button class="btn danger" data-delete>Excluir</button>' : ''}
+        <button class="btn primary" data-save>${current ? 'Salvar' : 'Adicionar'}</button>
       </div>`,
     onMount(body) {
       const q = $('[name="quantity"]', body);
@@ -327,6 +447,7 @@ function openFoodDetail(food, { mealType, entry, back }) {
       });
       body.onclick = async (e) => {
         if (e.target.closest('[data-fav]')) {
+          food = await ensureStored(food);
           state.favorites = isFav() ? state.favorites.filter((id) => id !== food.id) : [food.id, ...state.favorites];
           await db.kvSet('favorites', state.favorites);
           const star = e.target.closest('[data-fav]');
@@ -344,6 +465,7 @@ function openFoodDetail(food, { mealType, entry, back }) {
           const label = $('[name="sLabel"]', body).value.trim();
           const amount = Number($('[name="sAmount"]', body).value);
           if (!label || !(amount > 0)) return toast('Preencha o nome e a quantidade da porção.');
+          food = await ensureStored(food);
           const serving = { id: uid(), label, amount };
           state.servings = { ...state.servings, [food.id]: [...saved(), serving] };
           await db.kvSet('servings', state.servings);
@@ -355,6 +477,12 @@ function openFoodDetail(food, { mealType, entry, back }) {
           return toast('Porção salva.');
         }
         if (e.target.closest('[data-delete]')) {
+          if (planItem) {
+            await savePlan({ ...state.plan, items: state.plan.items.filter((x) => x.id !== planItem.id) });
+            sheet.close();
+            toast('Item removido do plano.');
+            return render();
+          }
           await db.remove('entries', entry.id);
           sheet.close();
           toast('Lançamento excluído.');
@@ -363,6 +491,18 @@ function openFoodDetail(food, { mealType, entry, back }) {
         if (e.target.closest('[data-save]')) {
           const serving = options.find((o) => o.id === s.value);
           if (!(entryAmount(q.value, serving) > 0)) return toast('Informe uma quantidade maior que zero.');
+          food = await ensureStored(food);
+          if (mode === 'plan') {
+            const item = {
+              id: planItem?.id ?? uid(), foodId: food.id, mealType: $('[name="meal"]', body).value,
+              quantity: Number(q.value), servingId: serving.id, servingName: serving.id === unit ? unit : serving.name, amount: serving.amount,
+            };
+            const items = planItem ? state.plan.items.map((x) => (x.id === item.id ? item : x)) : [...state.plan.items, item];
+            await savePlan({ ...state.plan, items });
+            sheet.close();
+            toast(planItem ? 'Plano atualizado.' : `Adicionado ao plano: ${mealLabel(item.mealType)}.`);
+            return render();
+          }
           const date = $('[name="date"]', body)?.value || entry?.date || state.date;
           const built = buildEntry({
             food, date, mealType: $('[name="meal"]', body).value, quantity: q.value,
@@ -509,6 +649,142 @@ function stripRuntime(food) {
   return rest;
 }
 
+// ---------- plano de dieta ----------
+
+async function savePlan(plan) {
+  state.plan = plan;
+  await db.kvSet('plan', plan);
+}
+
+function planTotals(items) {
+  const rows = items.map((item) => {
+    const food = state.foodsById.get(item.foodId);
+    return food ? { item, food, n: planItemNutrients(food, item) } : null;
+  }).filter(Boolean);
+  return { rows, ...sumTotals(rows.map((r) => ({ nutrients: r.n }))) };
+}
+
+function renderPlan() {
+  setTopbar('<h1>Minha dieta</h1>');
+  topbar.onclick = null;
+  const p = { sex: 'm', activity: 'light', objective: 'maintain', ...state.plan.profile };
+  if (!p.weight && state.weights.length) p.weight = [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1).kg;
+  const goal = goalFor(state.goals, localDate());
+  const v = (x) => (x === null || x === undefined ? '' : x);
+  const opt = (list, cur) => list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
+
+  view.innerHTML = `
+    <section class="card">
+      <h2>1. Seu objetivo</h2>
+      <p class="small muted" style="margin:4px 0 0">Preencha seus dados e o app calcula calorias, proteínas, carboidratos, gorduras e fibras para o seu objetivo.</p>
+      <div class="grid2">
+        <label class="field">Sexo<select name="sex"><option value="m"${p.sex === 'm' ? ' selected' : ''}>Masculino</option><option value="f"${p.sex === 'f' ? ' selected' : ''}>Feminino</option></select></label>
+        <label class="field">Idade<input name="age" type="number" inputmode="numeric" min="10" max="100" value="${esc(v(p.age))}"></label>
+        <label class="field">Altura (cm)<input name="height" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
+        <label class="field">Peso (kg)<input name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="${esc(v(p.weight))}"></label>
+      </div>
+      <label class="field">Atividade física<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
+      <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
+      <div id="targets"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>2. Monte seu cardápio</h2></div>
+      <p class="small muted" style="margin:4px 0 0">Adicione os alimentos de cada refeição. As barras mostram quanto do dia já está planejado.</p>
+      <div id="plan-progress"></div>
+    </section>
+    <div id="plan-meals"></div>
+    <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor). Não substitui avaliação de nutricionista.</p>`;
+
+  const readProfile = () => Object.fromEntries(['sex', 'age', 'height', 'weight', 'activity', 'objective'].map((k) => [k, $(`[name="${k}"]`, view).value]));
+
+  const drawTargets = () => {
+    const t = calcTargets(readProfile());
+    $('#targets', view).innerHTML = t ? `
+      <div class="targets">
+        <div><b>${fmt(t.kcal, 0)}</b><span>kcal/dia</span></div>
+        <div><b>${fmt(t.protein, 0)} g</b><span>proteína</span></div>
+        <div><b>${fmt(t.carbs, 0)} g</b><span>carboidrato</span></div>
+        <div><b>${fmt(t.fat, 0)} g</b><span>gordura</span></div>
+        <div><b>${fmt(t.fiber, 0)} g</b><span>fibra</span></div>
+      </div>
+      <p class="small muted" style="margin:8px 0 0">Gasto em repouso ${fmt(t.bmr, 0)} kcal · gasto total estimado ${fmt(t.tdee, 0)} kcal.</p>
+      <div class="btn-row"><button class="btn primary" data-use-targets>Usar como minhas metas diárias</button></div>`
+      : '<p class="small muted" style="margin:10px 0 0">Preencha idade, altura e peso para ver suas metas.</p>';
+  };
+
+  const drawPlan = () => {
+    const target = goalFor(state.goals, localDate()) ?? calcTargets(readProfile()) ?? {};
+    const { totals } = planTotals(state.plan.items);
+    const bar = (key, label, unit = 'g') => {
+      const g = target[key];
+      const val = totals[key];
+      const w = g ? Math.min(val / g, 1) * 100 : 0;
+      const left = g ? g - val : null;
+      return `<div class="macro"><div class="macro-top"><span>${label}</span>
+        <span class="num">${fmt(val, 0)}${g ? ` / ${fmt(g, 0)}` : ''} ${unit}${left !== null ? ` · ${left >= 0 ? `faltam ${fmt(left, 0)}` : `${fmt(-left, 0)} acima`}` : ''}</span></div>
+        <div class="bar ${key}"><i style="width:${w}%"></i></div></div>`;
+    };
+    $('#plan-progress', view).innerHTML = `<div style="margin-top:10px">${bar('kcal', 'Calorias', 'kcal')}${bar('protein', 'Proteínas')}${bar('carbs', 'Carboidratos')}${bar('fat', 'Gorduras')}${bar('fiber', 'Fibras')}</div>
+      ${!target.kcal ? '<p class="small warn" style="margin:8px 0 0">Defina o objetivo acima para comparar com as metas.</p>' : ''}
+      ${state.plan.items.length ? '<div class="btn-row"><button class="btn" data-plan-to-diary="all">Lançar o plano inteiro no diário de hoje</button></div>' : ''}`;
+    $('#plan-meals', view).innerHTML = MEALS.map((m) => {
+      const { rows, totals: mt } = planTotals(state.plan.items.filter((x) => x.mealType === m.id));
+      return `<section class="card" aria-label="${esc(m.label)} no plano">
+        <div class="card-head">
+          <h2>${esc(m.label)} <span class="muted small" style="font-weight:400">${rows.length ? `${fmt(mt.kcal, 0)} kcal` : ''}</span></h2>
+          <button class="add-btn" data-plan-add="${m.id}">+ Adicionar</button>
+        </div>
+        ${rows.length ? `<p class="meal-total small">Total da refeição: ${macroLine(mt)}</p>
+        <ul class="list">${rows.map(({ item, food, n }) => `<li><button class="row" data-plan-item="${esc(item.id)}">
+          <span class="grow"><span class="name">${esc(food.name)}</span>
+          <span class="muted small">${item.servingName === baseUnit(food) ? `${fmt(item.quantity * item.amount, 0)} ${baseUnit(food)}` : `${fmt(item.quantity)} × ${esc(item.servingName)} · ${fmt(item.quantity * item.amount, 0)} ${baseUnit(food)}`}</span>
+          <span class="small">${macroLine(n)}</span></span>
+          <span class="num">${fmt(n.kcal, 0)} kcal</span></button></li>`).join('')}</ul>
+        <div class="btn-row"><button class="btn small" data-plan-to-diary="${m.id}">Lançar no diário de hoje</button></div>` : '<p class="empty">Nada planejado ainda.</p>'}
+      </section>`;
+    }).join('');
+  };
+
+  drawTargets();
+  drawPlan();
+
+  view.oninput = async () => {
+    await savePlan({ ...state.plan, profile: readProfile() });
+    drawTargets();
+    drawPlan();
+  };
+
+  view.onclick = async (e) => {
+    if (e.target.closest('[data-use-targets]')) {
+      const t = calcTargets(readProfile());
+      const today = localDate();
+      await db.put('goals', { id: `goal-${today}`, startsAt: today, kcal: t.kcal, carbs: t.carbs, protein: t.protein, fat: t.fat, fiber: t.fiber, updatedAt: Date.now() });
+      state.goals = await db.getAll('goals');
+      drawPlan();
+      return toast('Metas diárias atualizadas.');
+    }
+    const add = e.target.closest('[data-plan-add]');
+    if (add) return openAdd(add.dataset.planAdd, { query: '', filter: 'recent' }, 'plan');
+    const row = e.target.closest('[data-plan-item]');
+    if (row) {
+      const item = state.plan.items.find((x) => x.id === row.dataset.planItem);
+      return openFoodDetail(state.foodsById.get(item.foodId), { mealType: item.mealType, mode: 'plan', planItem: item });
+    }
+    const toDiary = e.target.closest('[data-plan-to-diary]');
+    if (toDiary) {
+      const which = toDiary.dataset.planToDiary;
+      const { rows } = planTotals(state.plan.items.filter((x) => which === 'all' || x.mealType === which));
+      const date = localDate();
+      for (const { item, food } of rows) {
+        const serving = item.servingName === baseUnit(food) ? null : { id: item.servingId, name: item.servingName, amount: item.amount };
+        await db.put('entries', buildEntry({ food, date, mealType: item.mealType, quantity: item.quantity, serving }));
+      }
+      toast(`${rows.length} ${rows.length === 1 ? 'item lançado' : 'itens lançados'} no diário de hoje.`);
+    }
+  };
+}
+
 // ---------- peso ----------
 
 async function renderWeight() {
@@ -586,17 +862,17 @@ function renderFoods() {
   view.innerHTML = `
     <section class="card">
       <div class="card-head"><h2>Meus alimentos</h2><button class="add-btn" data-new-food>+ Novo</button></div>
-      ${mine.length ? `<ul class="list">${mine.map(foodRowHTML).join('')}</ul>` : '<p class="empty">Cadastre aqui o que não está na tabela: produtos de marca, receitas de casa, pratos do restaurante.</p>'}
+      ${mine.length ? `<ul class="list">${mine.map((f) => foodRowHTML(f)).join('')}</ul>` : '<p class="empty">Cadastre aqui o que não está na tabela: produtos de marca, receitas de casa, pratos do restaurante.</p>'}
     </section>
     <section class="card">
       <h2>Consultar a tabela</h2>
-      <input class="search" type="search" placeholder="Buscar entre ${state.taco.length} alimentos da TACO" aria-label="Buscar na tabela">
+      <input class="search" type="search" placeholder="Buscar entre ${fmt(state.base.length, 0)} alimentos e pratos" aria-label="Buscar na tabela">
       <ul class="list" id="browse"></ul>
     </section>`;
   const input = $('.search', view);
   input.addEventListener('input', () => {
     const list = searchFoods(state.foods, input.value, { favorites: state.favorites, recents: state.recents, limit: 30 });
-    $('#browse', view).innerHTML = list.map(foodRowHTML).join('') || (input.value.trim() ? '<li class="empty">Nada encontrado.</li>' : '');
+    $('#browse', view).innerHTML = list.map((f) => foodRowHTML(f)).join('') || (input.value.trim() ? '<li class="empty">Nada encontrado.</li>' : '');
   });
   view.onclick = (e) => {
     if (e.target.closest('[data-new-food]')) return openFoodForm({});
@@ -634,7 +910,9 @@ async function renderSettings() {
         <label class="field">Carboidratos (g)<input name="carbs" type="number" inputmode="numeric" min="0" value="${esc(v(goal.carbs))}"></label>
         <label class="field">Proteínas (g)<input name="protein" type="number" inputmode="numeric" min="0" value="${esc(v(goal.protein))}"></label>
         <label class="field">Gorduras (g)<input name="fat" type="number" inputmode="numeric" min="0" value="${esc(v(goal.fat))}"></label>
+        <label class="field">Fibras (g)<input name="fiber" type="number" inputmode="numeric" min="0" value="${esc(v(goal.fiber))}"></label>
       </div>
+      <p class="small muted" style="margin:6px 0 0">Não sabe quanto? Calcule pelo seu objetivo em <b>Dieta</b>. Fibras: em geral 25 a 38 g por dia.</p>
       <p class="small muted" id="macro-kcal" style="margin:8px 0 0"></p>
       <div class="btn-row"><button class="btn primary" data-save-goal>Salvar metas</button></div>
     </section>
@@ -670,12 +948,21 @@ async function renderSettings() {
       <ul class="muted small">
         <li>Sem cadastro e sem login.</li>
         <li>Tudo fica guardado neste aparelho; nada é enviado para servidores.</li>
+        <li>A busca de produtos de marca e o código de barras consultam o Open Food Facts pela internet, só quando você pede, e enviam apenas o termo ou o código.</li>
         <li>Funciona offline depois de instalado.</li>
         <li>Backup em arquivo, sob o seu controle.</li>
       </ul>
 
       <h3>Fonte dos dados</h3>
-      <p class="muted small">Tabela Brasileira de Composição de Alimentos (TACO), 4ª edição, NEPA/UNICAMP, 2011. Valores por 100 g do alimento como descrito; “traços” contam como zero e valores não analisados aparecem como “sem dado”.</p>
+      <p class="muted small">Cada alimento mostra de onde veio:</p>
+      <ul class="muted small">
+        <li><b>TACO</b>: Tabela Brasileira de Composição de Alimentos, 4ª edição, NEPA/UNICAMP, 2011. “Traços” contam como zero e valores não analisados aparecem como “sem dado”.</li>
+        <li><b>Receita calculada</b>: pratos do dia a dia somados ingrediente por ingrediente a partir da TACO (e da USDA quando a TACO não tem o ingrediente). A lista de ingredientes aparece no alimento.</li>
+        <li><b>USDA</b>: USDA FoodData Central, SR Legacy (domínio público), com nomes traduzidos pela JPlate.</li>
+        <li><b>TempoLife</b>: itens da base aberta tempo-food-db, de TempoLife (tempolife.app), licença CC-BY 4.0. Os dados da USDA também chegaram por esse pacote.</li>
+        <li><b>Open Food Facts</b>: produtos de marca buscados online, base aberta sob licença ODbL, mantida por colaboradores.</li>
+        <li><b>Medidas caseiras</b> (colher, concha, unidade) são aproximadas e aparecem com “aprox.”.</li>
+      </ul>
       <p class="muted small">Os números são estimativas para acompanhamento pessoal e não substituem orientação de nutricionista ou médico.</p>
       <p class="muted small">© ${new Date().getFullYear()} JPCOMPANY. Todos os direitos reservados.</p>
     </section>`;
@@ -692,7 +979,7 @@ async function renderSettings() {
   view.onclick = async (e) => {
     if (e.target.closest('[data-save-goal]')) {
       const num = (n) => { const x = $(`[name="${n}"]`, view).value; return x === '' ? null : Number(x); };
-      const g = { id: `goal-${today}`, startsAt: today, kcal: num('kcal'), carbs: num('carbs'), protein: num('protein'), fat: num('fat'), updatedAt: Date.now() };
+      const g = { id: `goal-${today}`, startsAt: today, kcal: num('kcal'), carbs: num('carbs'), protein: num('protein'), fat: num('fat'), fiber: num('fiber'), updatedAt: Date.now() };
       await db.put('goals', g);
       state.goals = await db.getAll('goals');
       return toast('Metas salvas.');
@@ -749,10 +1036,11 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 const splash = $('#splash');
 const hideSplash = () => {
   splash.classList.add('hide');
-  setTimeout(() => splash.remove(), 500);
+  setTimeout(() => splash.remove(), 400);
 };
 splash.addEventListener('click', hideSplash, { once: true });
-const splashMin = new Promise((r) => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 800 : 2300));
+// 1,15 s de abertura + 0,35 s de saída = 1,5 s no total.
+const splashMin = new Promise((r) => setTimeout(r, 1150));
 
 load().then(render).catch((err) => {
   view.innerHTML = `<div class="card">Não foi possível abrir o app: ${esc(err.message)}</div>`;

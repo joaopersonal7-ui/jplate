@@ -1,4 +1,5 @@
 // Regras de domínio puras: sem DOM e sem banco, para poderem ser testadas com node:test.
+import { defaultServings } from './measures.js';
 
 export const MEALS = [
   { id: 'breakfast', label: 'Café da manhã' },
@@ -48,8 +49,29 @@ export function normalize(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+// Palavras que também trazem as variações do alimento (ex.: "ovo" traz omelete, clara e gema).
+const RELATED = {
+  ovo: ['ovos', 'omelete', 'clara', 'gema', 'crepioca'],
+  ovos: ['ovo', 'omelete'],
+  frango: ['galinha', 'galinhada', 'chicken'],
+  carne: ['bovina', 'bife', 'patinho', 'alcatra', 'picanha', 'acem', 'contra'],
+  leite: ['iogurte', 'leitelho'],
+  queijo: ['mucarela', 'mozarela', 'ricota', 'cottage', 'parmesao', 'requeijao'],
+  mucarela: ['mozarela'],
+  mozarela: ['mucarela'],
+  porco: ['suina', 'suino', 'lombo', 'bisteca', 'pernil', 'bacon'],
+  peixe: ['tilapia', 'salmao', 'merluza', 'pescada', 'atum', 'sardinha', 'bacalhau'],
+  aipim: ['mandioca'],
+  macaxeira: ['mandioca'],
+  mandioca: ['aipim', 'tapioca'],
+  pao: ['torrada', 'paozinho'],
+  refri: ['refrigerante'],
+  whey: ['proteina'],
+};
+
 // Todas as palavras da busca precisam aparecer no nome (prefixo de palavra vale mais).
-export function searchFoods(foods, query, { favorites = [], recents = [], limit = 50 } = {}) {
+// Uma palavra também casa com seus parentes em RELATED, com pontuação menor.
+export function searchFoods(foods, query, { favorites = [], recents = [], limit = 60 } = {}) {
   const tokens = normalize(query).split(' ').filter(Boolean);
   if (!tokens.length) return [];
   const fav = new Set(favorites);
@@ -61,19 +83,41 @@ export function searchFoods(foods, query, { favorites = [], recents = [], limit 
     let score = 0;
     let ok = true;
     for (const t of tokens) {
-      if (!name.includes(t)) { ok = false; break; }
-      if (words.some((w) => w.startsWith(t))) score += 10;
+      if (name.includes(t)) {
+        if (words.some((w) => w.startsWith(t))) score += 10;
+        continue;
+      }
+      const rel = RELATED[t]?.find((r) => words.some((w) => w.startsWith(r)));
+      if (!rel) { ok = false; break; }
+      score += 6;
     }
     if (!ok) continue;
+    const first = [tokens[0], ...(RELATED[tokens[0]] ?? [])];
     if (words[0].startsWith(tokens[0])) score += 15;
+    else if (first.some((r) => words[0].startsWith(r))) score += 12;
     if (fav.has(food.id)) score += 30;
     if (rec.has(food.id)) score += 20 - Math.min(rec.get(food.id), 19);
-    if (food.source === 'user') score += 5;
+    if (food.source === 'user' || food.source === 'off') score += 5;
+    // Base brasileira e pratos do dia a dia primeiro; a USDA completa a lista.
+    if (food.source === 'taco' || food.source === 'receita') score += 8;
     score -= name.length / 20;
     out.push({ food, score });
   }
   out.sort((a, b) => b.score - a.score);
   return out.slice(0, limit).map((r) => r.food);
+}
+
+export const SOURCES = {
+  taco: 'TACO',
+  receita: 'Receita calculada',
+  usda: 'USDA',
+  tempo: 'TempoLife',
+  off: 'Open Food Facts',
+  user: 'Meu alimento',
+};
+
+export function sourceLabel(food) {
+  return SOURCES[food.source] ?? 'Meu alimento';
 }
 
 // ---------- porções e cálculo ----------
@@ -82,10 +126,14 @@ export function baseUnit(food) {
   return food.baseUnit === 'ml' ? 'ml' : 'g';
 }
 
-// Lista de unidades que o usuário pode escolher: a unidade base e as porções salvas.
+// Lista de unidades que o usuário pode escolher: a unidade base, as porções salvas e as medidas caseiras.
 export function servingOptions(food, savedServings = []) {
   const u = baseUnit(food);
-  return [{ id: u, label: u, amount: 1 }, ...savedServings.map((s) => ({ id: s.id, name: s.label, label: `${s.label} (${fmt(s.amount)} ${u})`, amount: s.amount }))];
+  const saved = savedServings.map((s) => ({ id: s.id, name: s.label, label: `${s.label} (${fmt(s.amount)} ${u})`, amount: s.amount }));
+  const names = new Set(saved.map((s) => s.name));
+  const defaults = defaultServings(food).filter((s) => !names.has(s.name))
+    .map((s, i) => ({ id: `d${i}`, name: s.name, label: `${s.name} (${fmt(s.g)} ${u}, aprox.)`, amount: s.g }));
+  return [{ id: u, label: u, amount: 1 }, ...saved, ...defaults];
 }
 
 export function entryAmount(quantity, serving) {
@@ -174,6 +222,44 @@ export function buildQuickEntry({ date, mealType, kcal, label, carbs, protein, f
     createdAt: createdAt ?? Date.now(),
     updatedAt: Date.now(),
   };
+}
+
+// ---------- plano de dieta ----------
+
+export const ACTIVITY = [
+  { id: 'sedentary', label: 'Sedentário (pouco ou nenhum exercício)', factor: 1.2 },
+  { id: 'light', label: 'Leve (1 a 3 treinos por semana)', factor: 1.375 },
+  { id: 'moderate', label: 'Moderado (3 a 5 treinos por semana)', factor: 1.55 },
+  { id: 'high', label: 'Alto (6 a 7 treinos por semana)', factor: 1.725 },
+  { id: 'athlete', label: 'Muito alto (2 treinos por dia ou trabalho pesado)', factor: 1.9 },
+];
+
+export const OBJECTIVES = [
+  { id: 'lose', label: 'Emagrecer', kcal: -0.2, protein: 2.0, fat: 0.8 },
+  { id: 'maintain', label: 'Manter o peso', kcal: 0, protein: 1.6, fat: 0.9 },
+  { id: 'gain', label: 'Ganhar massa', kcal: 0.1, protein: 1.8, fat: 1.0 },
+];
+
+// Gasto basal por Mifflin-St Jeor, gasto total pelo fator de atividade, e metas pelo objetivo.
+// Proteína e gordura em g/kg; carboidrato completa as calorias; fibra 14 g a cada 1000 kcal.
+export function calcTargets({ sex, age, height, weight, activity, objective }) {
+  const a = Number(age), h = Number(height), w = Number(weight);
+  if (!(a > 0 && h > 0 && w > 0)) return null;
+  const act = ACTIVITY.find((x) => x.id === activity) ?? ACTIVITY[0];
+  const obj = OBJECTIVES.find((x) => x.id === objective) ?? OBJECTIVES[1];
+  const bmr = 10 * w + 6.25 * h - 5 * a + (sex === 'f' ? -161 : 5);
+  const tdee = bmr * act.factor;
+  const kcal = Math.round((tdee * (1 + obj.kcal)) / 10) * 10;
+  const protein = Math.round(w * obj.protein);
+  const fat = Math.round(w * obj.fat);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  const fiber = Math.round((kcal / 1000) * 14);
+  return { bmr: Math.round(bmr), tdee: Math.round(tdee), kcal, protein, fat, carbs, fiber };
+}
+
+// Itens do plano viram nutrientes pelo mesmo cálculo do diário.
+export function planItemNutrients(food, item) {
+  return scaleNutrients(food.n, entryAmount(item.quantity, { amount: item.amount }));
 }
 
 // ---------- peso ----------
