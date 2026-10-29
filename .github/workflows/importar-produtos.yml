@@ -4,7 +4,8 @@ name: Importar produtos (Open Food Facts)
 
 on:
   workflow_dispatch:
-  # Primeira importação, enquanto o fluxo ainda não está no main (o botão manual só aparece depois).
+  # Importações deste ramo, enquanto o fluxo ainda não está no main (o botão manual só aparece depois).
+  # Remover este gatilho antes do merge.
   push:
     branches: [biblioteca-produtos]
     paths: [.github/workflows/importar-produtos.yml, scripts/import-off.mjs, src/products.js]
