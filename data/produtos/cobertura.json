@@ -1,0 +1,59 @@
+{
+  "source": "off",
+  "sourceName": "Open Food Facts",
+  "input": "https://static.openfoodfacts.org/data/openfoodfacts-products.jsonl.gz",
+  "importedAt": "2026-10-29T01:22:44.393Z",
+  "filter": "countries_tags contém en:brazil",
+  "license": "ODbL 1.0 (base derivada) · DbCL 1.0 (conteúdo)",
+  "linesRead": 4879695,
+  "candidates": 41298,
+  "parseErrors": 0,
+  "duplicates": 0,
+  "missingFromSourceNow": 0,
+  "withHistory": 0,
+  "partialRun": false,
+  "total": 37624,
+  "status": {
+    "completo": {
+      "n": 3338,
+      "pct": 8.9
+    },
+    "parcial": {
+      "n": 26012,
+      "pct": 69.1
+    },
+    "pendente": {
+      "n": 8274,
+      "pct": 22
+    }
+  },
+  "basicForDiary": {
+    "n": 26450,
+    "pct": 70.3
+  },
+  "withGtin": {
+    "n": 37204,
+    "pct": 98.9
+  },
+  "withName": {
+    "n": 36090,
+    "pct": 95.9
+  },
+  "withBrand": {
+    "n": 27101,
+    "pct": 72
+  },
+  "withPackageSize": {
+    "n": 16581,
+    "pct": 44.1
+  },
+  "withServing": {
+    "n": 28301,
+    "pct": 75.2
+  },
+  "checkedBySource": {
+    "n": 1,
+    "pct": 0
+  },
+  "brands": 6901
+}
