@@ -5,9 +5,10 @@ import { EQ_GROUPS, EQ_SECTIONS } from './equivalencias.js';
 import { KB } from './kb.js';
 import { KB_BASE } from './kb-base.js';
 import { KB_MED } from './kb-med.js';
+import { KB_300 } from './kb-300.js';
 import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
-import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER } from './conversa.js';
+import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER, CONFLITO } from './conversa.js';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9,.]+/g, ' ').trim();
 // Plural simples e variações de gênero, para "ovos" achar "ovo" e "cozida" achar "cozido".
@@ -20,7 +21,7 @@ const stem = (w) => {
   return w.replace(/(imento|amento|mente|coes|cao|ando|endo|indo|ados|idos|ado|ido|ar|er|ir|ou|ei|as|es|os|a|e|o|s)$/, '');
 };
 
-const STOP = new Set(`consigo consegui conseguir conseguindo a o e de da do das dos em no na nos nas um uma uns umas para pra pro pros por com sem que q se eu meu minha meus minhas ta pq
+const STOP = new Set(`todo toda todos todas consigo consegui conseguir conseguindo a o e de da do das dos em no na nos nas um uma uns umas para pra pro pros por com sem que q se eu meu minha meus minhas ta pq
   me mim voce vc posso pode podem devo deve preciso precisa como qual quais quanto quantos quantas quando onde porque por que
   ou mais menos muito pouco isso esse essa este esta ao aos as os ja tem ter sou estou fazer faco faz e ne la ai so tambem
   dia dias app aplicativo funciona funcionam serve vale bom boa melhor
@@ -29,6 +30,7 @@ const STOP = new Set(`consigo consegui conseguir conseguindo a o e de da do das 
 
 // Alimentos da tabela: só plural, para "franca" não virar "frances".
 const lwords = (s) => norm(s).replace(/[,.]/g, ' ').split(' ').filter((w) => w && !STOP.has(w)).map((w) => (w.length > 3 ? w.replace(/(oes|aes)$/, 'ao').replace(/s$/, '') : w));
+const titleKey = (s) => [...new Set(words(s))].join(' ');
 const words = (s) => norm(s).replace(/[,.]/g, ' ').split(' ').filter((w) => w && !STOP.has(w)).map(stem);
 
 // ---------- documentos (FAQ + textos da tabela) ----------
@@ -38,6 +40,7 @@ const DOCS = [
   ...EQ_SECTIONS.map((x) => ({ title: x.title, text: x.lines.join(' '), from: 'Tabela de equivalências' })),
   ...KB.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave })),
   ...KB_BASE.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias })),
+  ...KB_300.map((k) => ({ title: k.pergunta, text: k.resposta, from: `Banco da SÁ · ${k.categoria}`, keys: k.palavras_chave, autoKeys: true, id: k.id })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
 const MED_DOCS = [
@@ -51,7 +54,8 @@ for (const d of ALL_DOCS) {
   d.qw = new Set(words(d.title));
   d.aw = new Set(words(d.text));
   d.kw = new Set((d.keys ?? []).flatMap(words));
-  d.phrases = (d.keys ?? []).map((k) => words(k).join(' ')).filter(Boolean);
+  // Palavras-chave geradas da própria pergunta (base de 300) não ganham bônus de frase: só repetiriam o título.
+  d.phrases = d.autoKeys ? [] : (d.keys ?? []).map((k) => words(k).join(' ')).filter(Boolean);
   for (const w of new Set([...d.qw, ...d.aw, ...d.kw])) idf.set(w, (idf.get(w) ?? 0) + 1);
 }
 for (const [w, n] of idf) idf.set(w, Math.log(1 + ALL_DOCS.length / n));
@@ -105,11 +109,11 @@ const INTENTS = [
   [/\bganhar massa\b|\bcrescer\b|\bficar (grande|forte)\b/, 'hipertrofia massa muscular'],
 ];
 
-const TITLE_KEYS = new Set(ALL_DOCS.map((d) => words(d.title).join(' ')));
+const TITLE_KEYS = new Set(ALL_DOCS.map((d) => titleKey(d.title)));
 
 export function interpret(q) {
   const n = fixTypos(norm(q));
-  if (TITLE_KEYS.has(words(n).join(' '))) return n;
+  if (TITLE_KEYS.has(titleKey(n))) return n;
   const extra = INTENTS.filter(([re]) => re.test(n)).map(([, w]) => w);
   return extra.length ? `${n} ${extra.join(' ')}` : n;
 }
@@ -125,6 +129,7 @@ export function searchDocs(q, pool = DOCS) {
   if (!qw.length) return [];
   const qs = ` ${qw.join(' ')} `;
   const glossary = /^o que (e|significa) /.test(norm(q));
+  const raw = norm(q).replace(/[,.?]/g, '').trim();
   return pool.map((d) => {
     let score = 0;
     for (const w of qw) {
@@ -136,7 +141,9 @@ export function searchDocs(q, pool = DOCS) {
     // Palavra-chave inteira na pergunta (ex.: "fim de semana", "plantão") pesa mais.
     for (const ph of d.phrases ?? []) if (qs.includes(` ${ph} `)) score += 1.5 * ph.split(' ').length;
     // Pergunta igual ao título, ou "o que é X" para os verbetes do glossário.
-    if (words(d.title).join(' ') === qw.join(' ')) score += 50;
+    if (titleKey(d.title) === qw.join(' ')) score += 50;
+    // Duas perguntas que só diferem em "a", "o", "todos"...: fica a escrita igual à do aluno.
+    if (raw === norm(d.title).replace(/[,.?]/g, '').trim()) score += 2;
     if (glossary && /^O que é /.test(d.title)) score *= 1.6;
     return { d, score: score / Math.sqrt(qw.length) };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
@@ -155,7 +162,7 @@ function compose(q, ranked, pool = DOCS) {
   // Na base de medicamentos, "caneta"/"remédio"/"emagrecer" são o contexto de tudo, não um assunto a mais.
   const key = qw.filter((w) => (idf.get(w) ?? 0) > 1 && TITLE_WORDS.has(w) && !(pool === MED_DOCS && MED_CONTEXT.has(w)));
   const parts = [ranked[0]];
-  const exact = words(ranked[0].d.title).join(' ') === qw.join(' ');
+  const exact = titleKey(ranked[0].d.title) === qw.join(' ');
   const done = (w) => parts.some((p) => covers(p.d, w));
   // Próximo trecho: o que melhor cobre o assunto que falta e ainda conversa com os já usados (ex.: energia + gordura).
   const conceptScore = (d, ws) => ws.reduce((t, w) => t + (idf.get(w) ?? 0) * (d.qw.has(w) || d.kw.has(w) ? 2 : d.aw.has(w) ? 1 : 0)
@@ -178,7 +185,7 @@ function compose(q, ranked, pool = DOCS) {
   }
   // Regra do Joao: uma resposta cadastrada por vez. Os outros assuntos da pergunta viram "Veja também".
   const related = [...parts.slice(1).map((p) => p.d.title), ...ranked.filter((x) => !parts.some((p) => p.d === x.d) && x.score >= 2).map((x) => x.d.title)]
-    .filter((t, k, a) => a.indexOf(t) === k).slice(0, 3);
+    .filter((t, k, a) => a.indexOf(t) === k && t !== parts[0].d.title).slice(0, 3);
   const d = parts[0].d;
   return { title: d.title, text: d.text, from: d.from, refs: d.refs, related };
 }
@@ -352,7 +359,24 @@ function smallTalk(n, ctx) {
 // Cumprimento antes da pergunta ("oi, creatina funciona?"): guarda o cumprimento e responde a pergunta.
 const GREETING_PREFIX = /^(oi+|ola|opa|bom dia|boa tarde|boa noite|e ai|eai|hey|sa|oi sa|ola sa)\b[\s,!.]*(sa\b[\s,!.]*)?/;
 
+const BROAD_DOCS = 40;
+
+// Respostas cadastradas que se contradizem (aguardando a decisão do Joao): a SÁ mostra as opções em vez de escolher.
+const CONFLITOS = [
+  { tema: 'refeição livre', titulos: ['Refeição livre', 'Preciso fazer refeição livre?', 'Posso fazer uma refeição livre durante a dieta?', 'Preciso fazer uma refeição livre para acelerar o metabolismo?'] },
+];
+
+function conflictCheck(a, ctx) {
+  const c = a?.title && CONFLITOS.find((x) => x.titulos.includes(a.title));
+  return c ? { text: fill(CONFLITO.replace('{tema}', c.tema), ctx), options: c.titulos, from: null } : a;
+}
+
 export function answer(q, ctx = {}) {
+  const a = answerRaw(q, ctx);
+  return ctx.exact ? a : conflictCheck(a, ctx);
+}
+
+function answerRaw(q, ctx = {}) {
   const { exact = false } = ctx;
   let n = norm(q);
   if (!n) return null;
@@ -360,7 +384,7 @@ export function answer(q, ctx = {}) {
   const greetingOnly = !g || n.slice(g[0].length).replace(/[,.!?\s]/g, '').length <= 3;
   const talk = !exact && greetingOnly && smallTalk(n, ctx);
   // Uma pergunta que é exatamente um título da base vale mais que a conversa.
-  if (talk && !healthTopic(` ${n.replace(/[,.]/g, ' ')} `) && !TITLE_KEYS.has(words(n).join(' '))) return talk;
+  if (talk && !healthTopic(` ${n.replace(/[,.]/g, ' ')} `) && !TITLE_KEYS.has(titleKey(n))) return talk;
   if (g && !greetingOnly) {
     const rest = answer(n.slice(g[0].length), { ...ctx, exact: false });
     const hi = /^bom dia/.test(n) ? 'Bom dia' : /^boa tarde/.test(n) ? 'Boa tarde' : /^boa noite/.test(n) ? 'Boa noite' : 'Olá';
@@ -379,7 +403,7 @@ export function answer(q, ctx = {}) {
   if (health) {
     // Se a base tem uma resposta feita para essa pergunta, usa ela; senão, a orientação geral. Sempre fecha com a equipe.
     const med = searchDocs(q, MED_DOCS);
-    const exact = med[0] && words(med[0].d.title).join(' ') === queryWords(q).base.join(' ');
+    const exact = med[0] && titleKey(med[0].d.title) === queryWords(q).base.join(' ');
     if (health.id !== 'alerta' && med[0] && (exact || (health.id === 'remedios' && MED_RE.test(` ${n} `) && med[0].score >= 3))) {
       const a = medAnswer(q, med);
       // Fichas das canetas fecham com "equipe e médico"; o resto da base, com a equipe.
@@ -393,11 +417,14 @@ export function answer(q, ctx = {}) {
   }
   const wantsSwap = /\b(troc|substitu|equival|no lugar)/.test(n);
   const eq = equivalenceAnswer(q);
-  if (eq && (wantsSwap || findFoods(q).length)) {
+  if (eq && !TITLE_KEYS.has(titleKey(q)) && (wantsSwap || findFoods(q).length)) {
     if (wantsSwap || !searchDocs(q)[0] || searchDocs(q)[0].score < 3) return eq;
   }
   const ranked = searchDocs(q);
-  if (ranked[0] && ranked[0].score >= 4) return compose(q, ranked);
+  // Uma palavra só e muito comum ("dieta", "treino"): pergunta qual assunto, em vez de chutar.
+  const qw = queryWords(q).base;
+  const broad = qw.length === 1 && ALL_DOCS.length / (Math.exp(idf.get(qw[0]) ?? 9) - 1) >= BROAD_DOCS && !TITLE_KEYS.has(qw[0]);
+  if (ranked[0] && ranked[0].score >= 4 && !broad) return compose(q, ranked);
   if (eq) return eq;
   // Pouca certeza: em vez de chutar, oferece as perguntas mais próximas.
   if (ranked[0] && ranked[0].score >= 1.2) return { text: fill(QUIS_DIZER, ctx), options: [...new Set(ranked.slice(0, 3).map((x) => x.d.title))], from: null };

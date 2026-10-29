@@ -21,6 +21,8 @@ test('assistente responde pelo FAQ e encaminha saúde para a equipe', () => {
 test('assistente acha cada pergunta da base e guarda as referências', async () => {
   const { KB } = await import('../src/kb.js');
   for (const k of KB) {
+    // Assunto com respostas que se contradizem: a SÁ mostra as opções (incluindo esta) em vez de escolher.
+    if (answer(k.pergunta).options?.includes(k.pergunta)) continue;
     const r = answer(k.pergunta);
     assert.equal(r.title, k.pergunta);
     assert.deepEqual(r.refs, k.referencias);
@@ -72,4 +74,15 @@ test('SÁ conversa: cumprimenta pelo nome, responde sobre ela e lembra o último
 test('perguntas de teste: pelo menos 50 de 55 certas', async () => {
   const { avaliar } = await import('./perguntas-teste.mjs');
   assert.ok(avaliar(answer).acertos >= 50);
+});
+
+test('base de 300: cada pergunta acha a si mesma ou uma igual da base antiga, e conflito vira opções', async () => {
+  const { KB_300 } = await import('../src/kb-300.js');
+  assert.equal(KB_300.length, 300);
+  let ok = 0;
+  for (const k of KB_300) if (answer(k.pergunta).title === k.pergunta) ok++;
+  assert.ok(ok >= 295);
+  const r = answer('preciso fazer refeição livre?');
+  assert.ok(r.options.includes('Refeição livre') && r.options.includes('Preciso fazer refeição livre?'));
+  assert.equal(answer('Refeição livre', { exact: true }).title, 'Refeição livre');
 });

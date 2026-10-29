@@ -176,6 +176,9 @@ export const OBJETIVO_FALAS = [
   'Ótimo objetivo, {nome}! Aqui estão alguns assuntos que ajudam nesse caminho:',
 ];
 
+// Quando a base tem respostas diferentes para o mesmo assunto, a SÁ não escolhe uma: mostra as opções.
+export const CONFLITO = 'Tenho mais de uma orientação cadastrada sobre {tema}, {nome}. Escolha qual quer ver. Para o seu caso, confirme com a equipe da ConsultoriaJP.';
+
 export const NAO_ENCONTREI = 'Não tenho uma resposta cadastrada para essa pergunta no momento.';
 export const QUIS_DIZER = 'Não tenho certeza se entendi, {nome}. Você quis dizer:';
 

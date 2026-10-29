@@ -11,9 +11,9 @@ export const CASOS = [
   ['a caneta queima gordura', ['A caneta queima gordura?']],
   ['parei o ozempic e engordei', ['O que acontece quando paro a caneta ou o remédio para emagrecer?']],
   ['intestino preso com a caneta', ['A caneta pode deixar o intestino preso?']],
-  ['creatina', ['Creatina: para que serve?']],
+  ['creatina', ['Creatina: para que serve?', 'O que é creatina?']],
   ['creatina incha?', ['Creatina causa retenção de líquido?']],
-  ['creatina retem liquido', ['Creatina causa retenção de líquido?']],
+  ['creatina retem liquido', ['Creatina retém líquido?', 'Creatina causa retenção de líquido?']],
   ['whey', ['Whey protein é obrigatório?', 'Whey engorda?']],
   ['whey engorda', ['Whey engorda?']],
   ['cafeina', ['Cafeína melhora o treino?']],
@@ -54,7 +54,7 @@ export const CASOS = [
   ['rotulo dos alimentos', ['Como interpretar o rótulo de um alimento?']],
   ['dieta barata', ['Comer saudável precisa ser caro?', 'Como adaptar a dieta ao orçamento do mês?']],
   ['bcaa', ['BCAA e glutamina são necessários para ganhar músculo?']],
-  ['vitamina d', ['Como saber se preciso de vitamina D, ferro ou B12?']],
+  ['vitamina d', ['Para que serve vitamina D?', 'Como saber se preciso de vitamina D, ferro ou B12?']],
   ['gluten engorda', ['Preciso cortar glúten para emagrecer?']],
 ];
 
