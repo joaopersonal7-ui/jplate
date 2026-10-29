@@ -242,7 +242,14 @@ export const OBJECTIVES = [
 
 // Gasto basal por Mifflin-St Jeor, gasto total pelo fator de atividade, e metas pelo objetivo.
 // Proteína e gordura em g/kg; carboidrato completa as calorias; fibra 14 g a cada 1000 kcal.
-export function calcTargets({ sex, age, height, weight, activity, objective }) {
+// Quem não treina precisa de menos proteína; quem já treina há tempo e quer ganhar massa, um pouco mais.
+export const LEVELS = [
+  { id: 'beginner', label: 'Iniciante (menos de 6 meses)' },
+  { id: 'intermediate', label: 'Intermediário (6 meses a 2 anos)' },
+  { id: 'advanced', label: 'Avançado (mais de 2 anos)' },
+];
+
+export function calcTargets({ sex, age, height, weight, activity, objective, trains, level }) {
   const a = Number(age), h = Number(height), w = Number(weight);
   if (!(a > 0 && h > 0 && w > 0)) return null;
   const act = ACTIVITY.find((x) => x.id === activity) ?? ACTIVITY[0];
@@ -250,7 +257,10 @@ export function calcTargets({ sex, age, height, weight, activity, objective }) {
   const bmr = 10 * w + 6.25 * h - 5 * a + (sex === 'f' ? -161 : 5);
   const tdee = bmr * act.factor;
   const kcal = Math.round((tdee * (1 + obj.kcal)) / 10) * 10;
-  const protein = Math.round(w * obj.protein);
+  let gPerKg = obj.protein;
+  if (trains === 'no') gPerKg = Math.max(1.2, gPerKg - 0.4);
+  else if (level === 'advanced' && obj.id === 'gain') gPerKg += 0.2;
+  const protein = Math.round(w * gPerKg);
   const fat = Math.round(w * obj.fat);
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
   const fiber = Math.round((kcal / 1000) * 14);

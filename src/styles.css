@@ -48,7 +48,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-button, input, select { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
 
 main { max-width: 640px; margin: 0 auto; padding: 0 16px 24px; outline: none; }
 
@@ -159,7 +159,7 @@ h3 { font-size: .95rem; margin: 0; }
 }
 
 label.field { display: block; margin-top: 10px; font-size: .85rem; color: var(--muted); }
-label.field > input, label.field > select {
+label.field > input, label.field > select, label.field > textarea {
   display: block; width: 100%; margin-top: 4px;
   padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
   font-size: 1rem; color: var(--text);
@@ -167,7 +167,7 @@ label.field > input, label.field > select {
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
 
-input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- folha (dialog) ---------- */
 
@@ -234,7 +234,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
   position: absolute; left: 50%; top: 50%;
   width: max(100vw, 100vh * 810 / 1440); aspect-ratio: 810 / 1440;
   transform: translate(-50%, -50%);
-  animation: splash-art .45s cubic-bezier(.2, .7, .2, 1) both;
+  animation: splash-art .6s cubic-bezier(.2, .7, .2, 1) both;
 }
 .splash-art img { width: 100%; height: 100%; display: block; }
 /* brilho que passa uma vez pela logo */
@@ -245,12 +245,12 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
   mix-blend-mode: screen;
   -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent);
           mask-image: radial-gradient(closest-side, #000 70%, transparent);
-  animation: splash-shine .7s .3s ease-in-out both;
+  animation: splash-shine 1s .45s ease-in-out both;
 }
 
 .splash-text {
   position: absolute; left: 0; right: 0; bottom: calc(9vh + env(safe-area-inset-bottom));
-  text-align: center; animation: splash-text .4s .4s ease-out both;
+  text-align: center; animation: splash-text .5s .55s ease-out both;
   text-shadow: 0 2px 12px rgb(0 0 0 / .5);
 }
 .splash-text h1 {
@@ -312,3 +312,40 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .scanner video { width: 100%; max-height: 260px; object-fit: cover; border-radius: 12px; background: #000; display: block; }
 .scanner p { margin: 6px 0 0; }
 .row .macros { display: block; }
+
+/* área do aluno */
+label.field > textarea { resize: vertical; min-height: 70px; }
+.profile-head { display: flex; gap: 14px; align-items: center; }
+.profile-head h2 { margin: 0; }
+.profile-head p { margin: 2px 0 8px; }
+.avatar {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; padding: 0;
+  border: 2px solid var(--accent); background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center; font-weight: 700; cursor: pointer;
+}
+.avatar.lg { width: 84px; height: 84px; font-size: 2rem; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.time {
+  display: inline-block; font-size: .75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); vertical-align: middle;
+}
+
+/* impressão / PDF do cardápio */
+#print-area { display: none; }
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; color: #000; background: #fff; font-size: 11pt; }
+  body { background: #fff !important; }
+  .print-head { display: flex; gap: 14px; align-items: center; border-bottom: 2px solid #b5531f; padding-bottom: 8px; }
+  .print-head img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+  .print-head h1 { margin: 0; font-size: 18pt; }
+  .print-head p { margin: 2px 0 0; color: #555; }
+  #print-area h2 { font-size: 12pt; margin: 14px 0 4px; break-after: avoid; }
+  #print-area h2 small { font-weight: 400; color: #555; }
+  #print-area table { width: 100%; border-collapse: collapse; break-inside: avoid; }
+  #print-area td { border-bottom: 1px solid #ddd; padding: 4px 6px; }
+  #print-area td:first-child { width: 55%; }
+  #print-area td:nth-child(2), #print-area td:nth-child(3) { text-align: right; white-space: nowrap; }
+  .print-goals { margin: 10px 0; }
+  .print-note { color: #666; font-size: 9pt; margin-top: 14px; }
+}

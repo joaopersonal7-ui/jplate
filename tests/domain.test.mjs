@@ -175,3 +175,62 @@ test('produto do Open Food Facts vira alimento com sódio em mg e fonte', () => 
   assert.equal(suco.n.kcal, 48);
   assert.equal(offToFood({ code: '2', product_name: 'Sem dados', nutriments: {} }), null);
 });
+
+import { mealSlots, generatePlan, planToText, PLAN_FOOD_IDS } from '../src/planner.js';
+
+const allFoods = [
+  ...taco,
+  ...JSON.parse(readFileSync(new URL('../data/receitas.json', import.meta.url))),
+  ...JSON.parse(readFileSync(new URL('../data/usda.json', import.meta.url))),
+];
+const byId = new Map(allFoods.map((f) => [f.id, f]));
+
+test('refeições seguem os horários de acordar e dormir', () => {
+  const s = mealSlots('06:00', '22:30');
+  assert.equal(s[0].id, 'breakfast');
+  assert.equal(s[0].time, '06:30');
+  assert.equal(s.at(-1).id, 'supper');
+  assert.equal(s.find((x) => x.id === 'dinner').time, '20:00');
+  const short = mealSlots('10:00', '23:00');
+  assert.ok(!short.some((x) => x.id === 'supper'));
+  assert.ok(short.every((x) => /^\d\d:\d\d$/.test(x.time)));
+});
+
+test('quem não treina recebe menos proteína por kg', () => {
+  const base = { sex: 'm', age: 30, height: 180, weight: 80, activity: 'light', objective: 'maintain' };
+  assert.ok(calcTargets({ ...base, trains: 'no' }).protein < calcTargets({ ...base, trains: 'yes' }).protein);
+});
+
+test('cardápio gerado usa só alimentos da base e bate as metas', () => {
+  for (const id of PLAN_FOOD_IDS) assert.ok(byId.has(id), `falta ${id}`);
+  const profiles = [
+    { sex: 'm', age: 30, height: 180, weight: 80, activity: 'moderate', objective: 'maintain', trains: 'yes', level: 'intermediate' },
+    { sex: 'f', age: 28, height: 163, weight: 62, activity: 'light', objective: 'lose', trains: 'no' },
+    { sex: 'm', age: 22, height: 175, weight: 70, activity: 'high', objective: 'gain', trains: 'yes', level: 'beginner' },
+  ];
+  for (const p of profiles) {
+    const targets = calcTargets(p);
+    for (const seed of [0, 1, 2]) {
+      const plan = generatePlan({ targets, wake: '06:30', sleep: '23:00', seed }, byId);
+      assert.ok(plan.items.length >= 10);
+      for (const k of ['kcal', 'protein', 'carbs', 'fat']) {
+        const err = Math.abs(plan.totals[k] - targets[k]) / targets[k];
+        assert.ok(err < 0.12, `${k} ${plan.totals[k]} vs ${targets[k]}`);
+      }
+      assert.ok(plan.totals.fiber >= targets.fiber * 0.85);
+    }
+  }
+});
+
+test('texto exportado traz metas, horários e total', () => {
+  const txt = planToText({
+    name: 'Ana', date: '29/10/2026', targets: { kcal: 2000, protein: 120, carbs: 230, fat: 60, fiber: 28 },
+    slots: [{ id: 'breakfast', label: 'Café da manhã', time: '07:00' }],
+    rows: [{ slot: 'breakfast', name: 'Ovo cozido', amount: '2 unidades', n: { kcal: 146, protein: 13, carbs: 1, fat: 10, fiber: 0 } }],
+    totals: { kcal: 146, protein: 13, carbs: 1, fat: 10, fiber: 0 },
+  });
+  assert.match(txt, /PLANO ALIMENTAR - Ana/);
+  assert.match(txt, /07:00 - CAFÉ DA MANHÃ/);
+  assert.match(txt, /Ovo cozido: 2 unidades/);
+  assert.match(txt, /TOTAL DO DIA: 146 kcal/);
+});

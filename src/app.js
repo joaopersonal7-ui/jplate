@@ -3,8 +3,9 @@ import {
   MEALS, NUTRIENTS, BACKUP_VERSION, localDate, addDays, parseLocalDate, formatDateLabel, normalize,
   searchFoods, servingOptions, baseUnit, scaleNutrients, entryAmount, sumTotals, groupByMeal, goalFor,
   buildEntry, buildQuickEntry, weightTrend, validateBackup, fmt, round, uid,
-  sourceLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES,
+  sourceLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS,
 } from './domain.js';
+import { generatePlan, planToText } from './planner.js';
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -13,7 +14,8 @@ const topbar = $('#topbar');
 const sheet = $('#sheet');
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const mealLabel = (id) => MEALS.find((m) => m.id === id)?.label ?? id;
+const planSlots = () => (state.plan.meals?.length ? state.plan.meals : MEALS);
+const mealLabel = (id) => MEALS.find((m) => m.id === id)?.label ?? planSlots().find((m) => m.id === id)?.label ?? id;
 const icons = {
   left: '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
   right: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
@@ -35,14 +37,15 @@ const state = {
   weights: [],
   lastBackup: null,
   firstUse: null,
-  plan: { profile: {}, items: [] },
+  plan: { items: [] },
+  profile: {},
 };
 
 // ---------- carga ----------
 
 async function load() {
   const data = (f) => fetch(`data/${f}`).then((r) => r.json());
-  const [taco, receitas, usda, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan] = await Promise.all([
+  const [taco, receitas, usda, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan, profile] = await Promise.all([
     data('taco.json').then((list) => list.map((f) => ({ ...f, source: 'taco' }))),
     data('receitas.json'),
     data('usda.json'),
@@ -54,10 +57,12 @@ async function load() {
     db.kvGet('servings', {}),
     db.kvGet('lastBackup', null),
     db.kvGet('firstUse', null),
-    db.kvGet('plan', { profile: {}, items: [] }),
+    db.kvGet('plan', { items: [] }),
+    db.kvGet('profile', null),
   ]);
   const base = [...receitas, ...taco, ...usda];
-  Object.assign(state, { base, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan });
+  // Dados do aluno moravam dentro do plano na versão anterior.
+  Object.assign(state, { base, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan, profile: profile ?? plan.profile ?? {} });
   if (!firstUse) {
     state.firstUse = localDate();
     await db.kvSet('firstUse', state.firstUse);
@@ -89,6 +94,7 @@ document.querySelector('.tabbar').addEventListener('click', (e) => {
 async function render() {
   const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings };
   view.oninput = null;
+  view.onchange = null;
   await renderers[state.tab]();
 }
 
@@ -413,7 +419,7 @@ function openFoodDetail(food, { mealType, entry, back, mode = 'diary', planItem 
         </div>
         <div class="btn-row"><button class="btn small" data-save-serving>Salvar porção</button></div>
       </div>
-      <label class="field">Refeição<select name="meal">${MEALS.map((m) => `<option value="${m.id}"${m.id === sel.mealType ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}</select></label>
+      <label class="field">Refeição<select name="meal">${(mode === 'plan' ? planSlots() : MEALS).map((m) => `<option value="${m.id}"${m.id === sel.mealType ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}</select></label>
       ${entry ? `<label class="field">Data<input type="date" name="date" value="${esc(entry.date)}"></label>` : ''}
       <table class="nutri-table" id="preview"></table>
       <div class="btn-row">
@@ -656,6 +662,15 @@ async function savePlan(plan) {
   await db.kvSet('plan', plan);
 }
 
+async function saveProfile(profile) {
+  state.profile = profile;
+  await db.kvSet('profile', profile);
+}
+
+function latestWeight() {
+  return [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.kg ?? null;
+}
+
 function planTotals(items) {
   const rows = items.map((item) => {
     const food = state.foodsById.get(item.foodId);
@@ -664,42 +679,72 @@ function planTotals(items) {
   return { rows, ...sumTotals(rows.map((r) => ({ nutrients: r.n }))) };
 }
 
+function amountText(item, food) {
+  const total = `${fmt(item.quantity * item.amount, 0)} ${baseUnit(food)}`;
+  return item.servingName === baseUnit(food) ? total : `${fmt(item.quantity)} × ${item.servingName} · ${total}`;
+}
+
+// Gramas do cardápio gerado viram medida caseira quando a conta fecha (ex.: 100 g de ovo = 2 unidades).
+function planItemFromGrams(food, slot, grams) {
+  const base = { id: uid(), foodId: food.id, mealType: slot, quantity: grams, servingId: baseUnit(food), servingName: baseUnit(food), amount: 1 };
+  for (const o of servingOptions(food).slice(1)) {
+    const q = grams / o.amount;
+    if (q >= 0.5 && q <= 6 && Math.abs(q * 2 - Math.round(q * 2)) < 0.08) {
+      return { ...base, quantity: Math.round(q * 2) / 2, servingId: o.id, servingName: o.name, amount: o.amount };
+    }
+  }
+  return base;
+}
+
+const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'level', 'wake', 'sleep'];
+
+function profileComplete(p) {
+  return ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep'].every((k) => p[k]) && (p.trains === 'no' || p.level);
+}
+
 function renderPlan() {
-  setTopbar('<h1>Minha dieta</h1>');
+  setTopbar(`<h1>Minha dieta</h1>${state.profile.photo ? `<img class="avatar sm" src="${esc(state.profile.photo)}" alt="">` : ''}`);
   topbar.onclick = null;
-  const p = { sex: 'm', activity: 'light', objective: 'maintain', ...state.plan.profile };
-  if (!p.weight && state.weights.length) p.weight = [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1).kg;
-  const goal = goalFor(state.goals, localDate());
+  const p = { sex: 'm', activity: 'light', objective: 'maintain', wake: '07:00', sleep: '23:00', ...state.profile };
+  if (!p.weight) p.weight = latestWeight() ?? '';
   const v = (x) => (x === null || x === undefined ? '' : x);
   const opt = (list, cur) => list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
 
   view.innerHTML = `
     <section class="card">
-      <h2>1. Seu objetivo</h2>
-      <p class="small muted" style="margin:4px 0 0">Preencha seus dados e o app calcula calorias, proteínas, carboidratos, gorduras e fibras para o seu objetivo.</p>
+      <h2>1. Seu objetivo${state.profile.name ? `, ${esc(state.profile.name.split(' ')[0])}` : ''}</h2>
+      <p class="small muted" style="margin:4px 0 0">Preencha tudo e o app calcula suas metas e monta um cardápio completo para você.</p>
       <div class="grid2">
         <label class="field">Sexo<select name="sex"><option value="m"${p.sex === 'm' ? ' selected' : ''}>Masculino</option><option value="f"${p.sex === 'f' ? ' selected' : ''}>Feminino</option></select></label>
         <label class="field">Idade<input name="age" type="number" inputmode="numeric" min="10" max="100" value="${esc(v(p.age))}"></label>
         <label class="field">Altura (cm)<input name="height" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
         <label class="field">Peso (kg)<input name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="${esc(v(p.weight))}"></label>
+        <label class="field">Acordo às<input name="wake" type="time" value="${esc(v(p.wake))}"></label>
+        <label class="field">Durmo às<input name="sleep" type="time" value="${esc(v(p.sleep))}"></label>
+        <label class="field">Já treina?<select name="trains"><option value="">Escolha</option><option value="yes"${p.trains === 'yes' ? ' selected' : ''}>Sim, já treino</option><option value="no"${p.trains === 'no' ? ' selected' : ''}>Ainda não treino</option></select></label>
+        <label class="field" data-level ${p.trains === 'no' ? 'hidden' : ''}>Nível<select name="level"><option value="">Escolha</option>${opt(LEVELS, p.level)}</select></label>
       </div>
-      <label class="field">Atividade física<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
+      <label class="field">Atividade física no dia a dia<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
       <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
       <div id="targets"></div>
     </section>
 
     <section class="card">
-      <div class="card-head"><h2>2. Monte seu cardápio</h2></div>
-      <p class="small muted" style="margin:4px 0 0">Adicione os alimentos de cada refeição. As barras mostram quanto do dia já está planejado.</p>
+      <div class="card-head"><h2>2. Seu cardápio</h2></div>
+      <p class="small muted" style="margin:4px 0 0">Gere um cardápio automático pelas metas e horários, ou monte o seu. Toque num alimento para trocar a quantidade ou remover.</p>
+      <div class="btn-row" id="gen-row"></div>
       <div id="plan-progress"></div>
     </section>
     <div id="plan-meals"></div>
     <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor). Não substitui avaliação de nutricionista.</p>`;
 
-  const readProfile = () => Object.fromEntries(['sex', 'age', 'height', 'weight', 'activity', 'objective'].map((k) => [k, $(`[name="${k}"]`, view).value]));
+  const readProfile = () => ({ ...state.profile, ...Object.fromEntries(PROFILE_FIELDS.map((k) => [k, $(`[name="${k}"]`, view).value])) });
+  const targetsNow = () => goalFor(state.goals, localDate()) ?? calcTargets(readProfile()) ?? {};
 
   const drawTargets = () => {
-    const t = calcTargets(readProfile());
+    const prof = readProfile();
+    $('[data-level]', view).hidden = prof.trains === 'no';
+    const t = calcTargets(prof);
     $('#targets', view).innerHTML = t ? `
       <div class="targets">
         <div><b>${fmt(t.kcal, 0)}</b><span>kcal/dia</span></div>
@@ -709,12 +754,16 @@ function renderPlan() {
         <div><b>${fmt(t.fiber, 0)} g</b><span>fibra</span></div>
       </div>
       <p class="small muted" style="margin:8px 0 0">Gasto em repouso ${fmt(t.bmr, 0)} kcal · gasto total estimado ${fmt(t.tdee, 0)} kcal.</p>
-      <div class="btn-row"><button class="btn primary" data-use-targets>Usar como minhas metas diárias</button></div>`
+      <div class="btn-row"><button class="btn" data-use-targets>Usar como minhas metas diárias</button></div>`
       : '<p class="small muted" style="margin:10px 0 0">Preencha idade, altura e peso para ver suas metas.</p>';
+    const ok = profileComplete(prof);
+    $('#gen-row', view).innerHTML = ok
+      ? `<button class="btn primary" data-generate>${state.plan.generated ? 'Gerar outra opção de cardápio' : 'Gerar meu cardápio'}</button>`
+      : '<p class="small warn" style="margin:0">Preencha todos os dados acima (inclusive horários e se já treina) para gerar o cardápio automático.</p>';
   };
 
   const drawPlan = () => {
-    const target = goalFor(state.goals, localDate()) ?? calcTargets(readProfile()) ?? {};
+    const target = targetsNow();
     const { totals } = planTotals(state.plan.items);
     const bar = (key, label, unit = 'g') => {
       const g = target[key];
@@ -725,20 +774,28 @@ function renderPlan() {
         <span class="num">${fmt(val, 0)}${g ? ` / ${fmt(g, 0)}` : ''} ${unit}${left !== null ? ` · ${left >= 0 ? `faltam ${fmt(left, 0)}` : `${fmt(-left, 0)} acima`}` : ''}</span></div>
         <div class="bar ${key}"><i style="width:${w}%"></i></div></div>`;
     };
+    const has = state.plan.items.length > 0;
     $('#plan-progress', view).innerHTML = `<div style="margin-top:10px">${bar('kcal', 'Calorias', 'kcal')}${bar('protein', 'Proteínas')}${bar('carbs', 'Carboidratos')}${bar('fat', 'Gorduras')}${bar('fiber', 'Fibras')}</div>
       ${!target.kcal ? '<p class="small warn" style="margin:8px 0 0">Defina o objetivo acima para comparar com as metas.</p>' : ''}
-      ${state.plan.items.length ? '<div class="btn-row"><button class="btn" data-plan-to-diary="all">Lançar o plano inteiro no diário de hoje</button></div>' : ''}`;
-    $('#plan-meals', view).innerHTML = MEALS.map((m) => {
+      ${has ? `<div class="btn-row">
+        <button class="btn" data-export="pdf">Exportar PDF</button>
+        <button class="btn" data-export="txt">Baixar em texto</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-plan-to-diary="all">Lançar tudo no diário de hoje</button>
+        <button class="btn small danger" data-plan-clear>Limpar cardápio</button>
+      </div>` : ''}`;
+    $('#plan-meals', view).innerHTML = planSlots().map((m) => {
       const { rows, totals: mt } = planTotals(state.plan.items.filter((x) => x.mealType === m.id));
       return `<section class="card" aria-label="${esc(m.label)} no plano">
         <div class="card-head">
-          <h2>${esc(m.label)} <span class="muted small" style="font-weight:400">${rows.length ? `${fmt(mt.kcal, 0)} kcal` : ''}</span></h2>
+          <h2>${m.time ? `<span class="time">${esc(m.time)}</span> ` : ''}${esc(m.label)} <span class="muted small" style="font-weight:400">${rows.length ? `${fmt(mt.kcal, 0)} kcal` : ''}</span></h2>
           <button class="add-btn" data-plan-add="${m.id}">+ Adicionar</button>
         </div>
         ${rows.length ? `<p class="meal-total small">Total da refeição: ${macroLine(mt)}</p>
         <ul class="list">${rows.map(({ item, food, n }) => `<li><button class="row" data-plan-item="${esc(item.id)}">
           <span class="grow"><span class="name">${esc(food.name)}</span>
-          <span class="muted small">${item.servingName === baseUnit(food) ? `${fmt(item.quantity * item.amount, 0)} ${baseUnit(food)}` : `${fmt(item.quantity)} × ${esc(item.servingName)} · ${fmt(item.quantity * item.amount, 0)} ${baseUnit(food)}`}</span>
+          <span class="muted small">${esc(amountText(item, food))}</span>
           <span class="small">${macroLine(n)}</span></span>
           <span class="num">${fmt(n.kcal, 0)} kcal</span></button></li>`).join('')}</ul>
         <div class="btn-row"><button class="btn small" data-plan-to-diary="${m.id}">Lançar no diário de hoje</button></div>` : '<p class="empty">Nada planejado ainda.</p>'}
@@ -746,11 +803,43 @@ function renderPlan() {
     }).join('');
   };
 
+  const exportData = () => {
+    const rows = planTotals(state.plan.items).rows.map(({ item, food, n }) => ({ slot: item.mealType, name: food.name, amount: amountText(item, food), n }));
+    return { name: state.profile.name, targets: targetsNow(), slots: planSlots(), rows, totals: planTotals(state.plan.items).totals, date: new Date().toLocaleDateString('pt-BR') };
+  };
+
   drawTargets();
   drawPlan();
 
-  view.oninput = async () => {
-    await savePlan({ ...state.plan, profile: readProfile() });
+  // As metas calculadas passam a valer, para o diário e o cardápio falarem a mesma língua.
+  const generate = async (seed) => {
+    const prof = readProfile();
+    const t = calcTargets(prof);
+    const today = localDate();
+    await db.put('goals', { id: `goal-${today}`, startsAt: today, kcal: t.kcal, carbs: t.carbs, protein: t.protein, fat: t.fat, fiber: t.fiber, updatedAt: Date.now() });
+    state.goals = await db.getAll('goals');
+    const gen = generatePlan({ targets: t, wake: prof.wake, sleep: prof.sleep, seed }, state.foodsById);
+    const items = gen.items.map((it) => planItemFromGrams(state.foodsById.get(it.foodId), it.slot, it.grams));
+    await savePlan({ meals: gen.slots, items, generated: true, seed });
+    drawTargets();
+    drawPlan();
+  };
+
+  view.oninput = async (e) => {
+    if (!e.target.closest('[name]') || !PROFILE_FIELDS.includes(e.target.name)) return;
+    await saveProfile(readProfile());
+    drawTargets();
+    drawPlan();
+  };
+  // Ao completar os dados (ou mudar objetivo/horários), o cardápio automático é montado de novo.
+  // Um cardápio montado à mão não é substituído sem o usuário pedir.
+  view.onchange = async (e) => {
+    if (!e.target.closest('[name]') || !PROFILE_FIELDS.includes(e.target.name)) return;
+    await saveProfile(readProfile());
+    if (profileComplete(readProfile()) && (state.plan.generated || !state.plan.items.length)) {
+      await generate(state.plan.seed ?? 0);
+      return toast('Cardápio montado pelas suas metas.');
+    }
     drawTargets();
     drawPlan();
   };
@@ -764,6 +853,19 @@ function renderPlan() {
       drawPlan();
       return toast('Metas diárias atualizadas.');
     }
+    if (e.target.closest('[data-generate]')) {
+      if (state.plan.items.length && !state.plan.generated && !confirm('Substituir o cardápio que você montou por um gerado automaticamente?')) return;
+      await generate(state.plan.generated ? (state.plan.seed ?? 0) + 1 : 0);
+      return toast('Cardápio gerado pelas suas metas.');
+    }
+    if (e.target.closest('[data-plan-clear]')) {
+      if (!confirm('Apagar todos os itens do cardápio?')) return;
+      await savePlan({ items: [] });
+      drawTargets();
+      return drawPlan();
+    }
+    const exp = e.target.closest('[data-export]');
+    if (exp) return exportPlan(exp.dataset.export, exportData());
     const add = e.target.closest('[data-plan-add]');
     if (add) return openAdd(add.dataset.planAdd, { query: '', filter: 'recent' }, 'plan');
     const row = e.target.closest('[data-plan-item]');
@@ -777,12 +879,143 @@ function renderPlan() {
       const { rows } = planTotals(state.plan.items.filter((x) => which === 'all' || x.mealType === which));
       const date = localDate();
       for (const { item, food } of rows) {
+        const slot = planSlots().find((m) => m.id === item.mealType);
         const serving = item.servingName === baseUnit(food) ? null : { id: item.servingId, name: item.servingName, amount: item.amount };
-        await db.put('entries', buildEntry({ food, date, mealType: item.mealType, quantity: item.quantity, serving }));
+        await db.put('entries', buildEntry({ food, date, mealType: slot?.diary ?? item.mealType, quantity: item.quantity, serving }));
       }
       toast(`${rows.length} ${rows.length === 1 ? 'item lançado' : 'itens lançados'} no diário de hoje.`);
     }
   };
+}
+
+function exportPlan(kind, data) {
+  if (kind === 'txt') {
+    const blob = new Blob([planToText(data)], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `jplate-dieta-${localDate()}.txt`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return toast('Cardápio baixado.');
+  }
+  // PDF: a página de impressão do navegador tem "Salvar como PDF".
+  const f = (x) => fmt(x, 0);
+  const t = data.targets ?? {};
+  let area = document.getElementById('print-area');
+  if (!area) {
+    area = document.createElement('div');
+    area.id = 'print-area';
+    document.body.append(area);
+  }
+  area.innerHTML = `
+    <div class="print-head">
+      ${state.profile.photo ? `<img src="${esc(state.profile.photo)}" alt="">` : ''}
+      <div><h1>Plano alimentar${data.name ? ` · ${esc(data.name)}` : ''}</h1><p>JPlate by JPCOMPANY · ${esc(data.date)}</p></div>
+    </div>
+    ${t.kcal ? `<p class="print-goals">Metas do dia: <b>${f(t.kcal)} kcal</b> · Proteína ${f(t.protein)} g · Carboidrato ${f(t.carbs)} g · Gordura ${f(t.fat)} g · Fibra ${f(t.fiber ?? 0)} g</p>` : ''}
+    ${data.slots.map((s) => {
+      const list = data.rows.filter((r) => r.slot === s.id);
+      if (!list.length) return '';
+      const mt = sumTotals(list.map((r) => ({ nutrients: r.n }))).totals;
+      return `<h2>${s.time ? `${esc(s.time)} · ` : ''}${esc(s.label)} <small>${f(mt.kcal)} kcal · P ${f(mt.protein)} g · C ${f(mt.carbs)} g · G ${f(mt.fat)} g</small></h2>
+        <table>${list.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.amount)}</td><td>${f(r.n.kcal)} kcal</td></tr>`).join('')}</table>`;
+    }).join('')}
+    <p class="print-goals">Total do dia: <b>${f(data.totals.kcal)} kcal</b> · Proteína ${f(data.totals.protein)} g · Carboidrato ${f(data.totals.carbs)} g · Gordura ${f(data.totals.fat)} g · Fibra ${f(data.totals.fiber)} g</p>
+    <p class="print-note">Valores aproximados (TACO, USDA e receitas calculadas). Não substitui orientação de nutricionista.</p>`;
+  window.print();
+}
+
+// ---------- área do aluno ----------
+
+async function renderProfileCard() {
+  const p = state.profile;
+  const v = (x) => (x === null || x === undefined ? '' : x);
+  const w = latestWeight();
+  return `<section class="card profile">
+      <div class="profile-head">
+        <button class="avatar lg" data-photo aria-label="Trocar foto de perfil">${p.photo ? `<img src="${esc(p.photo)}" alt="Foto de perfil">` : `<span>${esc((p.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>`}</button>
+        <div><h2>${esc(p.name || 'Área do aluno')}</h2><p class="small muted">${w ? `${fmt(w)} kg` : 'Sem peso registrado'}${p.objective ? ` · ${esc(OBJECTIVES.find((o) => o.id === p.objective)?.label ?? '')}` : ''}</p>
+        <button class="btn small" data-photo>${p.photo ? 'Trocar foto' : 'Adicionar foto'}</button>${p.photo ? ' <button class="btn small danger" data-photo-remove>Remover</button>' : ''}</div>
+        <input type="file" accept="image/*" hidden id="photo-file">
+      </div>
+      <div class="grid2">
+        <label class="field">Nome<input name="pname" value="${esc(v(p.name))}" autocomplete="name"></label>
+        <label class="field">Data de nascimento<input name="pbirth" type="date" value="${esc(v(p.birth))}"></label>
+        <label class="field">Sexo<select name="psex"><option value="m"${p.sex !== 'f' ? ' selected' : ''}>Masculino</option><option value="f"${p.sex === 'f' ? ' selected' : ''}>Feminino</option></select></label>
+        <label class="field">Altura (cm)<input name="pheight" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
+        <label class="field">Telefone<input name="pphone" type="tel" autocomplete="tel" value="${esc(v(p.phone))}"></label>
+        <label class="field">E-mail<input name="pemail" type="email" autocomplete="email" value="${esc(v(p.email))}"></label>
+        <label class="field">Peso de hoje (kg)<input name="pweight" type="number" inputmode="decimal" min="20" max="400" step="0.1" placeholder="${w ? fmt(w) : '70,0'}"></label>
+        <label class="field">Peso desejado (kg)<input name="pgoalweight" type="number" inputmode="decimal" min="20" max="400" step="0.1" value="${esc(v(p.goalWeight))}"></label>
+      </div>
+      <label class="field">Observações (restrições, alergias, lesões)<textarea name="pnotes" rows="3">${esc(v(p.notes))}</textarea></label>
+      <div class="btn-row"><button class="btn primary" data-save-profile>Salvar dados</button></div>
+      <p class="small muted" style="margin:8px 0 0">Seus dados e sua foto ficam só neste aparelho e entram no backup.</p>
+    </section>`;
+}
+
+// Idade a partir da data de nascimento, no dia de hoje.
+function ageFrom(birth) {
+  if (!birth) return null;
+  const b = parseLocalDate(birth);
+  const t = new Date();
+  let a = t.getFullYear() - b.getFullYear();
+  if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a -= 1;
+  return a > 0 && a < 120 ? a : null;
+}
+
+// Reduz a foto para 320 px no lado maior antes de guardar (cabe no backup e abre rápido).
+function resizePhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 320;
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function handleProfileClick(e) {
+  if (e.target.closest('[data-photo]')) { $('#photo-file', view).click(); return true; }
+  if (e.target.closest('[data-photo-remove]')) {
+    const { photo, ...rest } = state.profile;
+    await saveProfile(rest);
+    toast('Foto removida.');
+    renderSettings();
+    return true;
+  }
+  if (!e.target.closest('[data-save-profile]')) return false;
+  const val = (n) => $(`[name="${n}"]`, view).value.trim();
+  const num = (n) => (val(n) === '' ? null : Number(val(n).replace(',', '.')));
+  const profile = {
+    ...state.profile, name: val('pname'), birth: val('pbirth') || null, sex: val('psex'), height: num('pheight'),
+    phone: val('pphone'), email: val('pemail'), goalWeight: num('pgoalweight'), notes: val('pnotes'),
+  };
+  const age = ageFrom(profile.birth);
+  if (age) profile.age = age;
+  const kg = num('pweight');
+  if (kg !== null) {
+    if (!(kg >= 20 && kg <= 400)) return toast('Informe um peso válido em kg.'), true;
+    const date = localDate();
+    const existing = state.weights.find((x) => x.date === date);
+    await db.put('weights', { id: existing?.id ?? uid(), date, kg: round(kg, 2), updatedAt: Date.now() });
+    state.weights = await db.getAll('weights');
+    profile.weight = round(kg, 2);
+  }
+  await saveProfile(profile);
+  toast('Dados salvos.');
+  renderSettings();
+  return true;
 }
 
 // ---------- peso ----------
@@ -895,13 +1128,15 @@ function defaultMeal(h = new Date().getHours()) {
 // ---------- ajustes ----------
 
 async function renderSettings() {
-  setTopbar('<h1>Ajustes</h1>');
+  setTopbar('<h1>Perfil</h1>');
   topbar.onclick = null;
   const today = localDate();
   const goal = goalFor(state.goals, today) ?? {};
   const v = (x) => (x === null || x === undefined ? '' : x);
   const persisted = await navigator.storage?.persisted?.();
   view.innerHTML = `
+    ${await renderProfileCard()}
+
     <section class="card">
       <h2>Metas diárias</h2>
       <p class="small muted" style="margin:4px 0 0">Valem a partir de hoje; dias anteriores continuam com a meta da época.</p>
@@ -976,7 +1211,21 @@ async function renderSettings() {
   view.oninput = macroKcal;
 
   $('#import-file', view).addEventListener('change', importBackup);
+  $('#photo-file', view).addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      await saveProfile({ ...state.profile, photo: await resizePhoto(file) });
+    } catch {
+      return toast('Não foi possível abrir essa imagem.');
+    }
+    // Atualiza só a foto, sem apagar o que já foi digitado nos campos.
+    $('.avatar', view).innerHTML = `<img src="${esc(state.profile.photo)}" alt="Foto de perfil">`;
+    toast('Foto salva.');
+  });
   view.onclick = async (e) => {
+    if (await handleProfileClick(e)) return;
     if (e.target.closest('[data-save-goal]')) {
       const num = (n) => { const x = $(`[name="${n}"]`, view).value; return x === '' ? null : Number(x); };
       const g = { id: `goal-${today}`, startsAt: today, kcal: num('kcal'), carbs: num('carbs'), protein: num('protein'), fat: num('fat'), fiber: num('fiber'), updatedAt: Date.now() };
@@ -1039,8 +1288,8 @@ const hideSplash = () => {
   setTimeout(() => splash.remove(), 400);
 };
 splash.addEventListener('click', hideSplash, { once: true });
-// 1,15 s de abertura + 0,35 s de saída = 1,5 s no total.
-const splashMin = new Promise((r) => setTimeout(r, 1150));
+// 1,65 s de abertura + 0,35 s de saída = 2 s no total.
+const splashMin = new Promise((r) => setTimeout(r, 1650));
 
 load().then(render).catch((err) => {
   view.innerHTML = `<div class="card">Não foi possível abrir o app: ${esc(err.message)}</div>`;

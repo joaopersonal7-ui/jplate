@@ -9,7 +9,8 @@ Diário alimentar pessoal, inspirado nos fluxos do FatSecret (buscar alimento, e
 - **Busca** sem acento, que traz as variações separadas ("ovo" mostra ovo cozido, frito, clara, gema, omelete, crepioca), com recentes, favoritos e filtro de pratos prontos.
 - **Produtos de marca** pela internet (Open Food Facts), por nome ou código de barras (câmera no Android, número digitado no iPhone).
 - **Medidas caseiras** aproximadas (colher, concha, unidade, fatia) nos alimentos comuns.
-- **Dieta**: calcula calorias, proteína, carboidrato, gordura e fibra pelo objetivo (Mifflin-St Jeor) e deixa montar o cardápio por refeição, comparando com as metas e lançando no diário.
+- **Dieta**: com objetivo, horários de acordar e dormir, se já treina e o nível, calcula calorias, proteína, carboidrato, gordura e fibra (Mifflin-St Jeor) e gera sozinho um cardápio completo com horário de cada refeição, ajustado às metas (`src/planner.js`). Dá para gerar outra opção, editar à mão, lançar no diário e exportar em PDF (impressão do navegador) ou texto.
+- **Perfil (área do aluno)**: nome, nascimento, contato, peso de hoje, peso desejado, observações e foto de perfil, tudo guardado no aparelho e incluído no backup.
 - **Porções**: quantidade em g/ml ou porções que você salva (ex.: "1 unidade média = 86 g").
 - **Lançamento rápido** só com calorias, para restaurante ou estimativa.
 - **Meus alimentos**: cadastro de produtos de marca e receitas de casa, em g ou ml.
@@ -32,7 +33,7 @@ python3 -m http.server 8080
 
 Depois abra `http://localhost:8080`.
 
-No celular, publique a pasta num host estático gratuito (GitHub Pages, Netlify ou Cloudflare Pages), abra o endereço e use "Adicionar à tela inicial". Depois disso funciona sem internet. Em Ajustes, toque em "Proteger armazenamento".
+No celular, publique a pasta num host estático gratuito (GitHub Pages, Netlify ou Cloudflare Pages), abra o endereço e use "Adicionar à tela inicial". Depois disso funciona sem internet. Em Perfil, toque em "Proteger armazenamento".
 
 ## Estrutura
 
