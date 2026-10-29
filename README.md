@@ -20,6 +20,10 @@ Diário alimentar pessoal, inspirado nos fluxos do FatSecret (buscar alimento, e
 
 Cada lançamento guarda os nutrientes do momento em que foi feito, então editar um alimento depois não muda o histórico.
 
+## Biblioteca de produtos de marca
+
+Busca por nome, marca ou código de barras em produtos vendidos no Brasil, importados do Open Food Facts (ODbL), com marca, embalagem, porção, valores do rótulo, fonte e situação da tabela (completa, parcial ou pendente). Valores ausentes aparecem como "não informado"; nada é estimado. Detalhes, importação e licenças em [docs/BIBLIOTECA.md](docs/BIBLIOTECA.md).
+
 ## Como usar
 
 O app precisa ser servido por HTTP (não abre direto do arquivo por causa do modo offline).

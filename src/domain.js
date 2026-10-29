@@ -122,8 +122,16 @@ export function sourceLabel(food) {
 
 // ---------- porções e cálculo ----------
 
+// 'porção' existe para produtos cujo rótulo só traz a tabela por porção: lança-se em porções,
+// sem converter para 100 g.
 export function baseUnit(food) {
-  return food.baseUnit === 'ml' ? 'ml' : 'g';
+  return food.baseUnit === 'ml' ? 'ml' : food.baseUnit === 'porção' ? 'porção' : 'g';
+}
+
+// Texto curto de calorias para listas: por 100 g/ml ou por porção.
+export function kcalLabel(food) {
+  if (food.n.kcal === null || food.n.kcal === undefined) return 'kcal não informada';
+  return baseUnit(food) === 'porção' ? `${fmt(food.n.kcal / 100, 0)} kcal/porção` : `${fmt(food.n.kcal, 0)} kcal/100${baseUnit(food)}`;
 }
 
 // Lista de unidades que o usuário pode escolher: a unidade base, as porções salvas e as medidas caseiras.

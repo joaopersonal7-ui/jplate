@@ -101,7 +101,7 @@ test('base TACO não tem linhas sem análise e kcal é numérico', () => {
 
 import { calcTargets, planItemNutrients, sourceLabel } from '../src/domain.js';
 import { defaultServings } from '../src/measures.js';
-import { offToFood } from '../src/off.js';
+import { fromOff, productToFood } from '../src/products.js';
 
 const load = (f) => JSON.parse(readFileSync(new URL(`../data/${f}`, import.meta.url)));
 const usda = load('usda.json');
@@ -159,21 +159,22 @@ test('item do plano calcula nutrientes pela porção', () => {
   assert.equal(n.kcal, Math.round(banana.n.kcal * 1.4 * 100) / 100);
 });
 
-test('produto do Open Food Facts vira alimento com sódio em mg e fonte', () => {
-  const f = offToFood({
+test('produto do Open Food Facts vira alimento com sódio em mg e fonte, sem derivar valores', () => {
+  const f = productToFood(fromOff({
     code: '7890000000001', product_name: 'Biscoito X', brands: 'Marca A, Marca B', quantity: '200 g', serving_quantity: '30',
     nutriments: { 'energy-kcal_100g': 450, carbohydrates_100g: 70, proteins_100g: 7, fat_100g: 16, fiber_100g: 2, sodium_100g: 0.4 },
-  });
+  }));
   assert.equal(f.id, 'off-7890000000001');
   assert.equal(f.brand, 'Marca A');
   assert.equal(f.n.sodium, 400);
   assert.equal(f.baseUnit, 'g');
   assert.equal(sourceLabel(f), 'Open Food Facts');
   assert.deepEqual(f.servings, [{ name: 'porção do rótulo', g: 30 }]);
-  const suco = offToFood({ code: '1', product_name: 'Suco', quantity: '1 L', nutriments: { energy_100g: 200 } });
+  // Só energia em kJ: a kcal fica sem dado em vez de ser convertida por conta própria.
+  const suco = productToFood(fromOff({ code: '1', product_name: 'Suco', quantity: '1 L', nutriments: { 'energy-kj_100g': 200 } }));
   assert.equal(suco.baseUnit, 'ml');
-  assert.equal(suco.n.kcal, 48);
-  assert.equal(offToFood({ code: '2', product_name: 'Sem dados', nutriments: {} }), null);
+  assert.equal(suco.n.kcal, null);
+  assert.equal(productToFood(fromOff({ code: '2', product_name: 'Sem dados', nutriments: {} })), null);
 });
 
 import { mealSlots, generatePlan, planToText, PLAN_FOOD_IDS } from '../src/planner.js';
