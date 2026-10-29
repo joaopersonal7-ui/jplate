@@ -527,3 +527,14 @@ body.welcome-on { overflow: hidden; }
 .cropper .btn-row { justify-content: center; }
 .cropper .btn:not(.primary) { background: transparent; color: #f6e6d8; border-color: #5a3a28; }
 .water-rule { font-size: .85rem; color: rgb(246 230 216 / .7); align-self: center; }
+
+/* ---------- marca d'água (símbolo JP) ---------- */
+
+body::after {
+  content: ""; position: fixed; left: 50%; top: 52%; z-index: 4; pointer-events: none;
+  width: min(78vw, 440px); aspect-ratio: 660 / 540; transform: translate(-50%, -50%);
+  background: url("../assets/marca.svg") center / contain no-repeat;
+  opacity: .035;
+}
+@media (prefers-color-scheme: dark) { body::after { opacity: .05; } }
+@media print { body::after { display: none; } }
