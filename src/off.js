@@ -1,43 +1,16 @@
-// Busca online de produtos de marca no Open Food Facts (base aberta, licença ODbL).
-// Só é chamada quando o usuário pede; envia apenas o termo buscado ou o código de barras.
+// Consulta online ao Open Food Facts (base aberta, licença ODbL), só quando o usuário pede.
+// Envia apenas o termo buscado ou o código de barras. A resposta vira um Produto (src/products.js),
+// com os valores exatamente como vieram e a origem registrada.
+import { fromOff } from './products.js';
 
 const API = 'https://world.openfoodfacts.org';
-const FIELDS = 'code,product_name,product_name_pt,generic_name_pt,brands,nutriments,quantity,serving_quantity,categories_tags';
-
-const num = (v) => {
-  const x = typeof v === 'string' ? Number(v.replace(',', '.')) : v;
-  return Number.isFinite(x) ? Math.round(x * 100) / 100 : null;
-};
-
-// Converte um produto do OFF no formato de alimento do app. Sem calorias por 100 g/ml, fica de fora.
-export function offToFood(p) {
-  const n = p?.nutriments ?? {};
-  let kcal = num(n['energy-kcal_100g']);
-  if (kcal === null && num(n.energy_100g) !== null) kcal = Math.round(num(n.energy_100g) / 4.184);
-  const name = (p?.product_name_pt || p?.product_name || p?.generic_name_pt || '').trim();
-  if (kcal === null || !name || !p.code) return null;
-  const sodium = num(n.sodium_100g) ?? (num(n.salt_100g) === null ? null : num(n.salt_100g) / 2.5);
-  const liquid = /\b\d+([.,]\d+)?\s*(ml|l|litros?)\b/i.test(p.quantity ?? '');
-  const serving = num(p.serving_quantity);
-  return {
-    id: `off-${p.code}`,
-    source: 'off',
-    name,
-    brand: (p.brands ?? '').split(',')[0].trim() || null,
-    barcode: p.code,
-    group: 'Produto de marca',
-    baseUnit: liquid ? 'ml' : 'g',
-    servings: serving > 0 ? [{ name: 'porção do rótulo', g: serving }] : [],
-    n: {
-      kcal,
-      carbs: num(n.carbohydrates_100g),
-      protein: num(n.proteins_100g),
-      fat: num(n.fat_100g),
-      fiber: num(n.fiber_100g),
-      sodium: sodium === null ? null : Math.round(sodium * 1000),
-    },
-  };
-}
+const FIELDS = [
+  'code', 'product_name', 'product_name_pt', 'generic_name', 'generic_name_pt', 'brands', 'quantity',
+  'product_quantity', 'product_quantity_unit', 'serving_size', 'serving_quantity', 'serving_quantity_unit',
+  'nutrition_data_per', 'no_nutrition_data', 'nutriments', 'categories', 'categories_tags',
+  'ingredients_text', 'ingredients_text_pt', 'allergens_tags', 'traces_tags', 'states_tags', 'last_modified_t',
+  'countries_tags',
+].join(',');
 
 async function getJSON(url) {
   const ctrl = new AbortController();
@@ -51,19 +24,21 @@ async function getJSON(url) {
   }
 }
 
-// Busca priorizando produtos vendidos no Brasil.
+// Busca priorizando produtos vendidos no Brasil. Produtos sem tabela também voltam, como "pendente".
 export async function searchOnline(query) {
   const q = encodeURIComponent(query);
   const url = `${API}/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=40`
     + `&tagtype_0=countries&tag_contains_0=contains&tag_0=brazil&fields=${FIELDS}`;
   const data = await getJSON(url);
+  const at = new Date().toISOString();
   const seen = new Set();
-  return (data.products ?? []).map(offToFood).filter((f) => f && !seen.has(f.id) && seen.add(f.id));
+  return (data.products ?? []).map((p) => fromOff(p, { fetchedAt: at, via: 'api' }))
+    .filter((p) => p && !seen.has(p.id) && seen.add(p.id));
 }
 
 export async function productByBarcode(code) {
   const data = await getJSON(`${API}/api/v2/product/${encodeURIComponent(code)}.json?fields=${FIELDS}`);
-  return data.status === 1 ? offToFood({ code, ...data.product }) : null;
+  return data.status === 1 ? fromOff({ code, ...data.product }, { via: 'api' }) : null;
 }
 
 // Leitura pela câmera onde o navegador tem BarcodeDetector (Chrome/Android). No iPhone, digita-se o número.

@@ -349,3 +349,16 @@ label.field > textarea { resize: vertical; min-height: 70px; }
   .print-goals { margin: 10px 0; }
   .print-note { color: #666; font-size: 9pt; margin-top: 14px; }
 }
+
+/* ---------- biblioteca de produtos ---------- */
+.status { display: inline-block; font-size: .7rem; padding: 1px 6px; border-radius: 6px; border: 1px solid currentColor; white-space: nowrap; }
+.status-ok { color: var(--fiber); }
+.status-part { color: var(--warn); }
+.status-pend { color: var(--muted); }
+.prod-table th { font-size: .75rem; font-weight: 600; text-align: right; padding: 4px 0 6px 8px; vertical-align: bottom; }
+.prod-table th:first-child { text-align: left; }
+.prod-table td { padding-left: 8px; }
+.prod-table td:first-child { padding-left: 0; }
+.prod-table td:not(:first-child) { text-align: right; white-space: nowrap; }
+.prov { margin: 0; padding-left: 18px; }
+.prov li { margin: 2px 0; }

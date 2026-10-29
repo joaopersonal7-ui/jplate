@@ -1,0 +1,41 @@
+# Importa a biblioteca de produtos do Open Food Facts (dump JSONL público, sem credenciais)
+# e grava data/produtos no próprio ramo em que foi disparada. Só roda quando alguém aciona.
+name: Importar produtos (Open Food Facts)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: importar-produtos
+  cancel-in-progress: false
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testes
+        run: npm test
+      - name: Importar (fluxo do dump, filtro Brasil)
+        run: node scripts/import-off.mjs
+      - name: Resumo da cobertura
+        run: |
+          echo '## Cobertura importada' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat data/produtos/cobertura.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Gravar no ramo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/produtos
+          if git diff --cached --quiet; then echo "Sem mudanças."; exit 0; fi
+          git commit -m "Biblioteca de produtos: importação do Open Food Facts"
+          git push

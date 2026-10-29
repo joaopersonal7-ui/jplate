@@ -7,6 +7,8 @@ import {
 } from './domain.js';
 import { generatePlan, planToText } from './planner.js';
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
+import { LABEL_NUTRIENTS, STATUS_LABEL, SOURCES as PRODUCT_SOURCES, searchProducts, productToFood, fromIndexRow, indexRow } from './products.js';
+import { loadLibrary, getProduct, findByGtin, rememberProduct, resetLibrary } from './library.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -250,11 +252,23 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
         <button class="btn small" data-barcode>Código de barras</button>
       </div>
       <ul class="list" id="results"></ul>
+      <div id="library"></div>
       <div id="online"></div>`,
     onMount(body) {
       const input = $('.search', body);
       const results = $('#results', body);
+      const library = $('#library', body);
       const online = $('#online', body);
+      const drawLibrary = async () => {
+        const q = ui.query.trim();
+        if (!q) { library.innerHTML = ''; return; }
+        const lib = await loadLibrary();
+        if (ui.query.trim() !== q) return;
+        ui.libItems = searchProducts(lib.items, q, { limit: 40 });
+        library.innerHTML = ui.libItems.length
+          ? `<h3 class="section-title">Produtos de marca · biblioteca</h3><ul class="list">${ui.libItems.map((r, i) => productRowHTML(r, `data-lib="${i}"`)).join('')}</ul>`
+          : '';
+      };
       const drawOnline = () => {
         const q = ui.query.trim();
         if (!q) { online.innerHTML = ''; return; }
@@ -264,10 +278,10 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
           return;
         }
         const r = ui.online;
-        online.innerHTML = `<h3 class="section-title">Produtos de marca · Open Food Facts</h3>` + (r.loading ? '<p class="empty">Buscando…</p>'
+        online.innerHTML = `<h3 class="section-title">Produtos de marca · Open Food Facts (online)</h3>` + (r.loading ? '<p class="empty">Buscando…</p>'
           : r.error ? `<p class="empty">${esc(r.error)}</p>`
-          : r.items.length ? `<ul class="list">${r.items.map((f, i) => foodRowHTML(f, `data-off="${i}"`)).join('')}</ul>`
-          : '<p class="empty">Nenhum produto com tabela nutricional encontrado.</p>');
+          : r.items.length ? `<ul class="list">${r.items.map((p, i) => productRowHTML(fromIndexRow(indexRow(p)), `data-off="${i}"`)).join('')}</ul>`
+          : '<p class="empty">Nenhum produto encontrado.</p>');
       };
       const draw = () => {
         let list;
@@ -284,6 +298,7 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
           : ui.filter === 'mine' ? 'Você ainda não cadastrou alimentos.'
           : 'Busque um alimento para começar.';
         results.innerHTML = list.length ? list.map((f) => foodRowHTML(f)).join('') : `<li class="empty">${emptyMsg}</li>`;
+        drawLibrary();
         drawOnline();
       };
       input.addEventListener('input', () => { ui.query = input.value; draw(); });
@@ -291,7 +306,9 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
         const f = e.target.closest('[data-filter]');
         if (f) { ui.filter = f.dataset.filter; ui.query = ''; input.value = ''; draw(); return; }
         const off = e.target.closest('[data-off]');
-        if (off) return detail(ui.online.items[Number(off.dataset.off)]);
+        if (off) return openProduct(await rememberProduct(ui.online.items[Number(off.dataset.off)]), { mealType, back, mode });
+        const lib = e.target.closest('[data-lib]');
+        if (lib) return openProductById(ui.libItems[Number(lib.dataset.lib)].id, { mealType, back, mode });
         const row = e.target.closest('[data-food]');
         if (row) return detail(state.foodsById.get(row.dataset.food));
         if (e.target.closest('[data-online]')) {
@@ -324,6 +341,120 @@ function foodRowHTML(f, attr = `data-food="${esc(f.id)}"`) {
     <span class="num small muted">${fmt(f.n.kcal, 0)} kcal/100${baseUnit(f)}</span></button></li>`;
 }
 
+// ---------- biblioteca de produtos ----------
+
+const STATUS_CLASS = { completo: 'ok', parcial: 'part', pendente: 'pend' };
+
+function statusHTML(status) {
+  return `<span class="status status-${STATUS_CLASS[status] ?? 'pend'}">${esc(STATUS_LABEL[status] ?? 'Tabela pendente')}</span>`;
+}
+
+// Linha de resultado: marca, embalagem, status da tabela e fonte. Cada GTIN é uma linha.
+function productRowHTML(r, attr) {
+  const meta = [r.quantity?.raw ? `embalagem ${r.quantity.raw}` : 'embalagem não informada', r.onDevice ? 'consultado online' : 'Open Food Facts'];
+  return `<li><button class="row" ${attr}>
+    <span class="grow"><span class="name">${esc(r.name ?? 'Produto sem nome')}${r.brand ? ` <span class="muted">· ${esc(r.brand)}</span>` : ' <span class="muted">· marca não informada</span>'}</span>
+    <span class="muted small">${meta.map(esc).join(' · ')}</span> ${statusHTML(r.status)}</span>
+    <span class="num small muted">${r.kcal100 == null ? 'kcal não informada' : `${fmt(r.kcal100, 0)} kcal/100${r.baseUnit ?? 'g'}`}</span></button></li>`;
+}
+
+const ALLERGENS_PT = {
+  milk: 'leite', gluten: 'glúten', soybeans: 'soja', eggs: 'ovos', nuts: 'castanhas', peanuts: 'amendoim', fish: 'peixe',
+  crustaceans: 'crustáceos', molluscs: 'moluscos', 'sesame seeds': 'gergelim', mustard: 'mostarda', celery: 'aipo',
+  lupin: 'tremoço', 'sulphur dioxide and sulphites': 'sulfitos', latex: 'látex',
+};
+
+function nutrientValue(v, key) {
+  if (!v) return '<span class="muted">não informado</span>';
+  // Sódio chega em g; mostramos em mg, como no rótulo brasileiro.
+  if (key === 'sodium') return `${fmt(v.value * 1000, 0)} mg`;
+  return `${fmt(v.value, key.startsWith('energy') ? 0 : 2)} ${esc(v.unit)}`;
+}
+
+function dateBR(iso) {
+  return iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'não informada';
+}
+
+async function openProductById(id, ctx) {
+  const p = await getProduct(id);
+  if (!p) return toast('Produto não encontrado na biblioteca.');
+  openProduct(p, ctx);
+}
+
+function openProduct(p, { mealType = defaultMeal(), back, mode = 'diary' } = {}) {
+  const nut = p.nutrition ?? {};
+  const per100 = nut.per100;
+  const serving = nut.perServing;
+  const unit = per100?.unit ?? serving?.unit ?? 'g';
+  const servingHead = serving ? `por porção${serving.description ? `<br><span class="muted small">${esc(serving.description)}</span>` : ''}` : 'por porção';
+  const labelCol = nut.basisOnLabel === 'serving' ? 'por porção' : nut.basisOnLabel === '100g' ? `por 100 ${unit}` : null;
+  const computed = nut.computedBySource === 'per100' ? `por 100 ${unit}` : nut.computedBySource === 'perServing' ? 'por porção' : null;
+  const prov = p.provenance[0];
+  const src = PRODUCT_SOURCES[prov.source] ?? { name: prov.source };
+  const food = productToFood(p);
+  const q = p.quality;
+  // kJ e açúcares adicionados só aparecem quando a fonte trouxe (rótulos antigos não tinham).
+  const rows = LABEL_NUTRIENTS.filter((x) => !['addedSugars', 'energyKj'].includes(x.key) || per100?.values?.[x.key] || serving?.values?.[x.key]);
+  const allergens = p.allergens?.length ? p.allergens.map((a) => ALLERGENS_PT[a] ?? a).join(', ') : null;
+  openSheet({
+    title: 'Produto',
+    back,
+    body: `
+      <h3 style="margin:12px 0 2px">${esc(p.name ?? 'Produto sem nome')}</h3>
+      <p class="small" style="margin:0">${p.brand ? `Marca: <b>${esc(p.brand)}</b>` : '<span class="muted">Marca não informada</span>'}${p.kind === 'generico' ? ' · alimento genérico' : ''}</p>
+      <p class="small muted" style="margin:2px 0 0">Embalagem: ${p.quantity?.raw ? esc(p.quantity.raw) : 'não informada'}
+        · ${p.gtin ? `GTIN ${esc(p.gtin)}` : `código ${esc(prov.ref)} (não é GTIN válido)`}${p.category ? ` · ${esc(p.category)}` : ''}</p>
+      <p style="margin:8px 0 0">${statusHTML(q.status)} <span class="badge">${esc(src.name)}</span></p>
+      <table class="nutri-table prod-table">
+        <thead><tr><th></th><th>por 100 ${esc(unit)}</th><th>${servingHead}</th></tr></thead>
+        <tbody>${rows.map((x) => `<tr><td>${esc(x.label)}${x.unit === 'kJ' ? ' (kJ)' : ''}</td>
+          <td>${nutrientValue(per100?.values?.[x.key], x.key)}</td><td>${nutrientValue(serving?.values?.[x.key], x.key)}</td></tr>`).join('')}</tbody>
+      </table>
+      ${serving?.quantity ? `<p class="small muted recipe">Porção declarada: ${fmt(serving.quantity, 1)} ${esc(serving.unit ?? unit)}.</p>` : '<p class="small muted recipe">Porção do rótulo não informada pela fonte.</p>'}
+      <p class="small muted recipe">${labelCol ? `Coluna informada no rótulo: ${esc(labelCol)}.` : 'A fonte não informa qual coluna veio do rótulo.'}
+        ${computed ? ` A coluna ${esc(computed)} foi calculada pela própria fonte a partir da porção.` : ''}</p>
+      ${q.status === 'parcial' ? `<p class="small warn recipe">Não informado pela fonte: ${q.missing.map((k) => esc(LABEL_NUTRIENTS.find((x) => x.key === k).label.toLowerCase())).join(', ')}.</p>` : ''}
+      ${q.status === 'pendente' ? '<p class="small warn recipe">Tabela nutricional pendente: a fonte não tem os valores deste produto. Nada foi estimado.</p>' : ''}
+      ${p.divergences?.length ? `<h3 class="section-title">Divergência entre fontes</h3><ul class="small">${p.divergences.map((d) => `<li>${esc(LABEL_NUTRIENTS.find((x) => x.key === d.nutrient).label)} (${d.column === 'per100' ? 'por 100' : 'por porção'}): ${d.values.map((v) => `${esc(PRODUCT_SOURCES[v.source]?.name ?? v.source)} ${fmt(v.value, 2)}`).join(' × ')}</li>`).join('')}</ul>` : ''}
+      <h3 class="section-title">Ingredientes</h3>
+      <p class="small" style="margin:0">${p.ingredients ? esc(p.ingredients) : '<span class="muted">não informado</span>'}</p>
+      <p class="small" style="margin:6px 0 0">Alérgenos: ${allergens ? esc(allergens) : '<span class="muted">não informado</span>'}</p>
+      <h3 class="section-title">Fonte dos dados</h3>
+      <ul class="small prov">
+        <li>${esc(src.name)} · código ${esc(prov.ref)}${prov.url ? ` · <a href="${esc(prov.url)}" target="_blank" rel="noopener">ver na fonte</a>` : ''}</li>
+        <li>${prov.via === 'api' ? 'Consultado online' : 'Importado'} em ${dateBR(prov.fetchedAt)} · última alteração na fonte: ${dateBR(prov.sourceModifiedAt)}</li>
+        <li>Licença: ${esc(prov.license ?? 'não informada')}</li>
+        <li>Verificação: ${esc(prov.verification ?? 'não informada')}</li>
+        ${prov.missingSince ? `<li class="warn">Não apareceu na importação de ${dateBR(prov.missingSince)}; dados mantidos da versão anterior.</li>` : ''}
+        ${p.history?.length ? `<li>${p.history.length} versão(ões) anterior(es) guardada(s): ${p.history.map((h) => `${dateBR(h.provenance[0].fetchedAt)} (${fmt(h.nutrition?.per100?.values?.energyKcal?.value, 0)} kcal/100)`).join('; ')}</li>` : ''}
+      </ul>
+      <p class="small muted">Confira com o rótulo da embalagem que você tem em mãos: sabores e tamanhos diferentes têm tabelas próprias.</p>
+      <div class="btn-row">
+        ${prov.source === 'off' && p.gtin ? '<button class="btn" data-refresh>Atualizar pela internet</button>' : ''}
+        <button class="btn primary" data-use ${food ? '' : 'disabled'}>${mode === 'plan' ? 'Usar no plano' : 'Usar no diário'}</button>
+      </div>
+      ${food ? '' : '<p class="small muted">Sem valores por 100 g/ml, este produto não pode ser lançado por peso. Cadastre-o em "Novo alimento" com os valores do seu rótulo.</p>'}`,
+    onMount(body) {
+      body.onclick = async (e) => {
+        if (e.target.closest('[data-use]') && food) {
+          return openFoodDetail(state.foodsById.get(food.id) ?? food, { mealType, back: () => openProduct(p, { mealType, back, mode }), mode });
+        }
+        if (e.target.closest('[data-refresh]')) {
+          try {
+            const fresh = await productByBarcode(p.gtin);
+            if (!fresh) return toast('A fonte não tem mais este produto. A versão guardada continua.');
+            const merged = await rememberProduct(fresh);
+            toast(merged.history?.length > (p.history?.length ?? 0) ? 'Atualizado. A versão anterior ficou no histórico.' : 'Sem mudanças na fonte.');
+            openProduct(merged, { mealType, back, mode });
+          } catch {
+            toast('Sem conexão com o Open Food Facts agora.');
+          }
+        }
+      };
+    },
+  });
+}
+
 // ---------- código de barras ----------
 
 function openBarcode({ mealType, back, mode }) {
@@ -335,7 +466,7 @@ function openBarcode({ mealType, back, mode }) {
       ${scan ? '<div class="scanner"><video playsinline muted></video><p class="small muted">Aponte a câmera para o código de barras.</p></div>' : '<p class="small muted">Este navegador não lê código pela câmera. Digite os números que ficam embaixo das barras.</p>'}
       <label class="field">Número do código<input name="code" inputmode="numeric" pattern="[0-9]*" placeholder="7891000100103"></label>
       <div class="btn-row"><button class="btn primary" data-lookup>Buscar produto</button></div>
-      <p class="small muted" id="bc-status" style="margin:10px 0 0">A consulta é feita no Open Food Facts, base aberta mantida por colaboradores. Confira os valores com o rótulo.</p>`,
+      <p class="small muted" id="bc-status" style="margin:10px 0 0">Procura primeiro na biblioteca do app e depois no Open Food Facts, base aberta mantida por colaboradores. Confira os valores com o rótulo.</p>`,
     onMount(body) {
       const status = $('#bc-status', body);
       let stop = null;
@@ -343,13 +474,15 @@ function openBarcode({ mealType, back, mode }) {
         code = String(code).replace(/\D/g, '');
         if (code.length < 8) return toast('Digite o código completo (8 a 14 números).');
         status.textContent = 'Buscando…';
+        const local = await findByGtin(code);
+        if (local) { stop?.(); return openProduct(local, { mealType, back, mode }); }
         try {
-          const food = await productByBarcode(code);
-          if (!food) { status.textContent = 'Produto não encontrado ou sem tabela nutricional. Você pode cadastrá-lo em "Novo alimento".'; return; }
+          const product = await productByBarcode(code);
+          if (!product) { status.textContent = 'Produto não encontrado na biblioteca nem no Open Food Facts. Você pode cadastrá-lo em "Novo alimento" com os valores do rótulo.'; return; }
           stop?.();
-          openFoodDetail(food, { mealType, back, mode });
+          openProduct(await rememberProduct(product), { mealType, back, mode });
         } catch {
-          status.textContent = 'Sem conexão com o Open Food Facts agora. Tente de novo mais tarde.';
+          status.textContent = 'Não está na biblioteca do app e não houve conexão com o Open Food Facts. Tente de novo mais tarde.';
         }
       };
       if (scan) {
@@ -381,7 +514,8 @@ function sourceHTML(food) {
   if (food.barcode) parts.push(`código ${food.barcode}`);
   let note = '';
   if (food.source === 'receita') note = `<p class="small muted recipe">Calculado a partir de: ${esc(food.recipe)}. Receita caseira típica; o seu preparo pode variar.</p>`;
-  if (food.source === 'off') note = '<p class="small muted recipe">Dados do Open Food Facts (ODbL), enviados por colaboradores. Confira com o rótulo.</p>';
+  if (food.source === 'off') note = '<p class="small muted recipe">Dados do Open Food Facts (ODbL), enviados por colaboradores. Confira com o rótulo.</p>'
+    + `<button class="btn small" data-product="${esc(food.productId ?? `gtin:${food.barcode}`)}">Embalagem, rótulo e fonte</button>`;
   if (food.source === 'usda' || food.source === 'tempo') note = '<p class="small muted recipe">Base americana (USDA) com nome traduzido. Prefira o item da TACO quando houver.</p>';
   return `<p class="small muted" style="margin:4px 0 0">${parts.map(esc).join(' · ')} · por 100 ${baseUnit(food)}: ${fmt(food.n.kcal, 0)} kcal</p>${note}`;
 }
@@ -452,6 +586,8 @@ function openFoodDetail(food, { mealType, entry, back, mode = 'diary', planItem 
         preview();
       });
       body.onclick = async (e) => {
+        const prod = e.target.closest('[data-product]');
+        if (prod) return openProductById(prod.dataset.product, { mealType, back: () => openFoodDetail(food, { mealType, entry, back, mode, planItem }), mode });
         if (e.target.closest('[data-fav]')) {
           food = await ensureStored(food);
           state.favorites = isFav() ? state.favorites.filter((id) => id !== food.id) : [food.id, ...state.favorites];
@@ -1098,17 +1234,39 @@ function renderFoods() {
       ${mine.length ? `<ul class="list">${mine.map((f) => foodRowHTML(f)).join('')}</ul>` : '<p class="empty">Cadastre aqui o que não está na tabela: produtos de marca, receitas de casa, pratos do restaurante.</p>'}
     </section>
     <section class="card">
+      <h2>Biblioteca de produtos de marca</h2>
+      <p class="small muted" id="lib-meta" style="margin:0">Carregando…</p>
+      <input class="search" type="search" placeholder="Nome, marca ou código de barras" aria-label="Buscar produto de marca" id="lib-search">
+      <ul class="list" id="lib-results"></ul>
+    </section>
+    <section class="card">
       <h2>Consultar a tabela</h2>
       <input class="search" type="search" placeholder="Buscar entre ${fmt(state.base.length, 0)} alimentos e pratos" aria-label="Buscar na tabela">
       <ul class="list" id="browse"></ul>
     </section>`;
-  const input = $('.search', view);
+  const libInput = $('#lib-search', view);
+  let libItems = [];
+  loadLibrary().then((lib) => {
+    $('#lib-meta', view).innerHTML = lib.published
+      ? `${fmt(lib.published, 0)} produtos vendidos no Brasil, do Open Food Facts (ODbL), importados em ${dateBR(lib.meta?.importedAt)}${lib.onDevice ? ` · ${fmt(lib.onDevice, 0)} consultados online neste aparelho` : ''}. Não é um catálogo completo: só entra o que colaboradores cadastraram na fonte.`
+      : `A biblioteca ainda não foi importada${lib.onDevice ? `; ${fmt(lib.onDevice, 0)} produtos consultados online estão neste aparelho` : ''}. Use a busca online ao adicionar um alimento.`;
+  });
+  libInput.addEventListener('input', async () => {
+    const q = libInput.value;
+    const lib = await loadLibrary();
+    if (libInput.value !== q) return;
+    libItems = searchProducts(lib.items, q, { limit: 40 });
+    $('#lib-results', view).innerHTML = libItems.map((r, i) => productRowHTML(r, `data-lib="${i}"`)).join('') || (q.trim() ? '<li class="empty">Nenhum produto na biblioteca. Ao adicionar um alimento, dá para buscar online.</li>' : '');
+  });
+  const input = $('#browse', view).previousElementSibling;
   input.addEventListener('input', () => {
     const list = searchFoods(state.foods, input.value, { favorites: state.favorites, recents: state.recents, limit: 30 });
     $('#browse', view).innerHTML = list.map((f) => foodRowHTML(f)).join('') || (input.value.trim() ? '<li class="empty">Nada encontrado.</li>' : '');
   });
   view.onclick = (e) => {
     if (e.target.closest('[data-new-food]')) return openFoodForm({});
+    const lib = e.target.closest('[data-lib]');
+    if (lib) return openProductById(libItems[Number(lib.dataset.lib)].id, {});
     const row = e.target.closest('[data-food]');
     if (!row) return;
     const food = state.foodsById.get(row.dataset.food);
@@ -1270,6 +1428,7 @@ async function importBackup(e) {
   const total = data.entries.length;
   if (!confirm(`Substituir todos os dados deste aparelho pelo backup (${total} lançamentos)?`)) return;
   await db.replaceAll(data);
+  resetLibrary();
   await load();
   toast('Backup importado.');
   render();

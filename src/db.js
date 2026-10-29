@@ -1,21 +1,27 @@
 // Armazenamento local em IndexedDB. Tudo fica no aparelho; o backup é a exportação JSON.
 
 const DB_NAME = 'nutri-pessoal';
-const DB_VERSION = 1;
-export const STORES = ['foods', 'entries', 'weights', 'goals', 'kv'];
+const DB_VERSION = 2;
+export const STORES = ['foods', 'entries', 'weights', 'goals', 'kv', 'products'];
+// Listas exportadas no backup (kv vai à parte).
+const LISTS = ['foods', 'entries', 'weights', 'goals', 'products'];
 
 let dbPromise;
 
 function open() {
   dbPromise ??= new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (e) => {
       const db = req.result;
-      db.createObjectStore('foods', { keyPath: 'id' });
-      db.createObjectStore('entries', { keyPath: 'id' }).createIndex('date', 'date');
-      db.createObjectStore('weights', { keyPath: 'id' }).createIndex('date', 'date');
-      db.createObjectStore('goals', { keyPath: 'id' });
-      db.createObjectStore('kv');
+      if (e.oldVersion < 1) {
+        db.createObjectStore('foods', { keyPath: 'id' });
+        db.createObjectStore('entries', { keyPath: 'id' }).createIndex('date', 'date');
+        db.createObjectStore('weights', { keyPath: 'id' }).createIndex('date', 'date');
+        db.createObjectStore('goals', { keyPath: 'id' });
+        db.createObjectStore('kv');
+      }
+      // v2: produtos de marca consultados online, com proveniência e histórico (src/products.js).
+      if (e.oldVersion < 2) db.createObjectStore('products', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -32,6 +38,10 @@ function done(req) {
 
 async function store(name, mode = 'readonly') {
   return (await open()).transaction(name, mode).objectStore(name);
+}
+
+export async function get(name, id) {
+  return done((await store(name)).get(id));
 }
 
 export async function getAll(name) {
@@ -63,10 +73,10 @@ export async function kvSet(key, value) {
 export async function replaceAll(data) {
   const db = await open();
   const tx = db.transaction(STORES, 'readwrite');
-  for (const name of ['foods', 'entries', 'weights', 'goals']) {
+  for (const name of LISTS) {
     const s = tx.objectStore(name);
     s.clear();
-    for (const item of data[name]) s.put(item);
+    for (const item of data[name] ?? []) s.put(item);
   }
   const kv = tx.objectStore('kv');
   kv.clear();
@@ -80,7 +90,7 @@ export async function replaceAll(data) {
 
 export async function exportAll() {
   const out = {};
-  for (const name of ['foods', 'entries', 'weights', 'goals']) out[name] = await getAll(name);
+  for (const name of LISTS) out[name] = await getAll(name);
   const s = await store('kv');
   const [keys, values] = await Promise.all([done(s.getAllKeys()), done(s.getAll())]);
   out.kv = Object.fromEntries(keys.map((k, i) => [k, values[i]]));
