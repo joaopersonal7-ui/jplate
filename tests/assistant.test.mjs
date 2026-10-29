@@ -16,3 +16,13 @@ test('assistente responde pelo FAQ e encaminha saúde para a equipe', () => {
   assert.match(answer('tenho diabetes, posso comer banana?').text, /fale com a equipe/);
   assert.equal(answer('qual a capital da frança').from, null);
 });
+
+test('assistente acha cada pergunta da base e guarda as referências', async () => {
+  const { KB } = await import('../src/kb.js');
+  for (const k of KB) {
+    const r = answer(k.pergunta);
+    assert.equal(r.title, k.pergunta);
+    assert.deepEqual(r.refs, k.referencias);
+  }
+  assert.equal(answer('vou viajar semana que vem').title, 'O que fazer com a dieta quando vou viajar?');
+});

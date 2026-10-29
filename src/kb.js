@@ -1,0 +1,156 @@
+// Base de conhecimento do Assistente (ConsultoriaJP). Texto como enviado pelo Joao; só a formatação foi corrigida.
+// Cada item guarda as palavras-chave usadas na busca e as referências.
+
+const GUIA = 'Brasil. Ministério da Saúde, 2014. Guia Alimentar para a População Brasileira.';
+const NICE = 'NICE, 2025. Overweight and obesity management, guideline NG246.';
+const HALL = 'Hall e Kahan, 2018. Maintenance of Lost Weight and Long-Term Management of Obesity. Medical Clinics of North America.';
+
+export const KB = [
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Como adaptar minha dieta quando trabalho em turnos ou durante a noite?',
+    resposta: 'Você pode adaptar os horários das refeições à sua jornada de trabalho, sem precisar seguir horários convencionais. O mais importante é organizar a alimentação para evitar longos períodos sem acesso a comida, facilitar a ingestão adequada de nutrientes e não depender apenas de lanches ultraprocessados. Se possível, leve refeições preparadas e lanches práticos, como frutas, iogurte ou sanduíches com proteína. A distribuição ideal depende da sua rotina, do sono e da tolerância alimentar. Se você trabalha em turnos alternados, registre seus horários e converse com a equipe para ajustar o planejamento.',
+    palavras_chave: ['trabalho noturno', 'turno da noite', 'escala de trabalho', 'plantão', 'horário das refeições', 'dieta para quem trabalha à noite'],
+    referencias: [GUIA, 'Lowden et al., 2010. Eating and shift work: effects on habits, metabolism, and performance. Scandinavian Journal of Work, Environment & Health.'],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'O que fazer com a dieta quando vou viajar?',
+    resposta: 'Viajar não significa que você precisa abandonar seus hábitos alimentares. Planeje opções para o trajeto, como frutas, sanduíches, castanhas em porções adequadas e água. No destino, procure refeições que incluam fontes de proteína, alimentos ricos em fibras e opções que você já costuma consumir. Se não conseguir reproduzir exatamente o plano, faça escolhas razoáveis e retome sua rotina na refeição seguinte. Evite compensar refeições diferentes com jejum prolongado ou exercício excessivo. Se a viagem for longa ou frequente, avise a equipe para organizar alternativas compatíveis com seu planejamento.',
+    palavras_chave: ['viagem', 'viajar', 'férias', 'comer na estrada', 'dieta fora de casa', 'alimentação durante viagem'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Como manter a dieta no fim de semana?',
+    resposta: 'Você não precisa seguir uma rotina rígida de horários no fim de semana, mas vale manter uma estrutura alimentar semelhante à dos outros dias. Planeje as refeições principais, mantenha fontes de proteína e vegetais e escolha com antecedência como incluir alimentos de sua preferência. Refeições sociais podem fazer parte de uma alimentação equilibrada. O cuidado é evitar que pequenos desvios se transformem em dois dias de consumo muito acima do habitual. Não é necessário compensar depois. Organize o fim de semana de forma realista e retome seu planejamento normalmente na segunda-feira.',
+    palavras_chave: ['fim de semana', 'sábado', 'domingo', 'dieta no final de semana', 'refeição social', 'sair da dieta'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Como escolher uma refeição quando como em restaurante?',
+    resposta: 'Procure montar uma refeição equilibrada com alimentos que você reconhece e que se aproximem do seu planejamento. Uma combinação de arroz, feijão, carne, frango ou ovos e vegetais pode funcionar bem, ajustando as porções às suas necessidades. Observe também molhos, frituras, bebidas açucaradas e acompanhamentos, que podem aumentar bastante a ingestão energética. Você não precisa encontrar uma refeição perfeita nem evitar restaurantes. Faça a melhor escolha disponível e siga sua rotina depois. Se comer fora for frequente, peça à equipe opções de substituição adequadas ao seu plano.',
+    palavras_chave: ['restaurante', 'comer fora', 'self-service', 'comida a quilo', 'almoço fora', 'escolher comida'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'O que comer quando tenho pouco tempo para cozinhar?',
+    resposta: 'Você pode simplificar sua alimentação usando alimentos práticos e combinações fáceis. Arroz e feijão preparados em quantidade, ovos, frango já cozido, legumes congelados, frutas, aveia e iogurte natural podem ajudar a montar refeições sem exigir muito tempo. Produtos enlatados também podem ser úteis; quando possível, compare o teor de sódio e escolha opções adequadas. Organize algumas porções com antecedência e mantenha alternativas rápidas disponíveis. Não é necessário preparar receitas elaboradas para comer bem. Escolha opções práticas que você consiga manter dentro da rotina e do orçamento.',
+    palavras_chave: ['pouco tempo', 'sem tempo para cozinhar', 'marmita', 'comida rápida', 'refeição prática', 'preparar comida'],
+    referencias: [GUIA, 'Monteiro et al., 2019. Ultra-processed foods: what they are and how to identify them. Public Health Nutrition.'],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Posso trocar os horários das refeições conforme minha rotina?',
+    resposta: 'Sim. Os horários das refeições podem ser ajustados para acompanhar seu trabalho, seus estudos, seu sono e seus treinos. Não existe uma obrigação universal de comer em horários fixos ou de fazer todas as refeições exatamente no mesmo horário. Procure organizar a alimentação de forma que você consiga consumir o que foi planejado sem desconforto ou fome excessiva. Se mudar os horários prejudicar seu treino, seu sono ou sua ingestão alimentar, vale revisar a distribuição. Faça ajustes práticos e, se necessário, peça à equipe para reorganizar as refeições no aplicativo.',
+    palavras_chave: ['mudar horário', 'horário da dieta', 'atrasar refeição', 'pular horário', 'organização alimentar', 'rotina alimentar'],
+    referencias: [GUIA, 'St-Onge et al., 2017. Meal Timing and Frequency: Implications for Cardiovascular Disease Prevention. Circulation.'],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'O que fazer quando não consigo levar marmita para o trabalho?',
+    resposta: 'Se não puder levar marmita, procure alternativas próximas ao seu planejamento, como restaurantes por quilo, refeitórios ou estabelecimentos que preparem refeições na hora. Priorize uma fonte de proteína, um acompanhamento rico em carboidratos conforme sua necessidade e vegetais quando disponíveis. Se a oferta for limitada, escolha a opção mais adequada entre as disponíveis, sem transformar uma refeição imperfeita em motivo para abandonar o dia. Você também pode manter um lanche prático para emergências. Se essa situação acontece frequentemente, informe a equipe para adaptar seu plano à realidade do trabalho.',
+    palavras_chave: ['sem marmita', 'comida no trabalho', 'refeitório', 'almoço no serviço', 'comprar almoço', 'refeição no trabalho'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Como organizar minha alimentação quando estudo e trabalho o dia inteiro?',
+    resposta: 'Quando sua rotina é cheia, o planejamento precisa ser simples e realista. Identifique os horários em que você consegue comer, prepare algumas refeições com antecedência e mantenha opções práticas para os períodos mais corridos. Você pode dividir a alimentação em refeições principais e lanches conforme sua fome e preferência, sem precisar seguir uma frequência obrigatória. Evite depender exclusivamente de produtos ultraprocessados por falta de organização. Comece planejando apenas os dias mais difíceis e ajuste conforme sua experiência. Se o plano atual não cabe na sua rotina, peça à equipe para adaptá-lo.',
+    palavras_chave: ['trabalho e estudo', 'rotina corrida', 'sem tempo', 'organizar refeições', 'alimentação prática', 'estudar o dia todo'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Posso substituir uma refeição planejada por um lanche?',
+    resposta: 'Pode acontecer ocasionalmente, mas procure escolher um lanche que ofereça nutrientes suficientes para a situação. Um sanduíche com uma fonte de proteína, acompanhado de fruta, pode ser mais completo do que consumir apenas biscoitos ou doces. A melhor opção depende do tamanho da refeição que você está substituindo, da fome e do restante do dia. Um lanche pequeno nem sempre fornece energia e nutrientes equivalentes a um almoço ou jantar. Se precisar fazer essa troca com frequência, converse com a equipe para incluir alternativas planejadas no seu aplicativo.',
+    palavras_chave: ['trocar refeição', 'lanche no lugar do almoço', 'substituir jantar', 'não consigo almoçar', 'lanche rápido', 'refeição substituta'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Adaptação da dieta à rotina',
+    pergunta: 'Como manter a alimentação quando minha rotina muda de um dia para o outro?',
+    resposta: 'Em uma rotina variável, ajuda ter uma estrutura flexível em vez de depender de horários e refeições idênticos todos os dias. Mantenha alguns alimentos básicos em casa e opções práticas para levar ou comprar. Quando o dia mudar, priorize refeições completas sempre que possível e ajuste os horários à sua disponibilidade. Não precisa compensar uma refeição atrasada comendo muito de uma vez nem restringir a alimentação no dia seguinte. Observe quais situações mais dificultam sua adesão e prepare alternativas para elas. Se as mudanças forem frequentes, peça à equipe um plano com substituições mais flexíveis.',
+    palavras_chave: ['rotina variável', 'agenda imprevisível', 'dia corrido', 'mudança de horário', 'flexibilidade na dieta', 'não consigo seguir o plano'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Meu peso parou de baixar. Preciso reduzir mais as calorias?',
+    resposta: 'Não necessariamente. O peso pode ficar estável temporariamente por variações de líquidos, conteúdo intestinal, ciclo menstrual ou mudanças na composição corporal. Antes de reduzir calorias, confira a tendência do peso ao longo de várias semanas, a consistência do registro alimentar e as mudanças na atividade física. Conforme você emagrece, seu gasto energético também pode diminuir. Se houver estagnação persistente apesar de boa adesão, a equipe pode reavaliar as necessidades e decidir se algum ajuste é adequado. Evite cortar calorias por conta própria após poucos dias sem mudança na balança.',
+    palavras_chave: ['platô', 'peso parado', 'não emagreço', 'balança não muda', 'estagnação', 'parou de perder peso'],
+    referencias: [NICE, HALL],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Estou sentindo muita fome durante a dieta. O que devo fazer?',
+    resposta: 'Fome persistente pode indicar que a distribuição das refeições, a composição alimentar ou a quantidade total de energia precisam ser reavaliadas. Alimentos ricos em fibras, fontes de proteína, vegetais e refeições com volume adequado podem ajudar na saciedade. Também vale observar sono, hidratação e intervalos entre refeições. Não tente resolver fome intensa apenas bebendo água ou ignorando os sinais do corpo. Se a fome vier acompanhada de fraqueza, tontura ou piora importante do bem-estar, procure orientação profissional. Registre quando a fome aparece e converse com a equipe antes de alterar as calorias.',
+    palavras_chave: ['muita fome', 'fome na dieta', 'fome o tempo todo', 'falta de saciedade', 'dieta difícil', 'não consigo controlar a fome'],
+    referencias: [NICE, GUIA],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Estou sem apetite e não consigo comer tudo do plano. O que fazer?',
+    resposta: 'Não force grandes quantidades de comida sem entender o motivo da falta de apetite. Observe se isso começou após mudanças na rotina, estresse, doença, uso de medicamentos ou outros sintomas. Refeições menores e alimentos mais fáceis de consumir podem ajudar temporariamente, mas não substituem a avaliação da causa quando o problema persiste. Se você estiver perdendo peso sem intenção, tiver vômitos, dor ou outros sintomas, procure um profissional de saúde. Informe a equipe sobre a dificuldade para avaliar se a distribuição das refeições precisa ser adaptada com segurança.',
+    palavras_chave: ['sem apetite', 'não consigo comer', 'falta de fome', 'não termino a refeição', 'dificuldade para comer', 'apetite baixo'],
+    referencias: [NICE, GUIA],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Quando devo aumentar as calorias da minha dieta?',
+    resposta: 'Aumentar calorias pode ser apropriado quando seu objetivo, sua evolução ou sua rotina mudam. Por exemplo, uma fase de ganho de massa pode exigir mais energia, e uma dieta que provoca fome intensa, fadiga ou queda persistente no desempenho merece reavaliação. Isso não significa que qualquer dia de fome ou uma oscilação de peso exija mudança imediata. Considere a evolução ao longo de semanas, a adesão e o objetivo atual. Se você percebe sinais persistentes de baixa energia ou não consegue seguir o plano, converse com a equipe antes de alterar as quantidades.',
+    palavras_chave: ['aumentar calorias', 'comer mais', 'calorias baixas', 'ganho de massa', 'falta de energia', 'ajustar dieta'],
+    referencias: [NICE, HALL],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Quando devo reduzir as calorias da dieta?',
+    resposta: 'Não reduza calorias automaticamente porque o peso oscilou ou porque você teve alguns dias de menor adesão. Primeiro, avalie a tendência do peso, a precisão dos registros, a rotina de atividade e o tempo em que o resultado ficou estável. Se houver um platô persistente, a equipe poderá verificar se a meta energética ainda corresponde ao seu gasto atual. Cortes excessivos podem aumentar a fome, dificultar a adesão e comprometer a ingestão de nutrientes. Não faça reduções sucessivas por conta própria. Registre sua evolução e solicite uma revisão individualizada do plano.',
+    palavras_chave: ['reduzir calorias', 'cortar calorias', 'diminuir comida', 'não perco peso', 'ajustar déficit', 'dieta estagnada'],
+    referencias: [NICE, HALL],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Posso fazer uma refeição livre durante a dieta?',
+    resposta: 'Uma refeição fora do planejamento pode fazer parte de uma alimentação flexível, desde que você considere suas necessidades e mantenha hábitos sustentáveis no conjunto da semana. Não existe uma frequência universal de refeição livre que funcione para todas as pessoas. Evite interpretar esse momento como autorização para comer até sentir desconforto ou como algo que precise ser compensado depois. Você pode escolher uma refeição de que goste, comer com atenção e voltar à rotina normalmente. Se esse tipo de refeição desencadeia perda de controle, culpa intensa ou restrição posterior, converse com a equipe.',
+    palavras_chave: ['refeição livre', 'dia do lixo', 'comida livre', 'sair da dieta', 'cheat meal', 'refeição fora do plano'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Comi muito em um dia. Preciso compensar no dia seguinte?',
+    resposta: 'Não é necessário compensar com jejum prolongado, redução extrema de comida ou exercício excessivo. Essas estratégias podem aumentar a fome e dificultar uma relação equilibrada com a alimentação. Retome suas refeições habituais e observe se o episódio aconteceu por fome acumulada, estresse, falta de planejamento ou uma ocasião social. Uma refeição ou um dia isolado não determina sozinho o resultado de longo prazo. Se episódios de perda de controle se repetem ou provocam sofrimento, procure apoio profissional. Para o próximo dia, mantenha sua rotina normal e evite punições alimentares.',
+    palavras_chave: ['comi demais', 'exagerei na comida', 'compensar alimentação', 'engordei em um dia', 'comer muito', 'compensar no dia seguinte'],
+    referencias: [GUIA, NICE],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Por que meu peso varia mesmo quando sigo a dieta?',
+    resposta: 'O peso corporal não representa apenas gordura. Ele também varia conforme a água armazenada, o glicogênio muscular, o conteúdo intestinal, o consumo de sódio e o ciclo menstrual. Por isso, uma mudança rápida na balança não significa necessariamente que você ganhou ou perdeu gordura na mesma proporção. Pese-se em condições semelhantes, se isso fizer parte do seu acompanhamento, e observe a tendência em vez de interpretar cada valor isolado. Se as oscilações forem acompanhadas de inchaço importante ou outros sintomas, procure avaliação profissional. Continue registrando os dados de maneira consistente.',
+    palavras_chave: ['peso oscilando', 'retenção de líquido', 'peso sobe e desce', 'variação na balança', 'inchaço', 'peso diário'],
+    referencias: [HALL, NICE],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Preciso mudar a dieta quando começo a perder peso mais devagar?',
+    resposta: 'Não necessariamente. A velocidade de perda de peso costuma diminuir conforme o corpo fica mais leve, porque as necessidades energéticas também mudam. Além disso, retenção de líquidos e alterações na rotina podem mascarar mudanças na gordura corporal. Antes de alterar o plano, avalie várias semanas de evolução, a adesão e as medidas corporais disponíveis. Uma redução gradual da velocidade não significa que a estratégia deixou de funcionar. Se a tendência permanecer estável por um período prolongado, a equipe pode revisar o planejamento. Evite responder a cada semana mais lenta com cortes adicionais de calorias.',
+    palavras_chave: ['emagrecimento lento', 'perder peso devagar', 'resultado desacelerou', 'platô de emagrecimento', 'progresso lento', 'dieta parou de funcionar'],
+    referencias: [HALL, NICE],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'Como saber se estou comendo pouco demais?',
+    resposta: 'Sinais como fome intensa e persistente, fadiga, tontura, irritabilidade, piora do desempenho e dificuldade de recuperação podem indicar que sua alimentação precisa ser reavaliada, embora também possam ter outras causas. Não é possível determinar apenas por um sintoma se as calorias estão insuficientes. Observe a frequência, a intensidade e o impacto desses sinais na sua rotina. Se forem persistentes, procure a equipe ou um profissional de saúde, especialmente se houver desmaios, fraqueza importante ou perda de peso involuntária. Não reduza ainda mais as calorias sem revisar o plano.',
+    palavras_chave: ['comendo pouco', 'poucas calorias', 'dieta restritiva', 'fraqueza', 'cansaço na dieta', 'déficit exagerado'],
+    referencias: [NICE, 'Thomas, Erdman e Burke, 2016. Nutrition and Athletic Performance. Medicine & Science in Sports & Exercise.'],
+  },
+  {
+    categoria: 'Ajustes de dieta',
+    pergunta: 'O que fazer quando não consigo seguir a dieta todos os dias?',
+    resposta: 'Se o plano é difícil de seguir, isso não significa automaticamente que você não tem disciplina. Ele pode não estar adequado à sua rotina, preferências, orçamento ou horários. Identifique as situações que mais atrapalham, como falta de tempo, fome, refeições fora de casa ou dificuldade de preparar alimentos. A equipe pode adaptar porções, substituições e opções práticas para tornar o planejamento mais viável. Evite abandonar tudo depois de um dia difícil ou tentar compensar com restrições. Comece melhorando um obstáculo de cada vez e registre quais mudanças facilitam sua adesão.',
+    palavras_chave: ['não consigo seguir dieta', 'falta de disciplina', 'dieta difícil', 'adesão alimentar', 'não consigo manter', 'plano alimentar complicado'],
+    referencias: [GUIA, NICE],
+  },
+];

@@ -2,6 +2,7 @@
 // Não inventa nada: sem resposta no material, encaminha para a equipe.
 import { FAQ } from './faq.js';
 import { EQ_GROUPS, EQ_SECTIONS } from './equivalencias.js';
+import { KB } from './kb.js';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9,.]+/g, ' ').trim();
 // Plural simples e variações de gênero, para "ovos" achar "ovo" e "cozida" achar "cozido".
@@ -19,26 +20,32 @@ const words = (s) => norm(s).replace(/[,.]/g, ' ').split(' ').filter((w) => w &&
 const DOCS = [
   ...FAQ.flatMap(([cat, qs]) => qs.map(([q, a]) => ({ title: q.replace(/^\d+\.\s*/, ''), text: a, from: `Dúvidas frequentes · ${cat}` }))),
   ...EQ_SECTIONS.map((x) => ({ title: x.title, text: x.lines.join(' '), from: 'Tabela de equivalências' })),
+  ...KB.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave })),
 ];
 
 const idf = new Map();
 for (const d of DOCS) {
   d.qw = new Set(words(d.title));
   d.aw = new Set(words(d.text));
-  for (const w of new Set([...d.qw, ...d.aw])) idf.set(w, (idf.get(w) ?? 0) + 1);
+  d.kw = new Set((d.keys ?? []).flatMap(words));
+  d.phrases = (d.keys ?? []).map((k) => words(k).join(' ')).filter(Boolean);
+  for (const w of new Set([...d.qw, ...d.aw, ...d.kw])) idf.set(w, (idf.get(w) ?? 0) + 1);
 }
 for (const [w, n] of idf) idf.set(w, Math.log(1 + DOCS.length / n));
 
 function searchDocs(q) {
   const qw = [...new Set(words(q))];
   if (!qw.length) return [];
+  const qs = ` ${qw.join(' ')} `;
   return DOCS.map((d) => {
     let score = 0;
     for (const w of qw) {
       const k = idf.get(w) ?? 0;
-      if (d.qw.has(w)) score += 2 * k;
+      if (d.qw.has(w) || d.kw.has(w)) score += 2 * k;
       else if (d.aw.has(w)) score += k;
     }
+    // Palavra-chave inteira na pergunta (ex.: "fim de semana", "plantão") pesa mais.
+    for (const ph of d.phrases ?? []) if (qs.includes(` ${ph} `)) score += 3 * ph.split(' ').length;
     return { d, score: score / Math.sqrt(qw.length) };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
 }
@@ -140,7 +147,7 @@ export function answer(q) {
     if (wantsSwap || !searchDocs(q)[0] || searchDocs(q)[0].score < 3) return eq;
   }
   const [best] = searchDocs(q);
-  if (best && best.score >= 1.2) return { title: best.d.title, text: best.d.text, from: best.d.from };
+  if (best && best.score >= 1.2) return { title: best.d.title, text: best.d.text, from: best.d.from, refs: best.d.refs };
   if (eq) return eq;
   return {
     text: 'Não encontrei essa resposta no material da ConsultoriaJP. Tente perguntar de outro jeito (por exemplo, "posso trocar arroz por batata?") ou fale com a equipe pelo suporte do app.',

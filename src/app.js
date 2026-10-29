@@ -1768,7 +1768,7 @@ const chat = [];
 function chatHTML() {
   const bubble = (m) => m.role === 'user'
     ? `<div class="msg me">${esc(m.text)}</div>`
-    : `<div class="msg bot">${m.title ? `<b>${esc(m.title)}</b>` : ''}${esc(m.text).replace(/\n/g, '<br>')}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}</div>`;
+    : `<div class="msg bot">${m.title ? `<b>${esc(m.title)}</b>` : ''}${esc(m.text).replace(/\n/g, '<br>')}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}</div>`;
   return chat.length ? chat.map(bubble).join('') : `<div class="msg bot">Olá${state.profile.name ? `, ${esc(state.profile.name.split(' ')[0])}` : ''}! Sou o assistente do JPlate. Respondo com base nas Dúvidas frequentes e na Tabela de equivalências da ConsultoriaJP. Pergunte, por exemplo, se pode trocar um alimento por outro.</div>`;
 }
 
