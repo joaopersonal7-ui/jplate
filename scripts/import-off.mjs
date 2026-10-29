@@ -69,6 +69,11 @@ let lines = 0;
 let candidates = 0;
 let parseErrors = 0;
 let duplicates = 0;
+// Diagnóstico do formato do dump: quais campos de nutrição aparecem nos produtos do Brasil.
+// Se o Open Food Facts mudar o esquema, isto aparece em diagnostico.json em vez de passar calado.
+const schema = { withNutriments: 0, withNutritionObject: 0, nutrimentKeys: {}, nutritionKeys: {}, states: {}, topLevelKeys: {} };
+const samples = [];
+const bump = (o, k) => { o[k] = (o[k] ?? 0) + 1; };
 
 const rl = createInterface({ input: await openInput(input), crlfDelay: Infinity });
 for await (const line of rl) {
@@ -79,6 +84,17 @@ for await (const line of rl) {
   let raw;
   try { raw = JSON.parse(line); } catch { parseErrors += 1; continue; }
   if (!(raw.countries_tags ?? []).includes('en:brazil')) continue;
+  if (raw.nutriments && Object.keys(raw.nutriments).length) schema.withNutriments += 1;
+  if (raw.nutrition && typeof raw.nutrition === 'object') schema.withNutritionObject += 1;
+  if (schema.withNutriments + schema.withNutritionObject < 3000) {
+    for (const k of Object.keys(raw.nutriments ?? {})) bump(schema.nutrimentKeys, k);
+    for (const k of Object.keys(raw.nutrition ?? {})) bump(schema.nutritionKeys, k);
+    for (const k of Object.keys(raw)) bump(schema.topLevelKeys, k);
+  }
+  for (const k of raw.states_tags ?? []) if (/nutrition|complete|checked/.test(k)) bump(schema.states, k);
+  if (samples.length < 3 && (raw.nutriments || raw.nutrition)) {
+    samples.push(Object.fromEntries(Object.entries(raw).filter(([k]) => /code|nutri|serving|quantity|states|product_name|brands/.test(k))));
+  }
   const p = fromOff(raw, { fetchedAt: startedAt, via: 'dump' });
   if (!p) continue;
   // O mesmo GTIN pode aparecer com zero à esquerda; fica o registro modificado por último.
@@ -135,6 +151,15 @@ const cov = {
   ...coverage(merged),
 };
 writeFileSync(join(outDir, 'cobertura.json'), JSON.stringify(cov, null, 2));
+const top = (o, n) => Object.fromEntries(Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n));
+writeFileSync(join(outDir, 'diagnostico.json'), JSON.stringify({
+  ...schema,
+  nutrimentKeys: top(schema.nutrimentKeys, 80),
+  nutritionKeys: top(schema.nutritionKeys, 40),
+  topLevelKeys: top(schema.topLevelKeys, 200),
+  states: top(schema.states, 30),
+  samples,
+}, null, 1));
 
 writeFileSync(join(outDir, 'LICENCA.md'), `# Licença dos dados desta pasta
 

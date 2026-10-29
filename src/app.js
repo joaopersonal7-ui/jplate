@@ -5,7 +5,7 @@ import {
   buildEntry, buildQuickEntry, weightTrend, validateBackup, fmt, round, uid,
   sourceLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS,
 } from './domain.js';
-import { generatePlan, planToText } from './planner.js';
+import { generatePlan, planToText, MEAL_COUNTS } from './planner.js';
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
 import { LABEL_NUTRIENTS, STATUS_LABEL, SOURCES as PRODUCT_SOURCES, searchProducts, productToFood, fromIndexRow, indexRow } from './products.js';
 import { loadLibrary, getProduct, findByGtin, rememberProduct, resetLibrary } from './library.js';
@@ -832,10 +832,10 @@ function planItemFromGrams(food, slot, grams) {
   return base;
 }
 
-const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'level', 'wake', 'sleep'];
+const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'level', 'wake', 'sleep', 'meals'];
 
 function profileComplete(p) {
-  return ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep'].every((k) => p[k]) && (p.trains === 'no' || p.level);
+  return ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep', 'meals'].every((k) => p[k]) && (p.trains === 'no' || p.level);
 }
 
 function renderPlan() {
@@ -860,6 +860,7 @@ function renderPlan() {
         <label class="field">Já treina?<select name="trains"><option value="">Escolha</option><option value="yes"${p.trains === 'yes' ? ' selected' : ''}>Sim, já treino</option><option value="no"${p.trains === 'no' ? ' selected' : ''}>Ainda não treino</option></select></label>
         <label class="field" data-level ${p.trains === 'no' ? 'hidden' : ''}>Nível<select name="level"><option value="">Escolha</option>${opt(LEVELS, p.level)}</select></label>
       </div>
+      <label class="field">Quantas refeições por dia?<select name="meals"><option value="">Escolha</option>${opt(MEAL_COUNTS, p.meals)}</select></label>
       <label class="field">Atividade física no dia a dia<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
       <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
       <div id="targets"></div>
@@ -895,7 +896,7 @@ function renderPlan() {
     const ok = profileComplete(prof);
     $('#gen-row', view).innerHTML = ok
       ? `<button class="btn primary" data-generate>${state.plan.generated ? 'Gerar outra opção de cardápio' : 'Gerar meu cardápio'}</button>`
-      : '<p class="small warn" style="margin:0">Preencha todos os dados acima (inclusive horários e se já treina) para gerar o cardápio automático.</p>';
+      : '<p class="small warn" style="margin:0">Preencha todos os dados acima (inclusive horários, se já treina e quantas refeições) para gerar o cardápio automático.</p>';
   };
 
   const drawPlan = () => {
@@ -954,7 +955,7 @@ function renderPlan() {
     const today = localDate();
     await db.put('goals', { id: `goal-${today}`, startsAt: today, kcal: t.kcal, carbs: t.carbs, protein: t.protein, fat: t.fat, fiber: t.fiber, updatedAt: Date.now() });
     state.goals = await db.getAll('goals');
-    const gen = generatePlan({ targets: t, wake: prof.wake, sleep: prof.sleep, seed }, state.foodsById);
+    const gen = generatePlan({ targets: t, wake: prof.wake, sleep: prof.sleep, meals: prof.meals, seed }, state.foodsById);
     const items = gen.items.map((it) => planItemFromGrams(state.foodsById.get(it.foodId), it.slot, it.grams));
     await savePlan({ meals: gen.slots, items, generated: true, seed });
     drawTargets();

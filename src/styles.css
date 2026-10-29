@@ -349,6 +349,7 @@ label.field > textarea { resize: vertical; min-height: 70px; }
   .print-goals { margin: 10px 0; }
   .print-note { color: #666; font-size: 9pt; margin-top: 14px; }
 }
+[hidden] { display: none !important; }
 
 /* ---------- biblioteca de produtos ---------- */
 .status { display: inline-block; font-size: .7rem; padding: 1px 6px; border-radius: 6px; border: 1px solid currentColor; white-space: nowrap; }
