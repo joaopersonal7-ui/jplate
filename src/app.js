@@ -387,7 +387,8 @@ function openProduct(p, { mealType = defaultMeal(), back, mode = 'diary' } = {})
   const serving = nut.perServing;
   const unit = per100?.unit ?? serving?.unit ?? 'g';
   const servingHead = serving ? `por porção${serving.description ? `<br><span class="muted small">${esc(serving.description)}</span>` : ''}` : 'por porção';
-  const labelCol = nut.basisOnLabel === 'serving' ? 'por porção' : nut.basisOnLabel === '100g' ? `por 100 ${unit}` : null;
+  const labelCol = { serving: 'por porção', '100g': `por 100 ${unit}`, both: `por 100 ${unit} e por porção` }[nut.basisOnLabel] ?? null;
+  const SET_SOURCES = { packaging: 'embalagem', manufacturer: 'fabricante', database: 'outra base de dados' };
   const computed = nut.computedBySource === 'per100' ? `por 100 ${unit}` : nut.computedBySource === 'perServing' ? 'por porção' : null;
   const prov = p.provenance[0];
   const src = PRODUCT_SOURCES[prov.source] ?? { name: prov.source };
@@ -414,7 +415,7 @@ function openProduct(p, { mealType = defaultMeal(), back, mode = 'diary' } = {})
       <p class="small muted recipe">${labelCol ? `Coluna informada no rótulo: ${esc(labelCol)}.` : 'A fonte não informa qual coluna veio do rótulo.'}
         ${computed ? ` A coluna ${esc(computed)} foi calculada pela própria fonte a partir da porção.` : ''}</p>
       ${q.status === 'parcial' ? `<p class="small warn recipe">Não informado pela fonte: ${q.missing.map((k) => esc(LABEL_NUTRIENTS.find((x) => x.key === k).label.toLowerCase())).join(', ')}.</p>` : ''}
-      ${q.status === 'pendente' ? '<p class="small warn recipe">Tabela nutricional pendente: a fonte não tem os valores deste produto. Nada foi estimado.</p>' : ''}
+      ${q.status === 'pendente' ? `<p class="small warn recipe">${nut.noDataOnPackaging ? 'A fonte registra que a embalagem não traz tabela nutricional.' : 'Tabela nutricional pendente: a fonte não tem os valores deste produto.'} Nada foi estimado.</p>` : ''}
       ${p.divergences?.length ? `<h3 class="section-title">Divergência entre fontes</h3><ul class="small">${p.divergences.map((d) => `<li>${esc(LABEL_NUTRIENTS.find((x) => x.key === d.nutrient).label)} (${d.column === 'per100' ? 'por 100' : 'por porção'}): ${d.values.map((v) => `${esc(PRODUCT_SOURCES[v.source]?.name ?? v.source)} ${fmt(v.value, 2)}`).join(' × ')}</li>`).join('')}</ul>` : ''}
       <h3 class="section-title">Ingredientes</h3>
       <p class="small" style="margin:0">${p.ingredients ? esc(p.ingredients) : '<span class="muted">não informado</span>'}</p>
@@ -425,6 +426,7 @@ function openProduct(p, { mealType = defaultMeal(), back, mode = 'diary' } = {})
         <li>${prov.via === 'api' ? 'Consultado online' : 'Importado'} em ${dateBR(prov.fetchedAt)} · última alteração na fonte: ${dateBR(prov.sourceModifiedAt)}</li>
         <li>Licença: ${esc(prov.license ?? 'não informada')}</li>
         <li>Verificação: ${esc(prov.verification ?? 'não informada')}</li>
+        ${nut.setSources?.length ? `<li>Origem dos valores na fonte: ${nut.setSources.map((x) => esc(SET_SOURCES[x] ?? x)).join(', ')}</li>` : ''}
         ${prov.missingSince ? `<li class="warn">Não apareceu na importação de ${dateBR(prov.missingSince)}; dados mantidos da versão anterior.</li>` : ''}
         ${p.history?.length ? `<li>${p.history.length} versão(ões) anterior(es) guardada(s): ${p.history.map((h) => `${dateBR(h.provenance[0].fetchedAt)} (${fmt(h.nutrition?.per100?.values?.energyKcal?.value, 0)} kcal/100)`).join('; ')}</li>` : ''}
       </ul>

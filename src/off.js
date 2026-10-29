@@ -7,7 +7,7 @@ const API = 'https://world.openfoodfacts.org';
 const FIELDS = [
   'code', 'product_name', 'product_name_pt', 'generic_name', 'generic_name_pt', 'brands', 'quantity',
   'product_quantity', 'product_quantity_unit', 'serving_size', 'serving_quantity', 'serving_quantity_unit',
-  'nutrition_data_per', 'no_nutrition_data', 'nutriments', 'categories', 'categories_tags',
+  'nutrition_data_per', 'no_nutrition_data', 'nutriments', 'nutrition', 'categories', 'categories_tags',
   'ingredients_text', 'ingredients_text_pt', 'allergens_tags', 'traces_tags', 'states_tags', 'last_modified_t',
   'countries_tags',
 ].join(',');

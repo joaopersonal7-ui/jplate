@@ -111,6 +111,73 @@ function readNutrients(n, suffix) {
   return any ? out : null;
 }
 
+// Esquema de nutrição atual do OFF (2026): `nutrition.input_sets`, um conjunto por origem
+// (embalagem, fabricante, estimativa...) e por base (100 g, 100 ml, porção).
+// Só entram conjuntos "como vendido" que não sejam estimativa; e só valores digitados
+// (value_string), nunca os que o OFF calculou (value_computed sem valor informado).
+const MASS = { g: 1, mg: 0.001, 'µg': 0.000001, mcg: 0.000001 };
+
+function readSet(set) {
+  const out = {};
+  let any = false;
+  for (const x of LABEL_NUTRIENTS) {
+    const e = set.nutrients?.[x.off];
+    const typed = e && e.value_string != null && e.value_string !== '' ? num(e.value_string) ?? num(e.value) : null;
+    if (typed === null) { out[x.key] = null; continue; }
+    let value = typed;
+    const unit = e.unit ?? x.unit;
+    // Mesma grandeza em outra unidade (ex.: sódio em mg) vira a unidade padrão; o original fica guardado.
+    if (x.unit === 'g' && MASS[unit] && unit !== 'g') value = Math.round(typed * MASS[unit] * 1e6) / 1e6;
+    else if (unit !== x.unit) { out[x.key] = null; continue; }
+    out[x.key] = { value, unit: x.unit, ...(unit !== x.unit ? { original: `${e.value_string} ${unit}` } : {}), ...(e.modifier ? { modifier: e.modifier } : {}) };
+    any = true;
+  }
+  return any ? out : null;
+}
+
+function nutritionFromSets(p, liquid) {
+  const sets = (p.nutrition.input_sets ?? []).filter((x) => x.preparation === 'as_sold' && x.source !== 'estimate');
+  const by = (pred) => sets.filter(pred).map((x) => ({ set: x, values: readSet(x) })).find((x) => x.values);
+  const h = by((x) => ['100g', '100ml'].includes(x.per));
+  const sv = by((x) => x.per === 'serving');
+  return {
+    schema: 'input_sets',
+    noDataOnPackaging: Boolean(p.nutrition.no_nutrition_data_on_packaging),
+    basisOnLabel: h && sv ? 'both' : h ? '100g' : sv ? 'serving' : null,
+    setSources: [...new Set([h, sv].filter(Boolean).map((x) => x.set.source))],
+    per100: h && { unit: h.set.per === '100ml' || h.set.per_unit === 'ml' ? 'ml' : 'g', values: h.values },
+    perServing: sv && {
+      description: text(p.serving_size),
+      quantity: num(sv.set.per_quantity) ?? num(p.serving_quantity),
+      unit: text(sv.set.per_unit) ?? text(p.serving_quantity_unit) ?? (liquid ? 'ml' : 'g'),
+      values: sv.values,
+    },
+    computedBySource: null,
+  };
+}
+
+// Esquema antigo (`nutriments` com sufixos _100g/_serving), ainda usado por respostas da API.
+function nutritionFromLegacy(p, n, liquid) {
+  const per100 = p.no_nutrition_data === 'on' ? null : readNutrients(n, '_100g');
+  const perServing = p.no_nutrition_data === 'on' ? null : readNutrients(n, '_serving');
+  // O rótulo traz a tabela por 100 g/ml ou por porção; a outra coluna o OFF calcula pela porção.
+  const basis = p.nutrition_data_per === 'serving' ? 'serving' : p.nutrition_data_per === '100g' ? '100g' : null;
+  return {
+    schema: 'nutriments',
+    noDataOnPackaging: p.no_nutrition_data === 'on',
+    basisOnLabel: basis,
+    per100: per100 && { unit: liquid ? 'ml' : 'g', values: per100 },
+    perServing: perServing && {
+      description: text(p.serving_size),
+      quantity: num(p.serving_quantity),
+      unit: text(p.serving_quantity_unit) ?? (liquid ? 'ml' : 'g'),
+      values: perServing,
+    },
+    // Coluna que não veio do rótulo, e sim de conta feita pela própria fonte.
+    computedBySource: basis === 'serving' ? 'per100' : basis === '100g' && perServing ? 'perServing' : null,
+  };
+}
+
 // Converte um documento de produto do OFF (linha do JSONL ou resposta da API) num Produto.
 // Devolve null só quando não há código. Produtos sem tabela entram como "pendente".
 export function fromOff(p, { fetchedAt = new Date().toISOString(), via = 'dump' } = {}) {
@@ -126,24 +193,11 @@ export function fromOff(p, { fetchedAt = new Date().toISOString(), via = 'dump' 
   }
   const brands = (p.brands ?? '').split(',').map((b) => b.trim()).filter(Boolean);
   const name = text(p.product_name_pt) ?? text(p.product_name) ?? text(p.generic_name_pt) ?? text(p.generic_name);
-  const per100 = p.no_nutrition_data === 'on' ? null : readNutrients(n, '_100g');
-  const perServing = p.no_nutrition_data === 'on' ? null : readNutrients(n, '_serving');
-  // O rótulo traz a tabela por 100 g/ml ou por porção; a outra coluna o OFF calcula pela porção.
-  const basis = p.nutrition_data_per === 'serving' ? 'serving' : p.nutrition_data_per === '100g' ? '100g' : null;
   const liquid = quantity?.unit === 'ml' || /\bml\b/i.test(p.serving_size ?? '');
   const states = p.states_tags ?? [];
-  const nutrition = {
-    basisOnLabel: basis,
-    per100: per100 && { unit: liquid ? 'ml' : 'g', values: per100 },
-    perServing: perServing && {
-      description: text(p.serving_size),
-      quantity: num(p.serving_quantity),
-      unit: text(p.serving_quantity_unit) ?? (liquid ? 'ml' : 'g'),
-      values: perServing,
-    },
-    // Coluna que não veio do rótulo, e sim de conta feita pela própria fonte.
-    computedBySource: basis === 'serving' ? 'per100' : basis === '100g' && perServing ? 'perServing' : null,
-  };
+  const nutrition = Array.isArray(p.nutrition?.input_sets) || p.nutrition?.no_nutrition_data_on_packaging
+    ? nutritionFromSets(p, liquid)
+    : nutritionFromLegacy(p, n, liquid);
   if (!nutrition.perServing && (text(p.serving_size) || num(p.serving_quantity))) {
     nutrition.perServing = { description: text(p.serving_size), quantity: num(p.serving_quantity), unit: text(p.serving_quantity_unit), values: null };
   }
@@ -191,7 +245,9 @@ export function fromOff(p, { fetchedAt = new Date().toISOString(), via = 'dump' 
 export function qualityOf(product) {
   const nut = product.nutrition ?? {};
   const label = nut.basisOnLabel === 'serving' ? nut.perServing?.values : nut.per100?.values ?? nut.perServing?.values;
-  const has = (k) => label?.[k] != null;
+  // Com as duas colunas do rótulo, vale o que estiver em qualquer uma delas.
+  const other = nut.basisOnLabel === 'both' ? nut.perServing?.values : null;
+  const has = (k) => label?.[k] != null || other?.[k] != null;
   const present = LABEL_NUTRIENTS.filter((x) => has(x.key)).map((x) => x.key);
   const missing = REQUIRED.filter((k) => !has(k));
   const status = !present.length ? 'pendente' : missing.length ? 'parcial' : 'completo';

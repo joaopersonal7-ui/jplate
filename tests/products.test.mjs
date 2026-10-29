@@ -115,3 +115,41 @@ test('importador processa o dump em fluxo e filtra o Brasil', () => {
   const again = JSON.parse(readFileSync(join(out, 'det', '17.json'), 'utf8'))[0];
   assert.ok(again.provenance[0].missingSince);
 });
+
+test('esquema atual do OFF (input_sets): só valores digitados da embalagem, sem estimativas', () => {
+  const p = fromOff({
+    code: '7890000000048', product_name_pt: 'Molho (teste)', brands: 'Marca C', quantity: '60ml', serving_size: '5ml',
+    nutrition: {
+      input_sets: [
+        { source: 'packaging', preparation: 'as_sold', per: '100ml', per_quantity: 100, per_unit: 'ml', nutrients: {
+          'energy-kcal': { value: 19, value_string: '19', value_computed: 19.3, unit: 'kcal' },
+          'energy-kj': { value_computed: 80.5, unit: 'kJ' },
+          sodium: { value: 687, value_string: '687', unit: 'mg' },
+          proteins: { value: 1, value_string: '1', unit: 'g' },
+        } },
+        { source: 'packaging', preparation: 'as_sold', per: 'serving', per_quantity: 5, per_unit: 'ml', nutrients: {
+          'energy-kcal': { value: 1, value_string: '1', unit: 'kcal' },
+        } },
+        { source: 'estimate', preparation: 'as_sold', per: '100g', nutrients: { 'added-sugars': { value: 4.7, value_string: '4.7', unit: 'g', modifier: '~' } } },
+        { source: 'packaging', preparation: 'prepared', per: '100ml', nutrients: { fat: { value: 9, value_string: '9', unit: 'g' } } },
+      ],
+      aggregated_set: { nutrients: { 'energy-kj': { value: 81, unit: 'kJ' } } },
+    },
+  });
+  const v = p.nutrition.per100.values;
+  assert.equal(p.nutrition.per100.unit, 'ml');
+  assert.equal(p.nutrition.basisOnLabel, 'both');
+  assert.equal(v.energyKcal.value, 19);
+  assert.equal(v.energyKj, null, 'kJ só calculado pela fonte não entra');
+  assert.deepEqual(v.sodium, { value: 0.687, unit: 'g', original: '687 mg' });
+  assert.equal(v.addedSugars, null, 'estimativa por ingredientes não entra');
+  assert.equal(v.fat, null, 'valor do produto preparado não entra');
+  assert.equal(p.nutrition.perServing.quantity, 5);
+  assert.equal(p.nutrition.perServing.values.energyKcal.value, 1);
+  assert.deepEqual(p.nutrition.setSources, ['packaging']);
+  assert.equal(p.quality.status, 'parcial');
+  assert.equal(productToFood(p).n.sodium, 687);
+  const none = fromOff({ code: '7890000000055', product_name: 'Água (teste)', nutrition: { no_nutrition_data_on_packaging: true } });
+  assert.equal(none.quality.status, 'pendente');
+  assert.ok(none.nutrition.noDataOnPackaging);
+});
