@@ -1581,25 +1581,58 @@ async function renderAbout() {
 
 // ---------- dúvidas frequentes ----------
 
+// FAQ de dieta da ConsultoriaJP (texto do Joao, sem alterações) + dúvidas de uso do app.
 const FAQ = [
-  ['Como registro o que comi?', 'Em Meu Diário, toque em "+ Adicionar" na refeição, busque o alimento, escolha a porção e salve. Para lançar o dia inteiro do cardápio, use "Lançar tudo no diário de hoje" em Minha Dieta.'],
-  ['Como o app calcula minhas metas?', 'Pelo gasto em repouso (equação de Mifflin-St Jeor) multiplicado pelo fator da sua rotina, com o ajuste do objetivo aplicado uma vez sobre esse gasto. Depois vêm a proteína em g/kg, a gordura em % das calorias, o carboidrato com o que sobra e a fibra (14 g a cada 1.000 kcal). Os parâmetros são os da ConsultoriaJP.'],
-  ['Por que o app me colocou num nível de atividade mais baixo?', 'As perguntas sobre o trabalho e os passos sugerem o nível de forma conservadora: na dúvida, fica no mais baixo e você ajusta pela evolução do peso. "Muito ativo" só vale quando as respostas confirmam.'],
-  ['O cardápio gerado é uma prescrição?', 'Não. É um ponto de partida automático para adultos saudáveis. Para gestantes, menores de 18 anos, doença renal, diabetes com remédio ou transtorno alimentar o app mostra só as metas e recomenda acompanhamento profissional.'],
-  ['Posso trocar um alimento do cardápio?', 'Sim. Toque no alimento para mudar a quantidade ou remover, use "+ Adicionar" na refeição, ou "Gerar outra opção de cardápio". Intolerâncias e preferidos são respeitados quando o cardápio é gerado.'],
-  ['Onde ficam o pré e o pós-treino?', 'Marque que treina e informe o horário do treino em Minha Dieta. O app encaixa um pré-treino até 2 horas antes e um pós-treino até 2 horas depois.'],
-  ['De onde vêm os alimentos?', 'Da TACO (tabela brasileira), de pratos calculados a partir dela, da USDA e de produtos de marca do Open Food Facts. Cada alimento mostra a fonte. Na Biblioteca de Alimentos uma busca só procura em tudo.'],
-  ['Não achei um alimento. E agora?', 'Ao adicionar no diário, use "Buscar online" para produtos de marca ou o código de barras. Se ainda não achar, cadastre em "Novo alimento" com os dados do rótulo.'],
-  ['Meus dados ficam salvos onde?', 'Só neste aparelho, sem cadastro nem login. Faça backup em Sobre o app de vez em quando e guarde o arquivo; com ele você recupera tudo em outro aparelho.'],
-  ['Por que meu peso oscila tanto?', 'Água, sal e intestino mudam o peso de um dia para o outro. Em Peso, a linha de tendência (média dos últimos registros) mostra a direção real. Avalie por algumas semanas antes de mudar a dieta.'],
-  ['O app funciona sem internet?', 'Sim, depois de aberto uma vez. Só a busca online de marcas e o código de barras precisam de internet. Quando há versão nova, o app se atualiza sozinho ao abrir.'],
+  ["Alimentação e emagrecimento", [
+    ["1. Preciso seguir a dieta 100% para ter resultados?", "Não. Os resultados dependem principalmente da consistência ao longo do tempo. Uma refeição fora do planejado não anula seu progresso. O mais importante é manter uma boa adesão na maior parte dos dias e retomar sua rotina normalmente, sem compensações extremas."],
+    ["2. Posso comer algo fora da dieta?", "Sim. É possível incluir alimentos de sua preferência dentro de uma alimentação equilibrada. A quantidade e a frequência importam, principalmente quando o objetivo é emagrecer. Você não precisa considerar nenhum alimento isolado como proibido, salvo restrições específicas de saúde ou orientações individuais."],
+    ["3. Se eu sair da dieta em uma refeição, o que devo fazer?", "Volte à alimentação habitual na próxima refeição. Não precisa ficar sem comer, fazer cardio excessivo ou reduzir drasticamente as calorias para compensar. Um episódio isolado não determina o resultado, assim como uma única refeição saudável não garante progresso."],
+    ["4. Por que meu peso aumenta de um dia para o outro?", "O peso pode variar por retenção de líquidos, quantidade de carboidratos e sódio consumidos, conteúdo intestinal, ciclo menstrual e hidratação. Isso não significa necessariamente que você ganhou gordura. Avalie a tendência do peso ao longo de várias semanas, em condições semelhantes de pesagem."],
+    ["5. Posso emagrecer sem cortar carboidratos?", "Sim. O emagrecimento depende principalmente de manter um déficit energético ao longo do tempo. Arroz, batata, aveia, frutas e outros alimentos ricos em carboidratos podem fazer parte da dieta. A quantidade deve ser compatível com suas necessidades, suas preferências e seu planejamento alimentar."],
+  ]],
+  ["Horários, refeições e substituições", [
+    ["6. Preciso comer de três em três horas?", "Não necessariamente. A frequência das refeições pode variar de acordo com sua rotina, fome, preferências e estratégia alimentar. O mais importante é conseguir atingir suas necessidades nutricionais e manter uma alimentação sustentável. Comer em horários fixos pode ajudar algumas pessoas, mas não é uma obrigação universal."],
+    ["7. Posso trocar um alimento da dieta por outro?", "Sim, desde que a substituição seja compatível com o planejamento. Alimentos diferentes podem fornecer quantidades distintas de calorias, proteínas, carboidratos, gorduras e fibras. Utilize as substituições disponíveis no aplicativo ou consulte a equipe quando não souber qual alternativa escolher."],
+    ["8. Posso trocar arroz por batata ou mandioca?", "Sim. Porém, não é adequado trocar sempre na mesma quantidade em gramas sem considerar a composição nutricional. Arroz cozido, batata cozida e mandioca cozida apresentam diferentes quantidades de água, carboidratos e calorias. Prefira as equivalências indicadas no plano ou no aplicativo."],
+    ["9. E se eu não conseguir fazer uma das refeições?", "Se acontecer ocasionalmente, reorganize sua alimentação sem tentar compensar de forma exagerada. Se isso ocorre frequentemente, avise a equipe para que o planejamento seja adaptado à sua rotina. Não é necessário forçar uma refeição quando a estratégia pode ser ajustada de maneira adequada."],
+    ["10. Posso comer à noite sem prejudicar o emagrecimento?", "Sim. Comer à noite não provoca ganho de gordura automaticamente. O resultado depende principalmente do balanço energético ao longo do tempo. O horário pode influenciar fome, conforto digestivo e qualidade do sono, então o ideal é organizar as refeições de acordo com sua rotina e suas necessidades."],
+  ]],
+  ["Quantidades, registro e preparo dos alimentos", [
+    ["11. Preciso pesar os alimentos?", "Pesar os alimentos pode ajudar a estimar melhor as porções e seguir o planejamento com mais precisão. Entretanto, a necessidade depende da estratégia definida para você. Se o plano utiliza quantidades em gramas, procure respeitá-las e confira se a medida corresponde ao alimento cru ou cozido."],
+    ["12. Devo pesar os alimentos crus ou cozidos?", "Depende de como o alimento está descrito no plano ou no aplicativo. O peso muda durante o preparo devido à absorção ou à perda de água. Por isso, um alimento pesado cru não deve ser registrado como cozido usando a mesma referência nutricional. Siga sempre o estado indicado na porção."],
+    ["13. Preciso contar o óleo usado no preparo?", "Sim, quando o objetivo é registrar a ingestão com maior precisão. Óleo, azeite, manteiga, molhos e outros ingredientes adicionam energia à preparação. Considere a quantidade efetivamente utilizada na sua porção, evitando tanto ignorar esses ingredientes quanto contabilizar a mesma quantidade duas vezes."],
+    ["14. Posso usar temperos e molhos?", "Sim. Temperos naturais, como alho, cebola, ervas e especiarias, podem ajudar a deixar as refeições mais saborosas. Molhos prontos e ingredientes adicionados em maior quantidade podem contribuir com calorias, sódio, açúcar ou gorduras. Observe os rótulos e registre os itens relevantes conforme o planejamento."],
+    ["15. Como faço quando como em restaurante?", "Procure montar uma refeição semelhante à estrutura do seu plano, incluindo fontes de proteína, carboidratos e vegetais conforme suas necessidades. Estime as porções de forma realista e evite se preocupar com uma precisão impossível. Se comer fora for frequente, podemos adaptar o planejamento para facilitar essas escolhas."],
+  ]],
+  ["Fome, hidratação e consistência", [
+    ["16. Sentir fome durante a dieta é normal?", "Alguma variação de fome pode acontecer, mas fome intensa, persistente ou acompanhada de fraqueza não deve ser tratada como sinal obrigatório de que a dieta está funcionando. Avise a equipe para avaliar porções, saciedade, distribuição das refeições e adequação da ingestão energética."],
+    ["17. Quanto de água devo beber por dia?", "A necessidade varia conforme peso, clima, atividade física, transpiração e condições de saúde. Mantenha uma hidratação regular ao longo do dia e aumente a atenção em períodos de calor ou exercício. Não existe uma quantidade única adequada para todas as pessoas; algumas condições clínicas exigem orientação individualizada."],
+    ["18. Preciso cortar açúcar completamente?", "Não necessariamente. A redução de açúcares adicionados pode ajudar na qualidade da alimentação e no controle da ingestão energética, mas a exclusão total não é obrigatória para todos. A prioridade é manter uma alimentação equilibrada, com quantidades compatíveis com seu objetivo e com suas necessidades."],
+    ["19. Posso beber refrigerante zero ou usar adoçante?", "Essas opções podem ser utilizadas por muitas pessoas, se forem bem toleradas e compatíveis com suas necessidades. Bebidas sem açúcar geralmente fornecem pouca ou nenhuma energia, mas água deve continuar sendo uma das principais fontes de hidratação. A escolha também pode considerar preferências e orientações clínicas individuais."],
+    ["20. Em quanto tempo vou começar a ver resultados?", "Isso varia conforme o objetivo, a adesão, o ponto de partida, a atividade física, a retenção de líquidos e outros fatores individuais. O peso pode oscilar, e mudanças na composição corporal nem sempre aparecem imediatamente na balança. Acompanhe a evolução ao longo das semanas e use também medidas, fotos padronizadas e desempenho, quando fizer sentido."],
+  ]],
+  ['Usando o app', [
+    ['Como registro o que comi?', 'Em Meu Diário, toque em "+ Adicionar" na refeição, busque o alimento, escolha a porção e salve. Para lançar o dia inteiro do cardápio, use "Lançar tudo no diário de hoje" em Minha Dieta.'],
+    ['Como o app calcula minhas metas?', 'Pelo gasto em repouso (equação de Mifflin-St Jeor) multiplicado pelo fator da sua rotina, com o ajuste do objetivo aplicado uma vez sobre esse gasto. Depois vêm a proteína em g/kg, a gordura em % das calorias, o carboidrato com o que sobra e a fibra (14 g a cada 1.000 kcal). Os parâmetros são os da ConsultoriaJP.'],
+    ['Por que o app me colocou num nível de atividade mais baixo?', 'As perguntas sobre o trabalho e os passos sugerem o nível de forma conservadora: na dúvida, fica no mais baixo e você ajusta pela evolução do peso. "Muito ativo" só vale quando as respostas confirmam.'],
+    ['O cardápio gerado é uma prescrição?', 'Não. É um ponto de partida automático para adultos saudáveis. Para gestantes, menores de 18 anos, doença renal, diabetes com remédio ou transtorno alimentar o app mostra só as metas e recomenda acompanhamento profissional.'],
+    ['Onde ficam o pré e o pós-treino?', 'Marque que treina e informe o horário do treino em Minha Dieta. O app encaixa um pré-treino até 2 horas antes e um pós-treino até 2 horas depois.'],
+    ['De onde vêm os alimentos?', 'Da TACO (tabela brasileira), de pratos calculados a partir dela, da USDA e de produtos de marca do Open Food Facts. Cada alimento mostra a fonte. Na Biblioteca de Alimentos uma busca só procura em tudo.'],
+    ['Não achei um alimento. E agora?', 'Ao adicionar no diário, use "Buscar online" para produtos de marca ou o código de barras. Se ainda não achar, cadastre em "Novo alimento" com os dados do rótulo.'],
+    ['Meus dados ficam salvos onde?', 'Só neste aparelho, sem cadastro nem login. Faça backup em Sobre o app de vez em quando e guarde o arquivo; com ele você recupera tudo em outro aparelho.'],
+    ['O app funciona sem internet?', 'Sim, depois de aberto uma vez. Só a busca online de marcas e o código de barras precisam de internet. Quando há versão nova, o app se atualiza sozinho ao abrir.'],
+  ]],
+];
+const FAQ_NOTE = [
+  "Estas respostas são orientações gerais e não substituem a avaliação individual. Se sua dúvida envolver uma condição de saúde, sintomas, restrições específicas ou necessidade de alteração do plano alimentar, entre em contato com a equipe da ConsultoriaJP.",
+  "O planejamento alimentar deve respeitar as necessidades individuais, a rotina, as preferências e as condições de saúde de cada pessoa.",
 ];
 
 function renderFaq() {
   setTopbar('<h1>Dúvidas frequentes</h1>');
   topbar.onclick = null;
-  view.innerHTML = `<section class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section>
-    <p class="muted small" style="text-align:center;margin-top:18px">Não achou sua dúvida? Fale com seu treinador ou nutricionista.</p>`;
+  view.innerHTML = FAQ.map(([cat, qs]) => `<section class="card faq"><h2>${esc(cat)}</h2>${qs.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section>`).join('') +
+    `<section class="card faq-note"><h2>Orientação geral para os alunos</h2>${FAQ_NOTE.map((t) => `<p>${esc(t)}</p>`).join('')}</section>`;
   view.onclick = null;
 }
 
