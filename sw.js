@@ -1,5 +1,5 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v14';
+const VERSION = 'jplate-v15';
 const ASSETS = [
   './',
   'index.html',
@@ -19,6 +19,8 @@ const ASSETS = [
   'src/products.js',
   'src/library.js',
   'src/equivalencias.js',
+  'src/faq.js',
+  'src/assistant.js',
   'data/taco.json',
   'data/receitas.json',
   'data/usda.json',
