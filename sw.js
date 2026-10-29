@@ -1,5 +1,5 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v16';
+const VERSION = 'jplate-v17';
 const ASSETS = [
   './',
   'index.html',
