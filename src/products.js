@@ -145,13 +145,13 @@ function nutritionFromSets(p, liquid) {
     noDataOnPackaging: Boolean(p.nutrition.no_nutrition_data_on_packaging),
     basisOnLabel: h && sv ? 'both' : h ? '100g' : sv ? 'serving' : null,
     setSources: [...new Set([h, sv].filter(Boolean).map((x) => x.set.source))],
-    per100: h && { unit: h.set.per === '100ml' || h.set.per_unit === 'ml' ? 'ml' : 'g', values: h.values },
-    perServing: sv && {
+    per100: h ? { unit: h.set.per === '100ml' || h.set.per_unit === 'ml' ? 'ml' : 'g', values: h.values } : null,
+    perServing: sv ? {
       description: text(p.serving_size),
       quantity: num(sv.set.per_quantity) ?? num(p.serving_quantity),
       unit: text(sv.set.per_unit) ?? text(p.serving_quantity_unit) ?? (liquid ? 'ml' : 'g'),
       values: sv.values,
-    },
+    } : null,
     computedBySource: null,
   };
 }
@@ -336,6 +336,7 @@ export function indexRow(p) {
     c: p.category,
     s: p.quality.status,
     k: kcal,
+    ks: p.nutrition?.perServing?.values?.energyKcal?.value ?? null,
     bu: p.nutrition?.per100?.unit ?? null,
   };
 }
@@ -344,7 +345,7 @@ export function fromIndexRow(r) {
   return {
     id: r.id, name: r.n, brand: r.b, gtin: r.id.startsWith('gtin:') ? r.id.slice(5) : null,
     quantity: r.q ? { raw: r.q, value: r.v, unit: r.u } : null,
-    category: r.c, status: r.s, kcal100: r.k, baseUnit: r.bu,
+    category: r.c, status: r.s, kcal100: r.k, kcalServing: r.ks ?? null, baseUnit: r.bu,
   };
 }
 
@@ -399,12 +400,17 @@ export function searchProducts(items, query, { limit = 80 } = {}) {
 
 // Converte para o formato de alimento do diário (valores por 100 g/ml).
 // Só usa números da fonte; sódio passa de g para mg (mesma grandeza, outra unidade).
-// Sem nenhum valor por 100 g/ml, não dá para lançar por peso: devolve null.
+// Rótulo só com a coluna por porção: o produto é lançado em porções (unidade 'porção'),
+// sem converter para 100 g. Sem nenhum valor, devolve null.
 export function productToFood(p) {
-  const v = p.nutrition?.per100?.values;
-  if (!v || !Object.values(v).some(Boolean)) return null;
-  const val = (k) => v[k]?.value ?? null;
-  const serving = p.nutrition.perServing?.quantity;
+  const has = (col) => col?.values && Object.values(col.values).some(Boolean);
+  const byPortion = !has(p.nutrition?.per100) && has(p.nutrition?.perServing);
+  if (!has(p.nutrition?.per100) && !byPortion) return null;
+  const v = byPortion ? p.nutrition.perServing.values : p.nutrition.per100.values;
+  // O diário guarda "por 100 unidades"; em porções, 100 porções = 100 × o valor de 1 porção.
+  const k = byPortion ? 100 : 1;
+  const val = (key) => (v[key]?.value == null ? null : Math.round(v[key].value * k * 1e4) / 1e4);
+  const serving = byPortion ? null : p.nutrition.perServing?.quantity;
   return {
     id: `off-${p.gtin ?? p.provenance[0].ref}`,
     source: 'off',
@@ -413,9 +419,10 @@ export function productToFood(p) {
     brand: p.brand,
     barcode: p.gtin ?? p.provenance[0].ref,
     group: 'Produto de marca',
-    baseUnit: p.nutrition.per100.unit,
+    baseUnit: byPortion ? 'porção' : p.nutrition.per100.unit,
     package: p.quantity?.raw ?? null,
     status: p.quality.status,
+    portionDescription: byPortion ? p.nutrition.perServing.description ?? null : null,
     servings: serving > 0 ? [{ name: `porção do rótulo${p.nutrition.perServing.description ? ` (${p.nutrition.perServing.description})` : ''}`, g: serving }] : [],
     n: {
       kcal: val('energyKcal'),

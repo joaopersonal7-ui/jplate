@@ -3,7 +3,7 @@ import {
   MEALS, NUTRIENTS, BACKUP_VERSION, localDate, addDays, parseLocalDate, formatDateLabel, normalize,
   searchFoods, servingOptions, baseUnit, scaleNutrients, entryAmount, sumTotals, groupByMeal, goalFor,
   buildEntry, buildQuickEntry, weightTrend, validateBackup, fmt, round, uid,
-  sourceLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS,
+  sourceLabel, kcalLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS,
 } from './domain.js';
 import { generatePlan, planToText, MEAL_COUNTS } from './planner.js';
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
@@ -338,7 +338,7 @@ function foodRowHTML(f, attr = `data-food="${esc(f.id)}"`) {
   return `<li><button class="row" ${attr}>
     <span class="grow"><span class="name">${esc(f.name)}${f.brand ? ` <span class="muted">· ${esc(f.brand)}</span>` : ''}${tag}</span>
     <span class="muted small">${esc(f.group ?? 'Meus alimentos')} · ${esc(sourceLabel(f))}</span></span>
-    <span class="num small muted">${fmt(f.n.kcal, 0)} kcal/100${baseUnit(f)}</span></button></li>`;
+    <span class="num small muted">${kcalLabel(f)}</span></button></li>`;
 }
 
 // ---------- biblioteca de produtos ----------
@@ -355,7 +355,7 @@ function productRowHTML(r, attr) {
   return `<li><button class="row" ${attr}>
     <span class="grow"><span class="name">${esc(r.name ?? 'Produto sem nome')}${r.brand ? ` <span class="muted">· ${esc(r.brand)}</span>` : ' <span class="muted">· marca não informada</span>'}</span>
     <span class="muted small">${meta.map(esc).join(' · ')}</span> ${statusHTML(r.status)}</span>
-    <span class="num small muted">${r.kcal100 == null ? 'kcal não informada' : `${fmt(r.kcal100, 0)} kcal/100${r.baseUnit ?? 'g'}`}</span></button></li>`;
+    <span class="num small muted">${r.kcal100 != null ? `${fmt(r.kcal100, 0)} kcal/100${r.baseUnit ?? 'g'}` : r.kcalServing != null ? `${fmt(r.kcalServing, 0)} kcal/porção` : 'kcal não informada'}</span></button></li>`;
 }
 
 const ALLERGENS_PT = {
@@ -435,7 +435,8 @@ function openProduct(p, { mealType = defaultMeal(), back, mode = 'diary' } = {})
         ${prov.source === 'off' && p.gtin ? '<button class="btn" data-refresh>Atualizar pela internet</button>' : ''}
         <button class="btn primary" data-use ${food ? '' : 'disabled'}>${mode === 'plan' ? 'Usar no plano' : 'Usar no diário'}</button>
       </div>
-      ${food ? '' : '<p class="small muted">Sem valores por 100 g/ml, este produto não pode ser lançado por peso. Cadastre-o em "Novo alimento" com os valores do seu rótulo.</p>'}`,
+      ${food ? '' : '<p class="small muted">A fonte não tem valores deste produto, então ele não pode ser lançado. Cadastre-o em "Novo alimento" com os valores do seu rótulo.</p>'}
+      ${food?.baseUnit === 'porção' ? '<p class="small muted">O rótulo na fonte só traz a coluna por porção: no diário, este produto é lançado em porções, sem conversão para gramas.</p>' : ''}`,
     onMount(body) {
       body.onclick = async (e) => {
         if (e.target.closest('[data-use]') && food) {
@@ -519,7 +520,7 @@ function sourceHTML(food) {
   if (food.source === 'off') note = '<p class="small muted recipe">Dados do Open Food Facts (ODbL), enviados por colaboradores. Confira com o rótulo.</p>'
     + `<button class="btn small" data-product="${esc(food.productId ?? `gtin:${food.barcode}`)}">Embalagem, rótulo e fonte</button>`;
   if (food.source === 'usda' || food.source === 'tempo') note = '<p class="small muted recipe">Base americana (USDA) com nome traduzido. Prefira o item da TACO quando houver.</p>';
-  return `<p class="small muted" style="margin:4px 0 0">${parts.map(esc).join(' · ')} · por 100 ${baseUnit(food)}: ${fmt(food.n.kcal, 0)} kcal</p>${note}`;
+  return `<p class="small muted" style="margin:4px 0 0">${parts.map(esc).join(' · ')} · ${esc(kcalLabel(food))}</p>${note}`;
 }
 
 function openFoodDetail(food, { mealType, entry, back, mode = 'diary', planItem }) {
@@ -527,7 +528,7 @@ function openFoodDetail(food, { mealType, entry, back, mode = 'diary', planItem 
   const saved = () => state.servings[food.id] ?? [];
   let options = servingOptions(food, saved());
   const current = entry ?? planItem;
-  const sel = { quantity: current?.quantity ?? 100, servingId: current?.servingId ?? unit, mealType: current?.mealType ?? mealType };
+  const sel = { quantity: current?.quantity ?? (unit === 'porção' ? 1 : 100), servingId: current?.servingId ?? unit, mealType: current?.mealType ?? mealType };
   // Sem lançamento anterior, começa pela primeira porção (salva ou medida caseira).
   if (!current && options.length > 1) { sel.servingId = options[1].id; sel.quantity = 1; }
   // Porção usada no lançamento foi apagada: volta para a quantidade em g/ml.
@@ -547,7 +548,7 @@ function openFoodDetail(food, { mealType, entry, back, mode = 'diary', planItem 
         <label class="field">Quantidade<input type="number" inputmode="decimal" min="0" step="any" name="quantity" value="${esc(sel.quantity)}"></label>
         <label class="field">Unidade<select name="serving"></select></label>
       </div>
-      <button class="btn small" data-new-serving style="margin-top:8px">+ Salvar uma porção (ex.: 1 unidade = 120 ${unit})</button>
+      ${unit === 'porção' ? '' : `<button class="btn small" data-new-serving style="margin-top:8px">+ Salvar uma porção (ex.: 1 unidade = 120 ${unit})</button>`}
       <div id="serving-form" hidden>
         <div class="grid2">
           <label class="field">Nome da porção<input name="sLabel" placeholder="1 unidade média"></label>

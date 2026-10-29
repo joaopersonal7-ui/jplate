@@ -68,7 +68,8 @@ Regras:
 
 ### Pelo GitHub (recomendado, sem instalar nada)
 
-1. No repositório, abra **Actions → Importar produtos (Open Food Facts) → Run workflow** e escolha o ramo.
+1. No repositório, abra **Actions → Importar produtos (Open Food Facts) → Run workflow** e escolha o ramo
+   (o botão aparece depois que este fluxo estiver no `main`).
 2. O fluxo roda os testes, baixa o dump público em fluxo, filtra o Brasil, mescla com a importação
    anterior (guardando histórico) e grava `data/produtos/` no ramo.
 3. O resumo da execução mostra a cobertura. Depois é só publicar o ramo (GitHub Pages).
@@ -90,6 +91,37 @@ O importador usa o dump JSONL, como a documentação do Open Food Facts recomend
 grandes, e se identifica com User-Agent próprio. A busca online do app faz uma chamada por ação do
 usuário (buscar ou ler código), nunca em lote.
 
+## Cobertura da importação de 29/10/2026
+
+Dump completo do Open Food Facts (4.879.695 produtos do mundo), filtrado por `countries_tags = en:brazil`.
+
+| Indicador | Produtos | % |
+| --- | ---: | ---: |
+| Produtos do Brasil importados | 37.624 | 100 |
+| Marcas distintas | 6.901 | |
+| Com GTIN válido | 37.204 | 98,9 |
+| Com nome | 36.090 | 95,9 |
+| Com marca | 27.101 | 72,0 |
+| Com tamanho de embalagem | 16.581 | 44,1 |
+| Com porção declarada | 28.301 | 75,2 |
+| Tabela **completa** (9 itens obrigatórios) | 3.338 | 8,9 |
+| Tabela **parcial** | 26.012 | 69,1 |
+| Tabela **pendente** (sem valores) | 8.274 | 22,0 |
+| Com kcal, carboidratos, proteínas e gorduras | 26.450 | 70,3 |
+| Podem ser lançados no diário | 29.350 | 78,0 |
+| ...dos quais só em porções (rótulo só por porção na fonte) | 12.055 | 32,0 |
+| Conferidos por moderador da fonte | 1 | 0,0 |
+
+O que mais falta nas tabelas parciais: gordura trans (24.049), fibra (13.694), sódio (11.931),
+açúcares totais (11.636) e gordura saturada (10.984). Esses valores ficam "não informado".
+
+Peso no aparelho: o índice de busca tem 5,9 MB (cerca de 1 MB comprimido na transferência) e só é
+baixado na primeira busca de produto de marca. As fichas ficam em 100 arquivos de cerca de 0,75 MB
+(65 kB comprimidos); o app baixa só o arquivo do produto aberto. No repositório, a pasta ocupa 76 MB.
+
+Números atualizados a cada importação em `data/produtos/cobertura.json`; o formato de nutrição que
+a fonte usou fica em `data/produtos/diagnostico.json`.
+
 ## Licenças e fontes
 
 | Fonte | Situação | Condição |
@@ -106,8 +138,14 @@ Nenhum varejista é consultado. Nenhuma credencial foi configurada.
 - O Open Food Facts é colaborativo: cobre o que voluntários cadastraram, com erros possíveis e
   muitos produtos sem tabela. A biblioteca **não é um catálogo completo** do mercado brasileiro.
 - O filtro "Brasil" depende do campo `countries_tags` preenchido pelos colaboradores.
-- Quando o rótulo traz a tabela por porção, a coluna por 100 g/ml é calculada pelo próprio OFF
-  (e vice-versa). A ficha avisa qual coluna veio do rótulo.
+- Só entram valores digitados a partir da embalagem, "como vendido". Estimativas do OFF (por
+  ingredientes) e valores que o OFF calcula ficam de fora. Quando a fonte só tem a coluna por
+  porção, o produto é lançado em porções, sem conversão para gramas.
+- O dump atual do OFF usa um formato novo de nutrição (`nutrition.input_sets`). O
+  importador lê o formato novo e o antigo; se a fonte mudar de novo, `diagnostico.json` mostra.
+- 22% dos produtos do Brasil não têm nenhum valor nutricional na fonte, e só 44% têm o tamanho
+  da embalagem preenchido.
+- Cada nova importação acrescenta cerca de 76 MB ao histórico do git.
 - Alérgenos vêm como tags da fonte; só os principais são traduzidos.
 - Suplementos aparecem quando cadastrados no OFF como alimento; não há fonte específica de
   suplementos (registro ANVISA) integrada.

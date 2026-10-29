@@ -8,6 +8,7 @@ import {
   isValidGtin, canonicalGtin, parseQuantity, fromOff, qualityOf, mergeProduct, searchProducts,
   productToFood, fromIndexRow, indexRow, shardOf, coverage,
 } from '../src/products.js';
+import { scaleNutrients, kcalLabel } from '../src/domain.js';
 
 const fixture = new URL('./fixtures/off-amostra.jsonl', import.meta.url);
 const raws = readFileSync(fixture, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
@@ -152,4 +153,25 @@ test('esquema atual do OFF (input_sets): só valores digitados da embalagem, sem
   const none = fromOff({ code: '7890000000055', product_name: 'Água (teste)', nutrition: { no_nutrition_data_on_packaging: true } });
   assert.equal(none.quality.status, 'pendente');
   assert.ok(none.nutrition.noDataOnPackaging);
+});
+
+test('rótulo só por porção: lança em porções, sem converter para 100 g', () => {
+  const p = fromOff({
+    code: '7890000000062', product_name: 'Whey (teste)', brands: 'Marca D', serving_size: '30 g',
+    nutrition: { input_sets: [{ source: 'packaging', preparation: 'as_sold', per: 'serving', per_quantity: 30, per_unit: 'g', nutrients: {
+      'energy-kcal': { value: 120, value_string: '120', unit: 'kcal' },
+      proteins: { value: 24, value_string: '24', unit: 'g' },
+      sodium: { value: 50, value_string: '50', unit: 'mg' },
+    } }] },
+  });
+  assert.equal(p.nutrition.per100, null);
+  const f = productToFood(p);
+  assert.equal(f.baseUnit, 'porção');
+  const n = scaleNutrients(f.n, 1);
+  assert.equal(n.kcal, 120);
+  assert.equal(n.protein, 24);
+  assert.equal(n.sodium, 50);
+  assert.equal(n.carbs, null);
+  assert.equal(kcalLabel(f), '120 kcal/porção');
+  assert.equal(indexRow(p).ks, 120);
 });
