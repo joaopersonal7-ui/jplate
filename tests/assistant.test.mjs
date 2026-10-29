@@ -13,7 +13,8 @@ test('assistente não troca entre grupos diferentes', () => {
 
 test('assistente responde pelo FAQ e encaminha saúde para a equipe', () => {
   assert.equal(answer('Posso comer à noite?').title, 'Posso comer à noite sem prejudicar o emagrecimento?');
-  assert.match(answer('tenho diabetes, posso comer banana?').text, /fale com a equipe/);
+  assert.match(answer('tenho diabetes, posso comer banana?').text, /entre em contato com a equipe/);
+  assert.match(answer('estou com dor no peito').text, /emergência/);
   assert.equal(answer('qual a capital da frança').from, null);
 });
 
