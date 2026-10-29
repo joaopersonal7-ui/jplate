@@ -239,7 +239,7 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
   openSheet({
     title: `${mode === 'plan' ? 'Plano' : 'Adicionar'}: ${mealLabel(mealType)}`,
     body: `
-      <input class="search" type="search" placeholder="Buscar entre ${fmt(state.foods.length, 0)} alimentos e pratos" autocomplete="off" value="${esc(ui.query)}" aria-label="Buscar alimento">
+      <input class="search" type="search" placeholder="Buscar alimentos, pratos e marcas" autocomplete="off" value="${esc(ui.query)}" aria-label="Buscar alimento ou produto de marca">
       <div class="chips" role="group" aria-label="Filtro">
         <button class="chip" data-filter="recent">Recentes</button>
         <button class="chip" data-filter="fav">Favoritos</button>
@@ -252,23 +252,11 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
         <button class="btn small" data-barcode>Código de barras</button>
       </div>
       <ul class="list" id="results"></ul>
-      <div id="library"></div>
       <div id="online"></div>`,
     onMount(body) {
       const input = $('.search', body);
       const results = $('#results', body);
-      const library = $('#library', body);
       const online = $('#online', body);
-      const drawLibrary = async () => {
-        const q = ui.query.trim();
-        if (!q) { library.innerHTML = ''; return; }
-        const lib = await loadLibrary();
-        if (ui.query.trim() !== q) return;
-        ui.libItems = searchProducts(lib.items, q, { limit: 40 });
-        library.innerHTML = ui.libItems.length
-          ? `<h3 class="section-title">Produtos de marca · biblioteca</h3><ul class="list">${ui.libItems.map((r, i) => productRowHTML(r, `data-lib="${i}"`)).join('')}</ul>`
-          : '';
-      };
       const drawOnline = () => {
         const q = ui.query.trim();
         if (!q) { online.innerHTML = ''; return; }
@@ -287,18 +275,25 @@ function openAdd(mealType, initial = { query: '', filter: 'recent' }, mode = 'di
         let list;
         const q = ui.query.trim();
         for (const c of body.querySelectorAll('[data-filter]')) c.setAttribute('aria-pressed', String(!q && c.dataset.filter === ui.filter));
-        if (q) list = searchFoods(state.foods, q, { favorites: state.favorites, recents: state.recents });
-        else if (ui.filter === 'fav') list = state.favorites.map((id) => state.foodsById.get(id));
+        if (q) {
+          drawOnline();
+          unifiedSearch(q).then((found) => {
+            if (ui.query.trim() !== q) return;
+            ui.libItems = [];
+            results.innerHTML = found.length ? unifiedRowsHTML(found, ui.libItems)
+              : '<li class="empty">Nada encontrado. Tente outra palavra, busque online abaixo ou cadastre o alimento.</li>';
+          });
+          return;
+        }
+        if (ui.filter === 'fav') list = state.favorites.map((id) => state.foodsById.get(id));
         else if (ui.filter === 'mine') list = state.userFoods.filter((f) => !f.deletedAt).sort((a, b) => a.name.localeCompare(b.name));
         else if (ui.filter === 'dishes') list = state.base.filter((f) => f.source === 'receita');
         else list = state.recents.map((id) => state.foodsById.get(id));
         list = list.filter((f) => f && !f.deletedAt);
-        const emptyMsg = q ? 'Nada encontrado na base. Tente outra palavra, busque online abaixo ou cadastre o alimento.'
-          : ui.filter === 'fav' ? 'Marque alimentos com a estrela para vê-los aqui.'
+        const emptyMsg = ui.filter === 'fav' ? 'Marque alimentos com a estrela para vê-los aqui.'
           : ui.filter === 'mine' ? 'Você ainda não cadastrou alimentos.'
           : 'Busque um alimento para começar.';
         results.innerHTML = list.length ? list.map((f) => foodRowHTML(f)).join('') : `<li class="empty">${emptyMsg}</li>`;
-        drawLibrary();
         drawOnline();
       };
       input.addEventListener('input', () => { ui.query = input.value; draw(); });
@@ -341,6 +336,39 @@ function foodRowHTML(f, attr = `data-food="${esc(f.id)}"`) {
     <span class="num small muted">${kcalLabel(f)}</span></button></li>`;
 }
 
+// Busca única: alimentos (TACO, pratos, USDA, meus) e produtos de marca da biblioteca na mesma lista,
+// ordenados pela mesma régua de semelhança com o que foi digitado.
+function textScore(name, q) {
+  const n = normalize(name ?? '');
+  const qn = normalize(q);
+  const words = n.split(' ');
+  let s = n.startsWith(qn) ? 30 : 0;
+  for (const t of qn.split(' ').filter(Boolean)) s += words.some((w) => w.startsWith(t)) ? 10 : n.includes(t) ? 3 : 0;
+  return s - n.length / 25;
+}
+
+async function unifiedSearch(q, limit = 60) {
+  const foods = searchFoods(state.foods, q, { favorites: state.favorites, recents: state.recents, limit }).filter((f) => !f.deletedAt);
+  const lib = await loadLibrary();
+  const saved = new Set(foods.filter((f) => f.barcode).map((f) => String(f.barcode)));
+  const prods = searchProducts(lib.items, q, { limit }).filter((r) => !saved.has(String(r.gtin ?? '')));
+  const fav = new Set(state.favorites);
+  const rec = new Set(state.recents);
+  return [
+    ...foods.map((f, i) => ({ f, s: textScore(f.name, q) + (fav.has(f.id) ? 20 : 0) + (rec.has(f.id) ? 8 : 0) + (f.source === 'taco' || f.source === 'receita' ? 4 : 0) - i * 0.05 })),
+    ...prods.map((r, i) => ({ r, s: textScore(r.name, q) + (normalize(r.brand ?? '') && normalize(q).includes(normalize(r.brand ?? '')) ? 8 : 0) - i * 0.05 })),
+  ].sort((a, b) => b.s - a.s).slice(0, limit);
+}
+
+// Linhas da busca única. `libItems` recebe os produtos, para o clique achar o item pelo índice.
+function unifiedRowsHTML(list, libItems) {
+  return list.map((x) => {
+    if (x.f) return foodRowHTML(x.f);
+    libItems.push(x.r);
+    return productRowHTML(x.r, `data-lib="${libItems.length - 1}"`);
+  }).join('');
+}
+
 // ---------- biblioteca de produtos ----------
 
 const STATUS_CLASS = { completo: 'ok', parcial: 'part', pendente: 'pend' };
@@ -353,7 +381,7 @@ function statusHTML(status) {
 function productRowHTML(r, attr) {
   const meta = [r.quantity?.raw ? `embalagem ${r.quantity.raw}` : 'embalagem não informada', r.onDevice ? 'consultado online' : 'Open Food Facts'];
   return `<li><button class="row" ${attr}>
-    <span class="grow"><span class="name">${esc(r.name ?? 'Produto sem nome')}${r.brand ? ` <span class="muted">· ${esc(r.brand)}</span>` : ' <span class="muted">· marca não informada</span>'}</span>
+    <span class="grow"><span class="name">${esc(r.name ?? 'Produto sem nome')}${r.brand ? ` <span class="muted">· ${esc(r.brand)}</span>` : ' <span class="muted">· marca não informada</span>'}<span class="badge">marca</span></span>
     <span class="muted small">${meta.map(esc).join(' · ')}</span> ${statusHTML(r.status)}</span>
     <span class="num small muted">${r.kcal100 != null ? `${fmt(r.kcal100, 0)} kcal/100${r.baseUnit ?? 'g'}` : r.kcalServing != null ? `${fmt(r.kcalServing, 0)} kcal/porção` : 'kcal não informada'}</span></button></li>`;
 }
@@ -871,32 +899,52 @@ function renderPlan() {
     <section class="card">
       <h2>1. Seu objetivo${state.profile.name ? `, ${esc(state.profile.name.split(' ')[0])}` : ''}</h2>
       <p class="small muted" style="margin:4px 0 0">Preencha tudo e o app calcula suas metas e monta um cardápio completo para você.</p>
-      <div class="grid2">
-        <label class="field">Sexo<select name="sex"><option value="m"${p.sex === 'm' ? ' selected' : ''}>Masculino</option><option value="f"${p.sex === 'f' ? ' selected' : ''}>Feminino</option></select></label>
-        <label class="field">Idade<input name="age" type="number" inputmode="numeric" min="10" max="100" value="${esc(v(p.age))}"></label>
-        <label class="field">Altura (cm)<input name="height" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
-        <label class="field">Peso (kg)<input name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="${esc(v(p.weight))}"></label>
-        <label class="field">Acordo às<input name="wake" type="time" value="${esc(v(p.wake))}"></label>
-        <label class="field">Durmo às<input name="sleep" type="time" value="${esc(v(p.sleep))}"></label>
+      <div class="form-block">
+        <h3>Seu corpo</h3>
+        <div class="grid2">
+          <label class="field">Sexo<select name="sex"><option value="m"${p.sex === 'm' ? ' selected' : ''}>Masculino</option><option value="f"${p.sex === 'f' ? ' selected' : ''}>Feminino</option></select></label>
+          <label class="field">Idade<input name="age" type="number" inputmode="numeric" min="10" max="100" value="${esc(v(p.age))}"></label>
+          <label class="field">Altura (cm)<input name="height" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
+          <label class="field">Peso (kg)<input name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="${esc(v(p.weight))}"></label>
+        </div>
+      </div>
+      <div class="form-block">
+        <h3>Sua rotina</h3>
+        <div class="grid2">
+          <label class="field">Acordo às<input name="wake" type="time" value="${esc(v(p.wake))}"></label>
+          <label class="field">Durmo às<input name="sleep" type="time" value="${esc(v(p.sleep))}"></label>
+        </div>
+        <label class="field">Refeições por dia<select name="meals"><option value="">Escolha</option>${opt(MEAL_COUNTS, p.meals)}</select></label>
+        <label class="field">Atividade no dia a dia (trabalho, passos e treino)<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
+      </div>
+      <div class="form-block">
+        <h3>Treino</h3>
         <label class="field">Já treina?<select name="trains"><option value="">Escolha</option><option value="yes"${p.trains === 'yes' ? ' selected' : ''}>Sim, já treino</option><option value="no"${p.trains === 'no' ? ' selected' : ''}>Ainda não treino</option></select></label>
-        <label class="field">Quantas refeições por dia?<select name="meals"><option value="">Escolha</option>${opt(MEAL_COUNTS, p.meals)}</select></label>
+        <div data-train ${p.trains === 'yes' ? '' : 'hidden'}>
+          <div class="grid2">
+            <label class="field">Horário do treino<input name="trainTime" type="time" value="${esc(v(p.trainTime))}"></label>
+            <label class="field">Vezes por semana<select name="trainDays"><option value="">Escolha</option>${opt(TRAIN_DAYS, p.trainDays)}</select></label>
+          </div>
+          <label class="field">Tipo de treino<select name="trainType"><option value="">Escolha</option>${opt(TRAIN_TYPES, p.trainType)}</select></label>
+          <label class="field">Nível<select name="level"><option value="">Escolha</option>${opt(LEVELS, p.level)}</select></label>
+          <p class="small muted" style="margin:6px 0 0">Pelo horário do treino o cardápio encaixa um pré-treino antes e um pós-treino depois.</p>
+        </div>
       </div>
-      <div class="grid2" data-train ${p.trains === 'yes' ? '' : 'hidden'}>
-        <label class="field">Que horas treina?<input name="trainTime" type="time" value="${esc(v(p.trainTime))}"></label>
-        <label class="field">Quantas vezes por semana?<select name="trainDays"><option value="">Escolha</option>${opt(TRAIN_DAYS, p.trainDays)}</select></label>
-        <label class="field">Tipo de treino<select name="trainType"><option value="">Escolha</option>${opt(TRAIN_TYPES, p.trainType)}</select></label>
-        <label class="field">Nível<select name="level"><option value="">Escolha</option>${opt(LEVELS, p.level)}</select></label>
+      <div class="form-block">
+        <h3>Objetivo e saúde</h3>
+        <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
+        <label class="field">Alguma condição de saúde?<select name="health">${opt(HEALTH, p.health ?? 'none')}</select></label>
       </div>
-      <p class="small muted" data-train ${p.trains === 'yes' ? '' : 'hidden'} style="margin:6px 0 0">Com o horário do treino o cardápio encaixa um pré-treino antes e um pós-treino depois.</p>
-      <label class="field">Atividade no dia a dia (trabalho, passos e treino juntos)<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
-      <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
-      <label class="field">Alguma condição de saúde?<select name="health">${opt(HEALTH, p.health ?? 'none')}</select></label>
-      <fieldset class="field-set">
-        <legend>Intolerância ou alergia a algum alimento?</legend>
-        <div class="chips">${INTOLERANCES.map((x) => `<label class="chip check"><input type="checkbox" name="intol" value="${x.id}"${(p.intol ?? []).includes(x.id) ? ' checked' : ''}> ${esc(x.label)}</label>`).join('')}</div>
-        <label class="field">Outros que você não come (separe por vírgula)<input name="intolOther" placeholder="Ex.: camarão, pimentão" value="${esc(v(p.intolOther))}"></label>
-      </fieldset>
-      <label class="field">Alimentos que você prefere (separe por vírgula)<input name="prefer" placeholder="Ex.: frango, batata doce, banana, ovos" value="${esc(v(p.prefer))}"></label>
+      <div class="form-block">
+        <h3>Alimentação</h3>
+        <fieldset class="field-set">
+          <legend>Intolerância ou alergia a algum alimento?</legend>
+          <div class="chips">${INTOLERANCES.map((x) => `<label class="chip check"><input type="checkbox" name="intol" value="${x.id}"${(p.intol ?? []).includes(x.id) ? ' checked' : ''}> ${esc(x.label)}</label>`).join('')}</div>
+          <label class="field">Outros que você não come<input name="intolOther" placeholder="Ex.: camarão, pimentão" value="${esc(v(p.intolOther))}"></label>
+        </fieldset>
+        <label class="field">Alimentos que você prefere<input name="prefer" placeholder="Ex.: frango, batata doce, banana, ovos" value="${esc(v(p.prefer))}"></label>
+        <p class="small muted" style="margin:6px 0 0">Separe por vírgula. O cardápio tira o que você não come e coloca seus preferidos.</p>
+      </div>
       <div id="targets"></div>
     </section>
 
@@ -1131,13 +1179,15 @@ async function renderProfileCard() {
         <button class="btn small" data-photo>${p.photo ? 'Trocar foto' : 'Adicionar foto'}</button>${p.photo ? ' <button class="btn small danger" data-photo-remove>Remover</button>' : ''}</div>
         <input type="file" accept="image/*" hidden id="photo-file">
       </div>
+      <label class="field">Nome<input name="pname" value="${esc(v(p.name))}" autocomplete="name"></label>
       <div class="grid2">
-        <label class="field">Nome<input name="pname" value="${esc(v(p.name))}" autocomplete="name"></label>
         <label class="field">Data de nascimento<input name="pbirth" type="date" value="${esc(v(p.birth))}"></label>
         <label class="field">Sexo<select name="psex"><option value="m"${p.sex !== 'f' ? ' selected' : ''}>Masculino</option><option value="f"${p.sex === 'f' ? ' selected' : ''}>Feminino</option></select></label>
         <label class="field">Altura (cm)<input name="pheight" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
         <label class="field">Telefone<input name="pphone" type="tel" autocomplete="tel" value="${esc(v(p.phone))}"></label>
-        <label class="field">E-mail<input name="pemail" type="email" autocomplete="email" value="${esc(v(p.email))}"></label>
+      </div>
+      <label class="field">E-mail<input name="pemail" type="email" autocomplete="email" value="${esc(v(p.email))}"></label>
+      <div class="grid2">
         <label class="field">Peso de hoje (kg)<input name="pweight" type="number" inputmode="decimal" min="20" max="400" step="0.1" placeholder="${w ? fmt(w) : '70,0'}"></label>
         <label class="field">Peso desejado (kg)<input name="pgoalweight" type="number" inputmode="decimal" min="20" max="400" step="0.1" value="${esc(v(p.goalWeight))}"></label>
       </div>
@@ -1285,38 +1335,28 @@ function renderFoods() {
   const mine = state.userFoods.filter((f) => !f.deletedAt).sort((a, b) => a.name.localeCompare(b.name));
   view.innerHTML = `
     <section class="card">
+      <h2>Buscar alimentos</h2>
+      <input class="search" type="search" placeholder="Alimento, prato, marca ou código de barras" aria-label="Buscar alimento ou produto de marca" id="unified-search">
+      <p class="small muted" id="lib-meta" style="margin:6px 0 0"></p>
+      <ul class="list" id="browse"></ul>
+    </section>
+    <section class="card" data-mine>
       <div class="card-head"><h2>Meus alimentos</h2><button class="add-btn" data-new-food>+ Novo</button></div>
       ${mine.length ? `<ul class="list">${mine.map((f) => foodRowHTML(f)).join('')}</ul>` : '<p class="empty">Cadastre aqui o que não está na tabela: produtos de marca, receitas de casa, pratos do restaurante.</p>'}
-    </section>
-    <section class="card">
-      <h2>Biblioteca de produtos de marca</h2>
-      <p class="small muted" id="lib-meta" style="margin:0">Carregando…</p>
-      <input class="search" type="search" placeholder="Nome, marca ou código de barras" aria-label="Buscar produto de marca" id="lib-search">
-      <ul class="list" id="lib-results"></ul>
-    </section>
-    <section class="card">
-      <h2>Consultar a tabela</h2>
-      <input class="search" type="search" placeholder="Buscar entre ${fmt(state.base.length, 0)} alimentos e pratos" aria-label="Buscar na tabela">
-      <ul class="list" id="browse"></ul>
     </section>`;
-  const libInput = $('#lib-search', view);
   let libItems = [];
   loadLibrary().then((lib) => {
-    $('#lib-meta', view).innerHTML = lib.published
-      ? `${fmt(lib.published, 0)} produtos vendidos no Brasil, do Open Food Facts (ODbL), importados em ${dateBR(lib.meta?.importedAt)}${lib.onDevice ? ` · ${fmt(lib.onDevice, 0)} consultados online neste aparelho` : ''}. Não é um catálogo completo: só entra o que colaboradores cadastraram na fonte.`
-      : `A biblioteca ainda não foi importada${lib.onDevice ? `; ${fmt(lib.onDevice, 0)} produtos consultados online estão neste aparelho` : ''}. Use a busca online ao adicionar um alimento.`;
+    const brands = lib.published || lib.onDevice || 0;
+    $('#lib-meta', view).textContent = `Uma busca só em ${fmt(state.base.length, 0)} alimentos e pratos (TACO, receitas, USDA)${brands ? ` e ${fmt(brands, 0)} produtos de marca do Open Food Facts` : ''}.`;
   });
-  libInput.addEventListener('input', async () => {
-    const q = libInput.value;
-    const lib = await loadLibrary();
-    if (libInput.value !== q) return;
-    libItems = searchProducts(lib.items, q, { limit: 40 });
-    $('#lib-results', view).innerHTML = libItems.map((r, i) => productRowHTML(r, `data-lib="${i}"`)).join('') || (q.trim() ? '<li class="empty">Nenhum produto na biblioteca. Ao adicionar um alimento, dá para buscar online.</li>' : '');
-  });
-  const input = $('#browse', view).previousElementSibling;
-  input.addEventListener('input', () => {
-    const list = searchFoods(state.foods, input.value, { favorites: state.favorites, recents: state.recents, limit: 30 });
-    $('#browse', view).innerHTML = list.map((f) => foodRowHTML(f)).join('') || (input.value.trim() ? '<li class="empty">Nada encontrado.</li>' : '');
+  const input = $('#unified-search', view);
+  input.addEventListener('input', async () => {
+    const q = input.value.trim();
+    if (!q) { $('#browse', view).innerHTML = ''; return; }
+    const found = await unifiedSearch(q, 40);
+    if (input.value.trim() !== q) return;
+    libItems = [];
+    $('#browse', view).innerHTML = found.length ? unifiedRowsHTML(found, libItems) : '<li class="empty">Nada encontrado. Ao adicionar um alimento no diário, dá para buscar online.</li>';
   });
   view.onclick = (e) => {
     if (e.target.closest('[data-new-food]')) return openFoodForm({});
@@ -1325,7 +1365,7 @@ function renderFoods() {
     const row = e.target.closest('[data-food]');
     if (!row) return;
     const food = state.foodsById.get(row.dataset.food);
-    if (food.source === 'user' && row.closest('.card') === view.firstElementChild) return openFoodForm(food);
+    if (food.source === 'user' && row.closest('[data-mine]')) return openFoodForm(food);
     openFoodDetail(food, { mealType: defaultMeal() });
   };
 }
@@ -1492,7 +1532,15 @@ async function importBackup(e) {
 // ---------- início ----------
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Procura versão nova a cada abertura; quando ela assume, a página recarrega uma vez.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !sessionStorage.getItem('jplate-reloaded')) {
+      sessionStorage.setItem('jplate-reloaded', '1');
+      location.reload();
+    }
+  });
 }
 
 // Abertura: fica até a animação terminar e o app carregar; um toque pula.

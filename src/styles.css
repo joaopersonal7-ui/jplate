@@ -164,8 +164,10 @@ label.field > input, label.field > select, label.field > textarea {
   padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
   font-size: 1rem; color: var(--text);
 }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 10px; align-items: end; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 10px; align-items: end; }
+/* Campos alinhados pela caixa, mesmo quando um rótulo quebra em duas linhas. */
+.grid2 > label.field, .grid3 > label.field { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
 
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -370,3 +372,24 @@ label.field > textarea { resize: vertical; min-height: 70px; }
 .chip.check { display: inline-flex; align-items: center; gap: 6px; }
 .chip.check input { accent-color: var(--accent); margin: 0; }
 .chip.check:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+/* iPhone: data, hora e número sem o visual nativo, com a mesma altura e largura dos outros campos. */
+label.field > input, label.field > select {
+  -webkit-appearance: none; appearance: none; min-width: 0; max-width: 100%;
+  height: 46px; line-height: 24px; box-sizing: border-box; text-align: left;
+}
+label.field > select {
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23a8968a' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; text-overflow: ellipsis; white-space: nowrap;
+}
+input[type="date"], input[type="time"] { display: block; }
+input::-webkit-date-and-time-value { text-align: left; margin: 0; }
+input::-webkit-datetime-edit { padding: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* blocos do formulário da dieta */
+.form-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.form-block:first-of-type { border-top: 0; padding-top: 0; }
+.form-block h3 { margin: 0; font-size: .95rem; }

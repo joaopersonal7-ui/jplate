@@ -1,5 +1,5 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v6';
+const VERSION = 'jplate-v7';
 const ASSETS = [
   './',
   'index.html',
@@ -22,19 +22,27 @@ const ASSETS = [
   'data/usda.json',
 ];
 
+// cache: 'reload' pula o cache HTTP do navegador (o GitHub Pages guarda arquivos por 10 min);
+// sem isso a versão nova podia ser instalada com o app.js antigo.
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION)
+    .then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
+// Numa atualização, apaga a versão velha e recarrega as abas abertas para já mostrar a nova.
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  );
+  e.waitUntil((async () => {
+    const old = (await caches.keys()).filter((k) => k !== VERSION);
+    await Promise.all(old.map((k) => caches.delete(k)));
+    await self.clients.claim();
+    if (old.length) {
+      for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url).catch(() => {});
+    }
+  })());
 });
 
-// Cache primeiro; a rede só para o que não estiver no cache.
+// Rede primeiro (revalidando com o servidor, que responde 304 se nada mudou) e cache sem internet.
 self.addEventListener('fetch', (e) => {
   // Busca online (Open Food Facts) vai sempre para a rede.
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
@@ -49,5 +57,15 @@ self.addEventListener('fetch', (e) => {
     }));
     return;
   }
-  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit ?? fetch(e.request)));
+  e.respondWith((async () => {
+    try {
+      const r = await fetch(e.request, { cache: 'no-cache' });
+      if (r.ok && !e.request.url.includes('?')) (await caches.open(VERSION)).put(e.request, r.clone());
+      return r;
+    } catch {
+      const hit = await caches.match(e.request, { ignoreSearch: true });
+      if (hit) return hit;
+      throw new Error('offline');
+    }
+  })());
 });
