@@ -2,7 +2,7 @@
   "source": "off",
   "sourceName": "Open Food Facts",
   "input": "https://static.openfoodfacts.org/data/openfoodfacts-products.jsonl.gz",
-  "importedAt": "2026-10-29T00:53:06.801Z",
+  "importedAt": "2026-10-29T01:03:58.565Z",
   "filter": "countries_tags contém en:brazil",
   "license": "ODbL 1.0 (base derivada) · DbCL 1.0 (conteúdo)",
   "linesRead": 4879695,

@@ -8,7 +8,7 @@ filtrada para produtos marcados como vendidos no Brasil e reorganizada para busc
 - Imagens de produtos **não** foram baixadas nem incluídas (têm licença própria, CC BY-SA, por foto).
 
 Como base derivada, esta pasta também fica sob a ODbL 1.0. Ela pode ser reproduzida com
-`node scripts/import-off.mjs`, a partir do dump público. Importação: 2026-10-29T00:53:06.801Z.
+`node scripts/import-off.mjs`, a partir do dump público. Importação: 2026-10-29T01:03:58.565Z.
 
 Os dados da TACO, USDA e receitas do app ficam em arquivos separados, com sua própria origem,
 e não foram misturados a esta base.
