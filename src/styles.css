@@ -363,3 +363,10 @@ label.field > textarea { resize: vertical; min-height: 70px; }
 .prod-table td:not(:first-child) { text-align: right; white-space: nowrap; }
 .prov { margin: 0; padding-left: 18px; }
 .prov li { margin: 2px 0; }
+
+/* perguntas da dieta */
+.field-set { border: 0; padding: 0; margin: 12px 0 0; }
+.field-set legend { font-size: .85rem; color: var(--muted); padding: 0; }
+.chip.check { display: inline-flex; align-items: center; gap: 6px; }
+.chip.check input { accent-color: var(--accent); margin: 0; }
+.chip.check:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }

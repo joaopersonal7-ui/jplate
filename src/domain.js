@@ -234,45 +234,81 @@ export function buildQuickEntry({ date, mealType, kcal, label, carbs, protein, f
 
 // ---------- plano de dieta ----------
 
+// Metas pelos "Parâmetros nutricionais adaptativos" (ConsultoriaJP):
+// 1. repouso por Mifflin-St Jeor (a diferença entre sexos já está na equação, sem redução extra);
+// 2. gasto total = repouso × fator da rotina inteira (trabalho, passos e treino juntos, sem somar treino de novo);
+// 3. objetivo aplicado sobre o gasto total; 4. proteína em g/kg pelo perfil; gordura em % das kcal;
+// carboidrato completa as calorias; fibra 14 g a cada 1000 kcal.
+// São pontos de partida para adultos, não prescrição.
 export const ACTIVITY = [
-  { id: 'sedentary', label: 'Sedentário (pouco ou nenhum exercício)', factor: 1.2 },
-  { id: 'light', label: 'Leve (1 a 3 treinos por semana)', factor: 1.375 },
-  { id: 'moderate', label: 'Moderado (3 a 5 treinos por semana)', factor: 1.55 },
-  { id: 'high', label: 'Alto (6 a 7 treinos por semana)', factor: 1.725 },
-  { id: 'athlete', label: 'Muito alto (2 treinos por dia ou trabalho pesado)', factor: 1.9 },
+  { id: 'sedentary', label: 'Muito baixo: trabalho sentado, pouco deslocamento, sem treino', factor: 1.2 },
+  { id: 'light', label: 'Levemente ativo: rotina sentada, caminhadas leves e/ou 1 a 3 treinos leves', factor: 1.325 },
+  { id: 'moderate', label: 'Moderadamente ativo: mais movimento no dia e/ou 3 a 5 treinos', factor: 1.5 },
+  { id: 'high', label: 'Muito ativo: trabalho físico e/ou treino frequente e exigente', factor: 1.7 },
+  { id: 'athlete', label: 'Extremamente ativo: trabalho físico intenso e treino de alto volume', factor: 1.9 },
 ];
 
+// kcal: ajuste sobre o gasto total. fatPct: gordura em % das kcal (faixa geral 20 a 35%).
 export const OBJECTIVES = [
-  { id: 'lose', label: 'Emagrecer', kcal: -0.2, protein: 2.0, fat: 0.8 },
-  { id: 'maintain', label: 'Manter o peso', kcal: 0, protein: 1.6, fat: 0.9 },
-  { id: 'gain', label: 'Ganhar massa', kcal: 0.1, protein: 1.8, fat: 1.0 },
+  { id: 'lose', label: 'Emagrecer', kcal: -0.15, fatPct: 0.25 },
+  { id: 'maintain', label: 'Manter o peso', kcal: 0, fatPct: 0.3 },
+  { id: 'gain', label: 'Ganhar massa', kcal: 0.075, fatPct: 0.28 },
+  { id: 'perform', label: 'Desempenho no treino', kcal: 0, fatPct: 0.25 },
 ];
 
-// Gasto basal por Mifflin-St Jeor, gasto total pelo fator de atividade, e metas pelo objetivo.
-// Proteína e gordura em g/kg; carboidrato completa as calorias; fibra 14 g a cada 1000 kcal.
-// Quem não treina precisa de menos proteína; quem já treina há tempo e quer ganhar massa, um pouco mais.
 export const LEVELS = [
   { id: 'beginner', label: 'Iniciante (menos de 6 meses)' },
   { id: 'intermediate', label: 'Intermediário (6 meses a 2 anos)' },
   { id: 'advanced', label: 'Avançado (mais de 2 anos)' },
 ];
 
-export function calcTargets({ sex, age, height, weight, activity, objective, trains, level }) {
+export const TRAIN_DAYS = [
+  { id: '2-3', label: '2 a 3 vezes por semana' },
+  { id: '4-6', label: '4 a 6 vezes por semana' },
+];
+
+export const TRAIN_TYPES = [
+  { id: 'strength', label: 'Musculação / força' },
+  { id: 'endurance', label: 'Corrida, ciclismo, natação (resistência)' },
+  { id: 'mixed', label: 'Misto (força e aeróbico)' },
+];
+
+// Proteína em g/kg: [ponto de partida, mínimo, máximo] de cada perfil da tabela.
+function proteinRange({ objective, trains, trainDays, trainType }) {
+  if (trains === 'no') {
+    return { lose: [1.4, 1.2, 1.6], maintain: [1.0, 0.8, 1.2], gain: [1.2, 1.0, 1.4], perform: [1.2, 1.0, 1.4] }[objective] ?? [1.0, 0.8, 1.2];
+  }
+  if (trainType === 'endurance') return [1.6, 1.2, 2.0];
+  if (objective === 'lose') return trainDays === '4-6' ? [1.9, 1.6, 2.2] : [1.7, 1.4, 2.0];
+  if (objective === 'gain') return [1.9, 1.6, 2.2];
+  if (objective === 'perform') return [1.7, 1.4, 2.0];
+  return [1.6, 1.2, 2.0];
+}
+
+export function calcTargets({ sex, age, height, weight, activity, objective, trains, level, trainDays, trainType }) {
   const a = Number(age), h = Number(height), w = Number(weight);
   if (!(a > 0 && h > 0 && w > 0)) return null;
   const act = ACTIVITY.find((x) => x.id === activity) ?? ACTIVITY[0];
   const obj = OBJECTIVES.find((x) => x.id === objective) ?? OBJECTIVES[1];
   const bmr = 10 * w + 6.25 * h - 5 * a + (sex === 'f' ? -161 : 5);
   const tdee = bmr * act.factor;
-  const kcal = Math.round((tdee * (1 + obj.kcal)) / 10) * 10;
-  let gPerKg = obj.protein;
-  if (trains === 'no') gPerKg = Math.max(1.2, gPerKg - 0.4);
-  else if (level === 'advanced' && obj.id === 'gain') gPerKg += 0.2;
-  const protein = Math.round(w * gPerKg);
-  const fat = Math.round(w * obj.fat);
+  // Segurança: a meta nunca fica abaixo do gasto em repouso.
+  const kcal = Math.round(Math.max(bmr, tdee * (1 + obj.kcal)) / 10) * 10;
+  const [base, min, max] = proteinRange({ objective: obj.id, trains, trainDays, trainType });
+  const step = trains === 'no' ? 0 : { beginner: -0.1, advanced: 0.1 }[level] ?? 0;
+  const gPerKg = Math.round(Math.min(max, Math.max(min, base + step)) * 10) / 10;
+  // Com IMC 30 ou mais, a proteína usa peso ajustado: referência (IMC 25) + 40% do excesso.
+  const bmi = w / (h / 100) ** 2;
+  const ref = 25 * (h / 100) ** 2;
+  const proteinWeight = bmi >= 30 ? ref + 0.4 * (w - ref) : w;
+  const protein = Math.round(proteinWeight * gPerKg);
+  const fat = Math.round((kcal * obj.fatPct) / 9);
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
   const fiber = Math.round((kcal / 1000) * 14);
-  return { bmr: Math.round(bmr), tdee: Math.round(tdee), kcal, protein, fat, carbs, fiber };
+  return {
+    bmr: Math.round(bmr), tdee: Math.round(tdee), kcal, protein, fat, carbs, fiber,
+    gPerKg, fatPct: obj.fatPct, adjusted: bmi >= 30 ? Math.round(proteinWeight) : null, floored: kcal <= Math.round(bmr / 10) * 10 && obj.kcal < 0,
+  };
 }
 
 // Itens do plano viram nutrientes pelo mesmo cálculo do diário.

@@ -145,13 +145,31 @@ test('medidas caseiras aparecem como porções aproximadas', () => {
 test('metas pelo objetivo seguem Mifflin-St Jeor e fecham as calorias', () => {
   const t = calcTargets({ sex: 'm', age: 30, height: 180, weight: 80, activity: 'moderate', objective: 'maintain' });
   assert.equal(t.bmr, 1780);
-  assert.equal(t.tdee, 2759);
+  assert.equal(t.tdee, 2670);
   assert.equal(t.protein, 128);
+  assert.equal(t.fat, Math.round((t.kcal * 0.3) / 9));
   assert.ok(Math.abs(t.protein * 4 + t.carbs * 4 + t.fat * 9 - t.kcal) <= 4);
   assert.equal(t.fiber, Math.round((t.kcal / 1000) * 14));
   const cut = calcTargets({ sex: 'f', age: 30, height: 165, weight: 65, activity: 'light', objective: 'lose' });
   assert.ok(cut.kcal < cut.tdee);
   assert.equal(calcTargets({ age: '', height: 170, weight: 70 }), null);
+});
+
+test('parâmetros adaptativos: proteína por perfil, peso ajustado e piso no repouso', () => {
+  const base = { sex: 'f', age: 30, height: 165, weight: 65, activity: 'light', objective: 'lose' };
+  assert.equal(calcTargets({ ...base, trains: 'no' }).gPerKg, 1.4);
+  assert.equal(calcTargets({ ...base, trains: 'yes', trainDays: '2-3' }).gPerKg, 1.7);
+  assert.equal(calcTargets({ ...base, trains: 'yes', trainDays: '4-6', level: 'advanced' }).gPerKg, 2.0);
+  assert.equal(calcTargets({ ...base, objective: 'maintain', trains: 'no' }).gPerKg, 1.0);
+  // Mesmo corpo e rotina: só a constante da equação muda entre sexos.
+  const m = calcTargets({ ...base, sex: 'm' });
+  const f = calcTargets(base);
+  assert.equal(m.bmr - f.bmr, 166);
+  const big = calcTargets({ sex: 'm', age: 40, height: 175, weight: 120, activity: 'sedentary', objective: 'lose', trains: 'no' });
+  assert.ok(big.adjusted > 76 && big.adjusted < 120);
+  assert.equal(big.protein, Math.round(big.adjusted * 1.4));
+  const t = calcTargets({ sex: 'f', age: 60, height: 150, weight: 45, activity: 'sedentary', objective: 'lose' });
+  assert.ok(t.kcal >= Math.round(t.bmr / 10) * 10 - 5);
 });
 
 test('item do plano calcula nutrientes pela porção', () => {
@@ -250,4 +268,44 @@ test('número de refeições escolhido define o cardápio', () => {
     }
   }
   assert.deepEqual(mealSlots('06:00', '22:00', '3').map((s) => s.time), ['06:30', '12:45', '19:00']);
+});
+
+import { avoidTerms, parseTerms, matchesAny } from '../src/planner.js';
+
+test('pré e pós-treino entram pelo horário do treino', () => {
+  const noon = mealSlots('06:00', '22:30', '4', '12:00');
+  assert.equal(noon.length, 4);
+  assert.deepEqual(noon.map((s) => s.time), ['06:30', '11:00', '13:15', '20:00']);
+  assert.equal(noon[1].label, 'Pré-treino');
+  assert.match(noon[2].label, /Almoço \(pós-treino\)/);
+  // Treino ao acordar: pré leve ao acordar e o café vira pós-treino.
+  const early = mealSlots('06:00', '22:30', '5', '06:00');
+  assert.equal(early[0].label, 'Pré-treino');
+  assert.match(early[1].label, /pós-treino/);
+  assert.ok(!mealSlots('06:00', '22:30', '5').some((s) => /treino/i.test(s.label)));
+});
+
+test('intolerâncias tiram os alimentos do cardápio, inclusive em receitas', () => {
+  assert.ok(matchesAny({ name: 'Crepioca', recipe: 'Ovo, de galinha 50 g' }, avoidTerms(['egg'])));
+  assert.ok(matchesAny({ name: 'Café com leite sem açúcar' }, avoidTerms(['lactose'])));
+  assert.deepEqual(parseTerms('Camarão,  pimentão; ab'), ['camarao', 'pimentao']);
+  const targets = calcTargets({ sex: 'm', age: 30, height: 178, weight: 80, activity: 'moderate', objective: 'maintain', trains: 'yes', trainDays: '4-6', level: 'intermediate' });
+  for (const ids of [['lactose'], ['egg', 'gluten'], ['fish', 'nuts', 'soy']]) {
+    const avoid = avoidTerms(ids, 'pimentão');
+    for (const seed of [0, 1, 2]) {
+      const plan = generatePlan({ targets, wake: '06:30', sleep: '23:00', meals: '5', train: '18:00', avoid, seed }, byId);
+      for (const it of plan.items) assert.ok(!matchesAny(byId.get(it.foodId), avoid), `${ids}: ${byId.get(it.foodId).name}`);
+      for (const k of ['kcal', 'protein', 'carbs', 'fat']) assert.ok(Math.abs(plan.totals[k] - targets[k]) / targets[k] < 0.12, `${ids} ${k}`);
+    }
+  }
+});
+
+test('alimentos preferidos aparecem no cardápio', () => {
+  const targets = calcTargets({ sex: 'f', age: 35, height: 165, weight: 70, activity: 'light', objective: 'lose', trains: 'yes', trainDays: '2-3', level: 'beginner' });
+  const prefer = parseTerms('salmão, abacate, ovos, morango, cuscuz, picanha');
+  const plan = generatePlan({ targets, wake: '06:00', sleep: '22:30', meals: '5', train: '18:30', prefer, avoid: avoidTerms(['lactose']) }, byId);
+  const names = plan.items.map((i) => byId.get(i.foodId).name);
+  for (const t of ['Salmão', 'Abacate', 'Ovo', 'Morango', 'Cuscuz', 'picanha']) assert.ok(names.some((n) => n.includes(t)), t);
+  assert.deepEqual(plan.notes.missing, []);
+  assert.ok(plan.items.every((i) => i.grams > 0));
 });

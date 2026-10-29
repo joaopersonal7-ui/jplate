@@ -3,9 +3,9 @@ import {
   MEALS, NUTRIENTS, BACKUP_VERSION, localDate, addDays, parseLocalDate, formatDateLabel, normalize,
   searchFoods, servingOptions, baseUnit, scaleNutrients, entryAmount, sumTotals, groupByMeal, goalFor,
   buildEntry, buildQuickEntry, weightTrend, validateBackup, fmt, round, uid,
-  sourceLabel, kcalLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS,
+  sourceLabel, kcalLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS, TRAIN_DAYS, TRAIN_TYPES,
 } from './domain.js';
-import { generatePlan, planToText, MEAL_COUNTS } from './planner.js';
+import { generatePlan, planToText, MEAL_COUNTS, INTOLERANCES, avoidTerms, parseTerms } from './planner.js';
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
 import { LABEL_NUTRIENTS, STATUS_LABEL, SOURCES as PRODUCT_SOURCES, searchProducts, productToFood, fromIndexRow, indexRow } from './products.js';
 import { loadLibrary, getProduct, findByGtin, rememberProduct, resetLibrary } from './library.js';
@@ -835,10 +835,28 @@ function planItemFromGrams(food, slot, grams) {
   return base;
 }
 
-const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'level', 'wake', 'sleep', 'meals'];
+const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'level', 'trainDays', 'trainType', 'trainTime',
+  'wake', 'sleep', 'meals', 'health', 'intol', 'intolOther', 'prefer'];
+
+// Situações em que o app não monta cardápio sozinho (regras de segurança dos parâmetros adaptativos).
+const HEALTH = [
+  { id: 'none', label: 'Nenhuma' },
+  { id: 'pregnant', label: 'Gestante ou amamentando' },
+  { id: 'kidney', label: 'Doença renal' },
+  { id: 'diabetes', label: 'Diabetes com remédio ou insulina' },
+  { id: 'eating', label: 'Transtorno alimentar (atual ou passado)' },
+  { id: 'other', label: 'Outra condição em tratamento' },
+];
 
 function profileComplete(p) {
-  return ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep', 'meals'].every((k) => p[k]) && (p.trains === 'no' || p.level);
+  const base = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep', 'meals'].every((k) => p[k]);
+  return base && (p.trains === 'no' || ['level', 'trainDays', 'trainType', 'trainTime'].every((k) => p[k]));
+}
+
+function safetyBlock(p) {
+  if (Number(p.age) > 0 && Number(p.age) < 18) return 'Para menores de 18 anos o cardápio precisa de acompanhamento de nutricionista. As metas acima são só referência.';
+  if (p.health && p.health !== 'none') return 'Com essa condição de saúde, o cardápio precisa ser montado com um nutricionista ou médico. As metas acima são só referência; você ainda pode montar o seu à mão.';
+  return null;
 }
 
 function renderPlan() {
@@ -861,11 +879,24 @@ function renderPlan() {
         <label class="field">Acordo às<input name="wake" type="time" value="${esc(v(p.wake))}"></label>
         <label class="field">Durmo às<input name="sleep" type="time" value="${esc(v(p.sleep))}"></label>
         <label class="field">Já treina?<select name="trains"><option value="">Escolha</option><option value="yes"${p.trains === 'yes' ? ' selected' : ''}>Sim, já treino</option><option value="no"${p.trains === 'no' ? ' selected' : ''}>Ainda não treino</option></select></label>
-        <label class="field" data-level ${p.trains === 'no' ? 'hidden' : ''}>Nível<select name="level"><option value="">Escolha</option>${opt(LEVELS, p.level)}</select></label>
+        <label class="field">Quantas refeições por dia?<select name="meals"><option value="">Escolha</option>${opt(MEAL_COUNTS, p.meals)}</select></label>
       </div>
-      <label class="field">Quantas refeições por dia?<select name="meals"><option value="">Escolha</option>${opt(MEAL_COUNTS, p.meals)}</select></label>
-      <label class="field">Atividade física no dia a dia<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
+      <div class="grid2" data-train ${p.trains === 'yes' ? '' : 'hidden'}>
+        <label class="field">Que horas treina?<input name="trainTime" type="time" value="${esc(v(p.trainTime))}"></label>
+        <label class="field">Quantas vezes por semana?<select name="trainDays"><option value="">Escolha</option>${opt(TRAIN_DAYS, p.trainDays)}</select></label>
+        <label class="field">Tipo de treino<select name="trainType"><option value="">Escolha</option>${opt(TRAIN_TYPES, p.trainType)}</select></label>
+        <label class="field">Nível<select name="level"><option value="">Escolha</option>${opt(LEVELS, p.level)}</select></label>
+      </div>
+      <p class="small muted" data-train ${p.trains === 'yes' ? '' : 'hidden'} style="margin:6px 0 0">Com o horário do treino o cardápio encaixa um pré-treino antes e um pós-treino depois.</p>
+      <label class="field">Atividade no dia a dia (trabalho, passos e treino juntos)<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
       <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
+      <label class="field">Alguma condição de saúde?<select name="health">${opt(HEALTH, p.health ?? 'none')}</select></label>
+      <fieldset class="field-set">
+        <legend>Intolerância ou alergia a algum alimento?</legend>
+        <div class="chips">${INTOLERANCES.map((x) => `<label class="chip check"><input type="checkbox" name="intol" value="${x.id}"${(p.intol ?? []).includes(x.id) ? ' checked' : ''}> ${esc(x.label)}</label>`).join('')}</div>
+        <label class="field">Outros que você não come (separe por vírgula)<input name="intolOther" placeholder="Ex.: camarão, pimentão" value="${esc(v(p.intolOther))}"></label>
+      </fieldset>
+      <label class="field">Alimentos que você prefere (separe por vírgula)<input name="prefer" placeholder="Ex.: frango, batata doce, banana, ovos" value="${esc(v(p.prefer))}"></label>
       <div id="targets"></div>
     </section>
 
@@ -876,14 +907,18 @@ function renderPlan() {
       <div id="plan-progress"></div>
     </section>
     <div id="plan-meals"></div>
-    <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor). Não substitui avaliação de nutricionista.</p>`;
+    <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor e Parâmetros nutricionais adaptativos da ConsultoriaJP). Pontos de partida para adultos: acompanhe o peso por algumas semanas e ajuste. Não substitui avaliação de nutricionista.</p>`;
 
-  const readProfile = () => ({ ...state.profile, ...Object.fromEntries(PROFILE_FIELDS.map((k) => [k, $(`[name="${k}"]`, view).value])) });
+  const readProfile = () => ({
+    ...state.profile,
+    ...Object.fromEntries(PROFILE_FIELDS.filter((k) => k !== 'intol').map((k) => [k, $(`[name="${k}"]`, view).value])),
+    intol: [...view.querySelectorAll('[name="intol"]:checked')].map((x) => x.value),
+  });
   const targetsNow = () => goalFor(state.goals, localDate()) ?? calcTargets(readProfile()) ?? {};
 
   const drawTargets = () => {
     const prof = readProfile();
-    $('[data-level]', view).hidden = prof.trains === 'no';
+    for (const el of view.querySelectorAll('[data-train]')) el.hidden = prof.trains !== 'yes';
     const t = calcTargets(prof);
     $('#targets', view).innerHTML = t ? `
       <div class="targets">
@@ -893,13 +928,16 @@ function renderPlan() {
         <div><b>${fmt(t.fat, 0)} g</b><span>gordura</span></div>
         <div><b>${fmt(t.fiber, 0)} g</b><span>fibra</span></div>
       </div>
-      <p class="small muted" style="margin:8px 0 0">Gasto em repouso ${fmt(t.bmr, 0)} kcal · gasto total estimado ${fmt(t.tdee, 0)} kcal.</p>
+      <p class="small muted" style="margin:8px 0 0">Gasto em repouso ${fmt(t.bmr, 0)} kcal · gasto total estimado ${fmt(t.tdee, 0)} kcal.
+        Proteína ${fmt(t.gPerKg)} g/kg${t.adjusted ? ` do peso ajustado (${fmt(t.adjusted, 0)} kg, usado quando o IMC passa de 30)` : ''} · gordura ${fmt(t.fatPct * 100, 0)}% das kcal · fibra 14 g a cada 1.000 kcal.</p>
+      ${t.floored ? '<p class="small warn" style="margin:6px 0 0">A meta ficou no seu gasto em repouso, o mínimo que o app sugere. Para cortar mais, só com acompanhamento profissional.</p>' : ''}
       <div class="btn-row"><button class="btn" data-use-targets>Usar como minhas metas diárias</button></div>`
       : '<p class="small muted" style="margin:10px 0 0">Preencha idade, altura e peso para ver suas metas.</p>';
     const ok = profileComplete(prof);
-    $('#gen-row', view).innerHTML = ok
-      ? `<button class="btn primary" data-generate>${state.plan.generated ? 'Gerar outra opção de cardápio' : 'Gerar meu cardápio'}</button>`
-      : '<p class="small warn" style="margin:0">Preencha todos os dados acima (inclusive horários, se já treina e quantas refeições) para gerar o cardápio automático.</p>';
+    const block = safetyBlock(prof);
+    $('#gen-row', view).innerHTML = block ? `<p class="small warn" style="margin:0">${esc(block)}</p>`
+      : ok ? `<button class="btn primary" data-generate>${state.plan.generated ? 'Gerar outra opção de cardápio' : 'Gerar meu cardápio'}</button>`
+      : '<p class="small warn" style="margin:0">Preencha todos os dados acima (horários, treino e quantas refeições) para gerar o cardápio automático.</p>';
   };
 
   const drawPlan = () => {
@@ -915,7 +953,14 @@ function renderPlan() {
         <div class="bar ${key}"><i style="width:${w}%"></i></div></div>`;
     };
     const has = state.plan.items.length > 0;
-    $('#plan-progress', view).innerHTML = `<div style="margin-top:10px">${bar('kcal', 'Calorias', 'kcal')}${bar('protein', 'Proteínas')}${bar('carbs', 'Carboidratos')}${bar('fat', 'Gorduras')}${bar('fiber', 'Fibras')}</div>
+    const notes = state.plan.generated ? state.plan.notes : null;
+    const list = (xs) => esc(xs.join(', '));
+    const notesHTML = notes ? [
+      notes.preferred?.length ? `Seus preferidos no cardápio: ${list(notes.preferred)}.` : '',
+      notes.missing?.length ? `Não achei na base ou não coube: ${list(notes.missing)}. Dá para adicionar à mão.` : '',
+      notes.replaced?.length ? `Trocados por causa das restrições: ${list([...new Set(notes.replaced)])}.` : '',
+    ].filter(Boolean).map((x) => `<p class="small muted" style="margin:6px 0 0">${x}</p>`).join('') : '';
+    $('#plan-progress', view).innerHTML = `${notesHTML}<div style="margin-top:10px">${bar('kcal', 'Calorias', 'kcal')}${bar('protein', 'Proteínas')}${bar('carbs', 'Carboidratos')}${bar('fat', 'Gorduras')}${bar('fiber', 'Fibras')}</div>
       ${!target.kcal ? '<p class="small warn" style="margin:8px 0 0">Defina o objetivo acima para comparar com as metas.</p>' : ''}
       ${has ? `<div class="btn-row">
         <button class="btn" data-export="pdf">Exportar PDF</button>
@@ -958,9 +1003,14 @@ function renderPlan() {
     const today = localDate();
     await db.put('goals', { id: `goal-${today}`, startsAt: today, kcal: t.kcal, carbs: t.carbs, protein: t.protein, fat: t.fat, fiber: t.fiber, updatedAt: Date.now() });
     state.goals = await db.getAll('goals');
-    const gen = generatePlan({ targets: t, wake: prof.wake, sleep: prof.sleep, meals: prof.meals, seed }, state.foodsById);
+    const gen = generatePlan({
+      targets: t, wake: prof.wake, sleep: prof.sleep, meals: prof.meals, seed,
+      train: prof.trains === 'yes' ? prof.trainTime : null,
+      avoid: avoidTerms(prof.intol ?? [], prof.intolOther),
+      prefer: parseTerms(prof.prefer),
+    }, state.foodsById);
     const items = gen.items.map((it) => planItemFromGrams(state.foodsById.get(it.foodId), it.slot, it.grams));
-    await savePlan({ meals: gen.slots, items, generated: true, seed });
+    await savePlan({ meals: gen.slots, items, generated: true, seed, notes: gen.notes });
     drawTargets();
     drawPlan();
   };
@@ -976,7 +1026,7 @@ function renderPlan() {
   view.onchange = async (e) => {
     if (!e.target.closest('[name]') || !PROFILE_FIELDS.includes(e.target.name)) return;
     await saveProfile(readProfile());
-    if (profileComplete(readProfile()) && (state.plan.generated || !state.plan.items.length)) {
+    if (profileComplete(readProfile()) && !safetyBlock(readProfile()) && (state.plan.generated || !state.plan.items.length)) {
       await generate(state.plan.seed ?? 0);
       return toast('Cardápio montado pelas suas metas.');
     }
@@ -994,6 +1044,7 @@ function renderPlan() {
       return toast('Metas diárias atualizadas.');
     }
     if (e.target.closest('[data-generate]')) {
+      if (safetyBlock(readProfile())) return;
       if (state.plan.items.length && !state.plan.generated && !confirm('Substituir o cardápio que você montou por um gerado automaticamente?')) return;
       await generate(state.plan.generated ? (state.plan.seed ?? 0) + 1 : 0);
       return toast('Cardápio gerado pelas suas metas.');
