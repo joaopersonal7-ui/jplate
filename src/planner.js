@@ -189,13 +189,15 @@ const per = (food, g) => Object.fromEntries(KEYS.map((k) => [k, ((food.n[k] ?? 0
 function solve(groups, fixed, target, big = 2.5) {
   const LIMITS = [[0.25, big], [0.25, big], [0.25, 5], [0.4, 2.5]];
   const keys = ['protein', 'carbs', 'fat', 'kcal'];
-  const w = { protein: 1.5, carbs: 1, fat: 1, kcal: 2 };
+  const w = { protein: 2, carbs: 1, fat: 1, kcal: 2 };
   let x = [1, 1, 1, 1];
   const sum = (x, k) => fixed[k] + groups.reduce((a, g, i) => a + g[k] * x[i], 0);
   const err = (x) => {
+    // Passar da meta de calorias pesa 4× mais que ficar abaixo (regra central dos parâmetros).
     let e = keys.reduce((s, k) => {
       const t = target[k] || 1;
-      return s + w[k] * ((sum(x, k) - t) / t) ** 2;
+      const d = (sum(x, k) - t) / t;
+      return s + w[k] * (k === 'kcal' && d > 0 ? 4 : 1) * d ** 2;
     }, 0);
     if (target.fiber) {
       const short = Math.max(0, target.fiber - sum(x, 'fiber')) / target.fiber;
@@ -329,10 +331,14 @@ export function generatePlan({ targets, wake, sleep, meals = null, train = null,
   // Ajuste fino depois do arredondamento: sobe ou desce uma medida por vez (ou tira um item, se a
   // refeição tiver mais de dois) enquanto isso aproximar o dia das metas.
   const keys = ['protein', 'carbs', 'fat', 'kcal'];
-  const wts = { protein: 1.5, carbs: 1, fat: 1, kcal: 2 };
+  const wts = { protein: 2, carbs: 1, fat: 1, kcal: 2 };
   const tot = zero();
   for (const it of out) add(tot, per(it.food, it.grams));
-  const errOf = (t) => keys.reduce((e, k) => e + (targets[k] ? wts[k] * ((t[k] - targets[k]) / targets[k]) ** 2 : 0), 0)
+  const errOf = (t) => keys.reduce((e, k) => {
+    if (!targets[k]) return e;
+    const d = (t[k] - targets[k]) / targets[k];
+    return e + wts[k] * (k === 'kcal' && d > 0 ? 4 : 1) * d ** 2;
+  }, 0)
     + (targets.fiber ? 0.8 * (Math.max(0, targets.fiber - t.fiber) / targets.fiber) ** 2 : 0);
   for (let guard = 0; guard < 80; guard++) {
     const base = errOf(tot);

@@ -234,26 +234,39 @@ export function buildQuickEntry({ date, mealType, kcal, label, carbs, protein, f
 
 // ---------- plano de dieta ----------
 
-// Metas pelos "Parâmetros nutricionais adaptativos" (ConsultoriaJP):
+// Metas pelos "Parâmetros nutricionais consolidados" (ConsultoriaJP), que substituem a versão adaptativa:
 // 1. repouso por Mifflin-St Jeor (a diferença entre sexos já está na equação, sem redução extra);
-// 2. gasto total = repouso × fator da rotina inteira (trabalho, passos e treino juntos, sem somar treino de novo);
-// 3. objetivo aplicado sobre o gasto total; 4. proteína em g/kg pelo perfil; gordura em % das kcal;
-// carboidrato completa as calorias; fibra 14 g a cada 1000 kcal.
+// 2. gasto total (GET) = repouso × fator da rotina inteira, escolhido de forma conservadora;
+// 3. objetivo aplicado uma vez sobre o GET; 4. proteína em g/kg sobre o peso de referência;
+// 5. gordura em % das kcal; 6. carboidrato com as calorias que sobram; fibra 14 g a cada 1000 kcal.
+// Regra central: nenhum macro empurra o dia acima da meta de calorias; se não couber, pede revisão.
 // São pontos de partida para adultos, não prescrição.
 export const ACTIVITY = [
-  { id: 'sedentary', label: 'Muito baixo: trabalho sentado, pouco deslocamento, sem treino', factor: 1.2 },
-  { id: 'light', label: 'Levemente ativo: rotina sentada, caminhadas leves e/ou 1 a 3 treinos leves', factor: 1.325 },
-  { id: 'moderate', label: 'Moderadamente ativo: mais movimento no dia e/ou 3 a 5 treinos', factor: 1.5 },
-  { id: 'high', label: 'Muito ativo: trabalho físico e/ou treino frequente e exigente', factor: 1.7 },
-  { id: 'athlete', label: 'Extremamente ativo: trabalho físico intenso e treino de alto volume', factor: 1.9 },
+  { id: 'sedentary', label: 'Sedentário: trabalho sentado, pouco deslocamento', factor: 1.2 },
+  { id: 'light', label: 'Baixo / misto: alterna sentado e tarefas físicas ocasionais', factor: 1.3 },
+  { id: 'moderate', label: 'Moderado: em pé ou caminhando boa parte do turno', factor: 1.4 },
+  { id: 'high', label: 'Ativo: esforço no trabalho frequente, além de treinar', factor: 1.525 },
+  { id: 'athlete', label: 'Muito ativo: grande esforço físico todos os dias', factor: 1.65 },
 ];
 
-// kcal: ajuste sobre o gasto total. fatPct: gordura em % das kcal (faixa geral 20 a 35%).
+// kcal: ajuste sobre o GET. fatPct: gordura padrão em % das kcal (faixa 20 a 30%).
 export const OBJECTIVES = [
   { id: 'lose', label: 'Emagrecer', kcal: -0.15, fatPct: 0.25 },
   { id: 'maintain', label: 'Manter o peso', kcal: 0, fatPct: 0.3 },
-  { id: 'gain', label: 'Ganhar massa', kcal: 0.075, fatPct: 0.28 },
+  { id: 'gain', label: 'Ganhar massa', kcal: 0.065, fatPct: 0.25 },
   { id: 'perform', label: 'Desempenho no treino', kcal: 0, fatPct: 0.25 },
+];
+
+export const DEFICITS = [
+  { id: '15', label: 'Déficit de 15% (padrão)' },
+  { id: '20', label: 'Déficit de 20% (só com acompanhamento)' },
+];
+
+export const FAT_PCTS = [
+  { id: '', label: 'Padrão do objetivo' },
+  { id: '20', label: '20% das calorias' },
+  { id: '25', label: '25% das calorias' },
+  { id: '30', label: '30% das calorias' },
 ];
 
 export const LEVELS = [
@@ -273,41 +286,106 @@ export const TRAIN_TYPES = [
   { id: 'mixed', label: 'Misto (força e aeróbico)' },
 ];
 
-// Proteína em g/kg: [ponto de partida, mínimo, máximo] de cada perfil da tabela.
+// Perguntas de triagem da rotina (o fator não sobe só porque o trabalho "exige esforço").
+export const WORK_DAYS = [
+  { id: '0', label: 'Nenhum' },
+  { id: '1-2', label: '1 a 2 dias' },
+  { id: '3-4', label: '3 a 4 dias' },
+  { id: '5+', label: '5 dias ou mais' },
+];
+export const WORK_HOURS = [
+  { id: '<2', label: 'Menos de 2 horas' },
+  { id: '2-4', label: '2 a 4 horas' },
+  { id: '4-6', label: '4 a 6 horas' },
+  { id: '6+', label: 'Mais de 6 horas' },
+];
+export const WORK_EFFORT = [
+  { id: 'occasional', label: 'Ocasional' },
+  { id: 'frequent', label: 'Frequente' },
+  { id: 'continuous', label: 'Contínuo' },
+];
+
+const LEVEL_IDS = ACTIVITY.map((a) => a.id);
+
+// Sugestão conservadora de atividade pelas respostas. Na dúvida, fica no nível mais baixo.
+// "Muito ativo" só com esforço contínuo 5+ dias, mais de 6 h por turno e treino 4+ vezes.
+export function suggestActivity({ workDays, workHours, workEffort, steps, trains, trainDays }) {
+  if (!workDays) return null;
+  let lvl = 0;
+  const days = { '0': 0, '1-2': 1, '3-4': 2, '5+': 3 }[workDays] ?? 0;
+  const hours = { '<2': 0, '2-4': 1, '4-6': 2, '6+': 3 }[workHours] ?? 0;
+  if (days >= 3 && hours >= 2 && workEffort !== 'occasional') lvl = workEffort === 'continuous' && hours >= 3 ? 3 : 2;
+  else if (days >= 2 && hours >= 1) lvl = workEffort === 'occasional' ? 1 : 2;
+  else if (days >= 1 && hours >= 1) lvl = 1;
+  const st = Number(steps) || 0;
+  if (st >= 10000) lvl = Math.max(lvl, 2);
+  else if (st >= 7500) lvl = Math.max(lvl, 1);
+  // Treino soma no máximo um nível e não leva sozinho ao "Ativo".
+  if (trains === 'yes') lvl = Math.min(Math.max(lvl, lvl + (trainDays === '4-6' ? 1 : lvl === 0 ? 1 : 0)), Math.max(lvl, 2));
+  if (lvl === 3 && days === 3 && hours === 3 && workEffort === 'continuous' && trains === 'yes' && trainDays === '4-6') lvl = 4;
+  return LEVEL_IDS[lvl];
+}
+
+// Proteína em g/kg: [ponto de partida, mínimo, máximo] de cada situação.
 function proteinRange({ objective, trains, trainDays, trainType }) {
-  if (trains === 'no') {
-    return { lose: [1.4, 1.2, 1.6], maintain: [1.0, 0.8, 1.2], gain: [1.2, 1.0, 1.4], perform: [1.2, 1.0, 1.4] }[objective] ?? [1.0, 0.8, 1.2];
+  // Emagrecimento: faixa operacional pedida para o app, 1,8 a 2,2 g/kg, com ou sem musculação.
+  if (objective === 'lose') {
+    if (trains !== 'yes') return [1.8, 1.8, 2.2];
+    return trainDays === '4-6' && trainType !== 'endurance' ? [2.2, 1.8, 2.2] : [2.0, 1.8, 2.2];
   }
+  if (trains === 'no') return { maintain: [1.0, 0.8, 1.2], gain: [1.2, 1.0, 1.4], perform: [1.2, 1.0, 1.4] }[objective] ?? [1.0, 0.8, 1.2];
   if (trainType === 'endurance') return [1.6, 1.2, 2.0];
-  if (objective === 'lose') return trainDays === '4-6' ? [1.9, 1.6, 2.2] : [1.7, 1.4, 2.0];
   if (objective === 'gain') return [1.9, 1.6, 2.2];
   if (objective === 'perform') return [1.7, 1.4, 2.0];
   return [1.6, 1.2, 2.0];
 }
 
-export function calcTargets({ sex, age, height, weight, activity, objective, trains, level, trainDays, trainType }) {
+export function calcTargets(p) {
+  const { sex, age, height, weight, activity, objective, trains, level, trainDays, trainType, deficit, fatPct, refWeight } = p;
   const a = Number(age), h = Number(height), w = Number(weight);
   if (!(a > 0 && h > 0 && w > 0)) return null;
-  const act = ACTIVITY.find((x) => x.id === activity) ?? ACTIVITY[0];
+  const review = [];
+  let act = ACTIVITY.find((x) => x.id === activity) ?? ACTIVITY[0];
+  // Acima de 1,60 só com a rotina confirmando: sem triagem que sustente, usa "Ativo".
+  if (act.id === 'athlete' && suggestActivity(p) !== 'athlete') {
+    act = ACTIVITY.find((x) => x.id === 'high');
+    review.push('"Muito ativo" precisa ser confirmado pela rotina. Até lá o cálculo usa "Ativo" (1,525). Responda as perguntas do trabalho ou valide com um profissional.');
+  }
   const obj = OBJECTIVES.find((x) => x.id === objective) ?? OBJECTIVES[1];
   const bmr = 10 * w + 6.25 * h - 5 * a + (sex === 'f' ? -161 : 5);
   const tdee = bmr * act.factor;
-  // Segurança: a meta nunca fica abaixo do gasto em repouso.
-  const kcal = Math.round(Math.max(bmr, tdee * (1 + obj.kcal)) / 10) * 10;
+  const adj = obj.id === 'lose' ? -(Number(deficit) === 20 ? 0.2 : 0.15) : obj.kcal;
+  // Déficit aplicado uma vez, sobre o GET (nunca sobre o repouso).
+  const kcal = Math.round((tdee * (1 + adj)) / 5) * 5;
+  if (kcal < bmr) review.push('A meta ficou abaixo do seu gasto em repouso. Use esse déficit só com acompanhamento profissional.');
   const [base, min, max] = proteinRange({ objective: obj.id, trains, trainDays, trainType });
-  const step = trains === 'no' ? 0 : { beginner: -0.1, advanced: 0.1 }[level] ?? 0;
+  const step = trains === 'no' || obj.id === 'lose' ? 0 : { beginner: -0.1, advanced: 0.1 }[level] ?? 0;
   const gPerKg = Math.round(Math.min(max, Math.max(min, base + step)) * 10) / 10;
-  // Com IMC 30 ou mais, a proteína usa peso ajustado: referência (IMC 25) + 40% do excesso.
+  // Peso de referência para a proteína: o informado pelo profissional; senão, com IMC 30 ou mais,
+  // peso ajustado (IMC 25 + 40% do excesso) e aviso de revisão.
   const bmi = w / (h / 100) ** 2;
   const ref = 25 * (h / 100) ** 2;
-  const proteinWeight = bmi >= 30 ? ref + 0.4 * (w - ref) : w;
+  let proteinWeight = w;
+  let adjusted = null;
+  if (Number(refWeight) > 0) proteinWeight = Number(refWeight);
+  else if (bmi >= 30) {
+    proteinWeight = ref + 0.4 * (w - ref);
+    adjusted = Math.round(proteinWeight);
+    review.push(`IMC ${bmi.toFixed(1).replace('.', ',')}: a proteína usa um peso ajustado (${adjusted} kg). Defina o peso de referência com seu nutricionista.`);
+  }
+  const fp = Number(fatPct) >= 20 && Number(fatPct) <= 30 ? Number(fatPct) / 100 : obj.fatPct;
   const protein = Math.round(proteinWeight * gPerKg);
-  const fat = Math.round((kcal * obj.fatPct) / 9);
-  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  const fat = Math.round((kcal * fp) / 9);
+  const left = kcal - protein * 4 - fat * 9;
+  const carbs = Math.max(0, Math.round(left / 4));
   const fiber = Math.round((kcal / 1000) * 14);
+  // Regra central: se proteína e gordura não cabem na meta, não ultrapassa; pede revisão.
+  const overflow = left < 0;
+  if (overflow) review.push('Proteína e gordura juntas passam da meta de calorias. O cardápio automático fica parado até revisar esses valores com um profissional.');
   return {
     bmr: Math.round(bmr), tdee: Math.round(tdee), kcal, protein, fat, carbs, fiber,
-    gPerKg, fatPct: obj.fatPct, adjusted: bmi >= 30 ? Math.round(proteinWeight) : null, floored: kcal <= Math.round(bmr / 10) * 10 && obj.kcal < 0,
+    gPerKg, fatPct: fp, factor: act.factor, activityUsed: act.id, adjusted, overflow, review,
+    check: protein * 4 + carbs * 4 + fat * 9,
   };
 }
 

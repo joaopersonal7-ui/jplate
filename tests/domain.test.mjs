@@ -99,7 +99,7 @@ test('base TACO não tem linhas sem análise e kcal é numérico', () => {
 
 // ---------- base ampliada, medidas, plano e produtos online ----------
 
-import { calcTargets, planItemNutrients, sourceLabel } from '../src/domain.js';
+import { calcTargets, planItemNutrients, sourceLabel, suggestActivity } from '../src/domain.js';
 import { defaultServings } from '../src/measures.js';
 import { fromOff, productToFood } from '../src/products.js';
 
@@ -145,31 +145,67 @@ test('medidas caseiras aparecem como porções aproximadas', () => {
 test('metas pelo objetivo seguem Mifflin-St Jeor e fecham as calorias', () => {
   const t = calcTargets({ sex: 'm', age: 30, height: 180, weight: 80, activity: 'moderate', objective: 'maintain' });
   assert.equal(t.bmr, 1780);
-  assert.equal(t.tdee, 2670);
+  assert.equal(t.tdee, 2492);
   assert.equal(t.protein, 128);
   assert.equal(t.fat, Math.round((t.kcal * 0.3) / 9));
-  assert.ok(Math.abs(t.protein * 4 + t.carbs * 4 + t.fat * 9 - t.kcal) <= 4);
+  assert.ok(Math.abs(t.check - t.kcal) <= 4);
   assert.equal(t.fiber, Math.round((t.kcal / 1000) * 14));
-  const cut = calcTargets({ sex: 'f', age: 30, height: 165, weight: 65, activity: 'light', objective: 'lose' });
-  assert.ok(cut.kcal < cut.tdee);
   assert.equal(calcTargets({ age: '', height: 170, weight: 70 }), null);
 });
 
-test('parâmetros adaptativos: proteína por perfil, peso ajustado e piso no repouso', () => {
+test('parâmetros consolidados: exemplos do documento', () => {
+  // Mulher, 30 anos, 90 kg, 170 cm, sedentária: repouso ~1.652, GET ~1.982, -15% ~1.685, -20% ~1.586.
+  const base = { sex: 'f', age: 30, height: 170, weight: 90, activity: 'sedentary', objective: 'lose' };
+  const t = calcTargets(base);
+  assert.equal(t.bmr, 1652);
+  assert.equal(t.tdee, 1982);
+  assert.equal(t.kcal, 1685);
+  assert.equal(calcTargets({ ...base, deficit: '20' }).kcal, 1585);
+  // Distribuição: 1.700 kcal, 130 g de proteína e 50 g de gordura deixam 182,5 g de carboidrato.
+  assert.equal((1700 - 130 * 4 - 50 * 9) / 4, 182.5);
+});
+
+test('parâmetros consolidados: proteína, gordura, atividade e revisão', () => {
   const base = { sex: 'f', age: 30, height: 165, weight: 65, activity: 'light', objective: 'lose' };
-  assert.equal(calcTargets({ ...base, trains: 'no' }).gPerKg, 1.4);
-  assert.equal(calcTargets({ ...base, trains: 'yes', trainDays: '2-3' }).gPerKg, 1.7);
-  assert.equal(calcTargets({ ...base, trains: 'yes', trainDays: '4-6', level: 'advanced' }).gPerKg, 2.0);
-  assert.equal(calcTargets({ ...base, objective: 'maintain', trains: 'no' }).gPerKg, 1.0);
+  // Emagrecimento: 1,8 a 2,2 g/kg, com ou sem treino.
+  assert.equal(calcTargets({ ...base, trains: 'no' }).gPerKg, 1.8);
+  assert.equal(calcTargets({ ...base, trains: 'yes', trainDays: '2-3' }).gPerKg, 2.0);
+  assert.equal(calcTargets({ ...base, trains: 'yes', trainDays: '4-6', trainType: 'strength' }).gPerKg, 2.2);
+  assert.equal(calcTargets({ ...base, objective: 'gain', trains: 'yes', trainDays: '4-6' }).gPerKg, 1.9);
+  // Ganho de massa: superávit conservador entre 5 e 8%.
+  const g = calcTargets({ ...base, objective: 'gain' });
+  assert.ok(g.kcal / g.tdee > 1.05 && g.kcal / g.tdee < 1.08);
+  // Gordura configurável entre 20 e 30%.
+  assert.equal(calcTargets({ ...base, fatPct: '20' }).fat, Math.round((calcTargets(base).kcal * 0.2) / 9));
   // Mesmo corpo e rotina: só a constante da equação muda entre sexos.
-  const m = calcTargets({ ...base, sex: 'm' });
-  const f = calcTargets(base);
-  assert.equal(m.bmr - f.bmr, 166);
+  assert.equal(calcTargets({ ...base, sex: 'm' }).bmr - calcTargets(base).bmr, 166);
+  // IMC >= 30 sem peso de referência: peso ajustado e aviso de revisão; com referência, usa ela.
   const big = calcTargets({ sex: 'm', age: 40, height: 175, weight: 120, activity: 'sedentary', objective: 'lose', trains: 'no' });
-  assert.ok(big.adjusted > 76 && big.adjusted < 120);
-  assert.equal(big.protein, Math.round(big.adjusted * 1.4));
-  const t = calcTargets({ sex: 'f', age: 60, height: 150, weight: 45, activity: 'sedentary', objective: 'lose' });
-  assert.ok(t.kcal >= Math.round(t.bmr / 10) * 10 - 5);
+  assert.ok(big.adjusted > 76 && big.adjusted < 120 && big.review.length === 1);
+  assert.equal(big.protein, Math.round(big.adjusted * 1.8));
+  const withRef = calcTargets({ sex: 'm', age: 40, height: 175, weight: 120, activity: 'sedentary', objective: 'lose', trains: 'no', refWeight: 85 });
+  assert.equal(withRef.protein, Math.round(85 * 1.8));
+  assert.equal(withRef.review.length, 0);
+  // "Muito ativo" sem triagem que sustente vira "Ativo" (1,525) e pede revisão.
+  const ath = calcTargets({ ...base, activity: 'athlete' });
+  assert.equal(ath.factor, 1.525);
+  assert.equal(ath.review.length, 1);
+  // Regra central: proteína + gordura acima da meta não ultrapassa; sinaliza.
+  const tiny = calcTargets({ sex: 'f', age: 60, height: 150, weight: 45, activity: 'sedentary', objective: 'lose', refWeight: 200, fatPct: '30' });
+  assert.ok(tiny.overflow && tiny.carbs === 0);
+  // Meta abaixo do repouso: não trava, mas pede acompanhamento.
+  const t = calcTargets({ sex: 'f', age: 30, height: 170, weight: 90, activity: 'sedentary', objective: 'lose', deficit: '20', refWeight: 70 });
+  assert.ok(t.kcal < t.bmr && t.review.some((r) => /repouso/.test(r)));
+});
+
+test('triagem da rotina sugere atividade de forma conservadora', () => {
+  assert.equal(suggestActivity({ workDays: '0' }), 'sedentary');
+  assert.equal(suggestActivity({ workDays: '3-4', workHours: '2-4', workEffort: 'occasional' }), 'light');
+  assert.equal(suggestActivity({ workDays: '0', trains: 'yes', trainDays: '4-6' }), 'light');
+  assert.equal(suggestActivity({ workDays: '5+', workHours: '6+', workEffort: 'continuous' }), 'high');
+  assert.equal(suggestActivity({ workDays: '5+', workHours: '6+', workEffort: 'continuous', trains: 'yes', trainDays: '4-6' }), 'athlete');
+  assert.equal(suggestActivity({ workDays: '0', steps: 11000 }), 'moderate');
+  assert.equal(suggestActivity({}), null);
 });
 
 test('item do plano calcula nutrientes pela porção', () => {
@@ -217,6 +253,7 @@ test('refeições seguem os horários de acordar e dormir', () => {
 
 test('quem não treina recebe menos proteína por kg', () => {
   const base = { sex: 'm', age: 30, height: 180, weight: 80, activity: 'light', objective: 'maintain' };
+  // (no emagrecimento a faixa é 1,8 a 2,2 g/kg para todos)
   assert.ok(calcTargets({ ...base, trains: 'no' }).protein < calcTargets({ ...base, trains: 'yes' }).protein);
 });
 
@@ -308,4 +345,12 @@ test('alimentos preferidos aparecem no cardápio', () => {
   for (const t of ['Salmão', 'Abacate', 'Ovo', 'Morango', 'Cuscuz', 'picanha']) assert.ok(names.some((n) => n.includes(t)), t);
   assert.deepEqual(plan.notes.missing, []);
   assert.ok(plan.items.every((i) => i.grams > 0));
+});
+
+test('cardápio gerado nunca passa da meta de calorias', () => {
+  const targets = calcTargets({ sex: 'f', age: 30, height: 170, weight: 90, activity: 'sedentary', objective: 'lose', trains: 'yes', trainDays: '2-3' });
+  for (const meals of ['3', '4', '5', '6']) for (const seed of [0, 1, 2]) {
+    const plan = generatePlan({ targets, wake: '06:00', sleep: '22:30', meals, train: '18:30', seed }, byId);
+    assert.ok(plan.totals.kcal <= targets.kcal * 1.02, `${meals}: ${plan.totals.kcal} > ${targets.kcal}`);
+  }
 });

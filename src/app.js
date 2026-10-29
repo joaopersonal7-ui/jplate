@@ -4,6 +4,7 @@ import {
   searchFoods, servingOptions, baseUnit, scaleNutrients, entryAmount, sumTotals, groupByMeal, goalFor,
   buildEntry, buildQuickEntry, weightTrend, validateBackup, fmt, round, uid,
   sourceLabel, kcalLabel, calcTargets, planItemNutrients, ACTIVITY, OBJECTIVES, LEVELS, TRAIN_DAYS, TRAIN_TYPES,
+  DEFICITS, FAT_PCTS, WORK_DAYS, WORK_HOURS, WORK_EFFORT, suggestActivity,
 } from './domain.js';
 import { generatePlan, planToText, MEAL_COUNTS, INTOLERANCES, avoidTerms, parseTerms } from './planner.js';
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
@@ -863,8 +864,8 @@ function planItemFromGrams(food, slot, grams) {
   return base;
 }
 
-const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'level', 'trainDays', 'trainType', 'trainTime',
-  'wake', 'sleep', 'meals', 'health', 'intol', 'intolOther', 'prefer'];
+const PROFILE_FIELDS = ['sex', 'age', 'height', 'weight', 'refWeight', 'activity', 'objective', 'deficit', 'fatPct', 'trains', 'level', 'trainDays', 'trainType', 'trainTime',
+  'workDays', 'workHours', 'workEffort', 'steps', 'wake', 'sleep', 'meals', 'health', 'intol', 'intolOther', 'prefer'];
 
 // Situações em que o app não monta cardápio sozinho (regras de segurança dos parâmetros adaptativos).
 const HEALTH = [
@@ -877,11 +878,13 @@ const HEALTH = [
 ];
 
 function profileComplete(p) {
-  const base = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep', 'meals'].every((k) => p[k]);
-  return base && (p.trains === 'no' || ['level', 'trainDays', 'trainType', 'trainTime'].every((k) => p[k]));
+  const base = ['sex', 'age', 'height', 'weight', 'activity', 'objective', 'trains', 'wake', 'sleep', 'meals', 'workDays'].every((k) => p[k]);
+  const work = p.workDays === '0' || (p.workHours && p.workEffort);
+  return base && work && (p.trains === 'no' || ['level', 'trainDays', 'trainType', 'trainTime'].every((k) => p[k]));
 }
 
 function safetyBlock(p) {
+  if (calcTargets(p)?.overflow) return 'Proteína e gordura passam da meta de calorias. Revise com um profissional antes de gerar o cardápio.';
   if (Number(p.age) > 0 && Number(p.age) < 18) return 'Para menores de 18 anos o cardápio precisa de acompanhamento de nutricionista. As metas acima são só referência.';
   if (p.health && p.health !== 'none') return 'Com essa condição de saúde, o cardápio precisa ser montado com um nutricionista ou médico. As metas acima são só referência; você ainda pode montar o seu à mão.';
   return null;
@@ -907,6 +910,8 @@ function renderPlan() {
           <label class="field">Altura (cm)<input name="height" type="number" inputmode="numeric" min="100" max="230" value="${esc(v(p.height))}"></label>
           <label class="field">Peso (kg)<input name="weight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="${esc(v(p.weight))}"></label>
         </div>
+        <label class="field">Peso de referência (kg, opcional)<input name="refWeight" type="number" inputmode="decimal" min="30" max="300" step="0.1" placeholder="Definido pelo nutricionista" value="${esc(v(p.refWeight))}"></label>
+        <p class="small muted" style="margin:6px 0 0">Usado para a proteína. Importante quando o IMC passa de 30; deixe em branco se não tiver.</p>
       </div>
       <div class="form-block">
         <h3>Sua rotina</h3>
@@ -915,7 +920,19 @@ function renderPlan() {
           <label class="field">Durmo às<input name="sleep" type="time" value="${esc(v(p.sleep))}"></label>
         </div>
         <label class="field">Refeições por dia<select name="meals"><option value="">Escolha</option>${opt(MEAL_COUNTS, p.meals)}</select></label>
-        <label class="field">Atividade no dia a dia (trabalho, passos e treino)<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
+      </div>
+      <div class="form-block">
+        <h3>Trabalho e movimento</h3>
+        <label class="field">Dias por semana com esforço físico no trabalho<select name="workDays"><option value="">Escolha</option>${opt(WORK_DAYS, p.workDays)}</select></label>
+        <div data-work ${p.workDays && p.workDays !== '0' ? '' : 'hidden'}>
+          <div class="grid2">
+            <label class="field">Horas em pé ou carregando peso<select name="workHours"><option value="">Escolha</option>${opt(WORK_HOURS, p.workHours)}</select></label>
+            <label class="field">Esse esforço é<select name="workEffort"><option value="">Escolha</option>${opt(WORK_EFFORT, p.workEffort)}</select></label>
+          </div>
+        </div>
+        <label class="field">Passos por dia (se souber)<input name="steps" type="number" inputmode="numeric" min="0" max="60000" step="500" placeholder="Ex.: 7000" value="${esc(v(p.steps))}"></label>
+        <label class="field">Nível de atividade<select name="activity">${opt(ACTIVITY, p.activity)}</select></label>
+        <p class="small muted" id="activity-hint" style="margin:6px 0 0"></p>
       </div>
       <div class="form-block">
         <h3>Treino</h3>
@@ -933,6 +950,8 @@ function renderPlan() {
       <div class="form-block">
         <h3>Objetivo e saúde</h3>
         <label class="field">Objetivo<select name="objective">${opt(OBJECTIVES, p.objective)}</select></label>
+        <label class="field" data-lose ${p.objective === 'lose' ? '' : 'hidden'}>Déficit de calorias<select name="deficit">${opt(DEFICITS, p.deficit ?? '15')}</select></label>
+        <label class="field">Gordura na dieta<select name="fatPct">${opt(FAT_PCTS, p.fatPct ?? '')}</select></label>
         <label class="field">Alguma condição de saúde?<select name="health">${opt(HEALTH, p.health ?? 'none')}</select></label>
       </div>
       <div class="form-block">
@@ -955,7 +974,7 @@ function renderPlan() {
       <div id="plan-progress"></div>
     </section>
     <div id="plan-meals"></div>
-    <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor e Parâmetros nutricionais adaptativos da ConsultoriaJP). Pontos de partida para adultos: acompanhe o peso por algumas semanas e ajuste. Não substitui avaliação de nutricionista.</p>`;
+    <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor e Parâmetros nutricionais consolidados da ConsultoriaJP). Pontos de partida para adultos: acompanhe o peso por algumas semanas e ajuste. Não substitui avaliação de nutricionista.</p>`;
 
   const readProfile = () => ({
     ...state.profile,
@@ -967,6 +986,13 @@ function renderPlan() {
   const drawTargets = () => {
     const prof = readProfile();
     for (const el of view.querySelectorAll('[data-train]')) el.hidden = prof.trains !== 'yes';
+    for (const el of view.querySelectorAll('[data-work]')) el.hidden = !prof.workDays || prof.workDays === '0';
+    for (const el of view.querySelectorAll('[data-lose]')) el.hidden = prof.objective !== 'lose';
+    const sug = suggestActivity(prof);
+    const sugLabel = ACTIVITY.find((a) => a.id === sug);
+    $('#activity-hint', view).innerHTML = sug
+      ? `Pelas suas respostas: <b>${esc(sugLabel.label.split(':')[0])}</b> (fator ${fmt(sugLabel.factor, 3)}).${prof.activity !== sug ? ' <button class="btn small" data-use-activity>Usar sugestão</button>' : ''}`
+      : 'Responda sobre o trabalho para o app sugerir o nível. Na dúvida, fique no mais baixo.';
     const t = calcTargets(prof);
     $('#targets', view).innerHTML = t ? `
       <div class="targets">
@@ -976,9 +1002,10 @@ function renderPlan() {
         <div><b>${fmt(t.fat, 0)} g</b><span>gordura</span></div>
         <div><b>${fmt(t.fiber, 0)} g</b><span>fibra</span></div>
       </div>
-      <p class="small muted" style="margin:8px 0 0">Gasto em repouso ${fmt(t.bmr, 0)} kcal · gasto total estimado ${fmt(t.tdee, 0)} kcal.
-        Proteína ${fmt(t.gPerKg)} g/kg${t.adjusted ? ` do peso ajustado (${fmt(t.adjusted, 0)} kg, usado quando o IMC passa de 30)` : ''} · gordura ${fmt(t.fatPct * 100, 0)}% das kcal · fibra 14 g a cada 1.000 kcal.</p>
-      ${t.floored ? '<p class="small warn" style="margin:6px 0 0">A meta ficou no seu gasto em repouso, o mínimo que o app sugere. Para cortar mais, só com acompanhamento profissional.</p>' : ''}
+      <p class="small muted" style="margin:8px 0 0">Gasto em repouso ${fmt(t.bmr, 0)} kcal × fator ${fmt(t.factor, 3)} = gasto total ${fmt(t.tdee, 0)} kcal.
+        Conferência: 4 × ${fmt(t.protein, 0)} + 4 × ${fmt(t.carbs, 0)} + 9 × ${fmt(t.fat, 0)} = ${fmt(t.check, 0)} kcal.
+        Proteína ${fmt(t.gPerKg)} g/kg${Number(prof.refWeight) > 0 ? ` do peso de referência (${fmt(Number(prof.refWeight), 0)} kg)` : t.adjusted ? ` do peso ajustado (${fmt(t.adjusted, 0)} kg)` : ''} · gordura ${fmt(t.fatPct * 100, 0)}% das kcal · fibra 14 g a cada 1.000 kcal.</p>
+      ${t.review.map((r) => `<p class="small warn" style="margin:6px 0 0">${esc(r)}</p>`).join('')}
       <div class="btn-row"><button class="btn" data-use-targets>Usar como minhas metas diárias</button></div>`
       : '<p class="small muted" style="margin:10px 0 0">Preencha idade, altura e peso para ver suas metas.</p>';
     const ok = profileComplete(prof);
@@ -1073,6 +1100,12 @@ function renderPlan() {
   // Um cardápio montado à mão não é substituído sem o usuário pedir.
   view.onchange = async (e) => {
     if (!e.target.closest('[name]') || !PROFILE_FIELDS.includes(e.target.name)) return;
+    // Nível de atividade segue as respostas da triagem até a pessoa escolher outro à mão.
+    if (e.target.name === 'activity') state.profile.activityManual = !e.detail?.auto;
+    else if (!state.profile.activityManual) {
+      const sug = suggestActivity(readProfile());
+      if (sug) $('[name="activity"]', view).value = sug;
+    }
     await saveProfile(readProfile());
     if (profileComplete(readProfile()) && !safetyBlock(readProfile()) && (state.plan.generated || !state.plan.items.length)) {
       await generate(state.plan.seed ?? 0);
@@ -1083,6 +1116,11 @@ function renderPlan() {
   };
 
   view.onclick = async (e) => {
+    if (e.target.closest('[data-use-activity]')) {
+      $('[name="activity"]', view).value = suggestActivity(readProfile());
+      $('[name="activity"]', view).dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { auto: true } }));
+      return;
+    }
     if (e.target.closest('[data-use-targets]')) {
       const t = calcTargets(readProfile());
       const today = localDate();
