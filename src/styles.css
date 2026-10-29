@@ -14,7 +14,6 @@
   --warn: #8a5a00;
   --bronze: linear-gradient(135deg, #f3b07a, #c8692f 45%, #8a3f1a);
   --radius: 14px;
-  --tabbar-h: 64px;
   color-scheme: light dark;
 }
 
@@ -44,7 +43,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -78,21 +77,43 @@ h3 { font-size: .95rem; margin: 0; }
 }
 .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ---------- barra de abas ---------- */
+/* ---------- menu lateral ---------- */
 
-.tabbar {
-  position: fixed; inset: auto 0 0 0; z-index: 10;
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  background: var(--card); border-top: 1px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom);
+.topbar-main { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.topbar-spacer { width: 40px; flex: none; }
+.menu-btn { border: 0; background: none; }
+.menu-btn svg { width: 24px; height: 24px; }
+
+.drawer {
+  position: fixed; inset: 0 auto 0 0; z-index: 30; width: min(82vw, 320px);
+  background: var(--card); border-right: 1px solid var(--line);
+  padding: calc(20px + env(safe-area-inset-top)) 0 calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(calc(-100% - 32px)); transition: transform .25s ease; overflow-y: auto;
+  box-shadow: 4px 0 24px rgb(0 0 0 / .18);
 }
-.tabbar button {
-  height: var(--tabbar-h); border: 0; background: none; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  font-size: .75rem; color: var(--muted);
+body.drawer-open .drawer { transform: none; }
+.drawer-backdrop { position: fixed; inset: 0; z-index: 25; background: rgb(0 0 0 / .4); opacity: 0; transition: opacity .25s ease; }
+body.drawer-open .drawer-backdrop { opacity: 1; }
+.drawer-head {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: 100%;
+  padding: 0 20px 18px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer;
 }
-.tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.tabbar button[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.drawer-head .avatar { cursor: pointer; }
+.drawer-name { font-weight: 700; font-size: 1.05rem; }
+.drawer-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.drawer-list button {
+  display: block; width: 100%; text-align: left; border: 0; background: none; cursor: pointer;
+  padding: 14px 20px; font-size: 1rem; color: var(--text);
+}
+.drawer-list button[aria-current="page"] { color: var(--accent); font-weight: 700; background: var(--accent-soft); }
+@media (prefers-reduced-motion: reduce) { .drawer, .drawer-backdrop { transition: none; } }
+
+/* dúvidas frequentes */
+.faq details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.faq details:last-child { border-bottom: 0; }
+.faq summary { font-weight: 600; cursor: pointer; }
+.faq p { margin: 8px 0 0; color: var(--muted); }
+.goals-manual summary { cursor: pointer; }
 
 /* ---------- cartões e listas ---------- */
 
@@ -214,7 +235,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .chart .trend { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
   transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
   background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: .9rem;
   transition: .2s; z-index: 20; max-width: calc(100% - 32px);

@@ -24,12 +24,18 @@
   </div>
   <header class="topbar" id="topbar"></header>
   <main id="view" tabindex="-1"></main>
-  <nav class="tabbar" aria-label="Seções">
-    <button data-tab="diary" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>Diário</button>
-    <button data-tab="plan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16H7z"/><path d="M10 9h4M10 13h4M10 17h2"/></svg>Dieta</button>
-    <button data-tab="weight"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18 9 12l4 3 7-8"/><path d="M15 7h5v5"/></svg>Peso</button>
-    <button data-tab="foods"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 12h14M5 19h9"/></svg>Alimentos</button>
-    <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Perfil</button>
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <nav class="drawer" id="drawer" aria-label="Menu" aria-hidden="true" inert>
+    <button class="drawer-head" data-tab="settings" id="drawer-head"></button>
+    <ul class="drawer-list">
+      <li><button data-tab="diary">Meu Diário</button></li>
+      <li><button data-tab="plan">Minha Dieta</button></li>
+      <li><button data-tab="weight">Peso</button></li>
+      <li><button data-tab="foods">Biblioteca de Alimentos</button></li>
+      <li><button data-tab="faq">Dúvidas frequentes</button></li>
+      <li><button data-tab="settings">Perfil</button></li>
+      <li><button data-tab="about">Sobre o app</button></li>
+    </ul>
   </nav>
   <dialog id="sheet" class="sheet"></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

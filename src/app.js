@@ -82,27 +82,65 @@ function indexFoods() {
 
 // ---------- navegação ----------
 
-document.querySelector('.tabbar').addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-tab]');
-  if (!btn) return;
-  state.tab = btn.dataset.tab;
-  for (const b of document.querySelectorAll('.tabbar button')) {
-    if (b === btn) b.setAttribute('aria-current', 'page');
+// Menu lateral: botão de três linhas no topo abre a gaveta, que vem da esquerda.
+const drawer = $('#drawer');
+const drawerBackdrop = $('#drawer-backdrop');
+
+function openDrawer() {
+  const p = state.profile;
+  $('#drawer-head').innerHTML = `<span class="avatar lg">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${esc((p.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>`}</span>
+    <span class="drawer-name">${esc(p.name || 'Toque para preencher seu perfil')}</span>`;
+  for (const b of drawer.querySelectorAll('.drawer-list [data-tab]')) {
+    if (b.dataset.tab === state.tab) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   }
+  drawerBackdrop.hidden = false;
+  drawer.inert = false;
+  drawer.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => { document.body.classList.add('drawer-open'); });
+  drawer.querySelector('[aria-current]')?.focus();
+}
+
+function closeDrawer() {
+  document.body.classList.remove('drawer-open');
+  drawer.inert = true;
+  drawer.setAttribute('aria-hidden', 'true');
+  setTimeout(() => { if (!document.body.classList.contains('drawer-open')) drawerBackdrop.hidden = true; }, 250);
+}
+
+function go(tab) {
+  state.tab = tab;
+  closeDrawer();
   render();
   window.scrollTo(0, 0);
+}
+
+drawer.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-tab]');
+  if (btn) go(btn.dataset.tab);
+});
+drawerBackdrop.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) closeDrawer(); });
+topbar.addEventListener('click', (e) => { if (e.target.closest('[data-menu]')) openDrawer(); });
+// Arrastar da gaveta para a esquerda fecha.
+let touchX = null;
+drawer.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+drawer.addEventListener('touchend', (e) => {
+  if (touchX !== null && touchX - e.changedTouches[0].clientX > 60) closeDrawer();
+  touchX = null;
 });
 
 async function render() {
-  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings };
+  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings, faq: renderFaq, about: renderAbout };
   view.oninput = null;
   view.onchange = null;
   await renderers[state.tab]();
 }
 
+const MENU_BTN = '<button class="icon-btn menu-btn" data-menu aria-label="Abrir menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>';
+
 function setTopbar(html) {
-  topbar.innerHTML = html;
+  topbar.innerHTML = `${MENU_BTN}<div class="topbar-main">${html}</div><span class="topbar-spacer" aria-hidden="true"></span>`;
 }
 
 function toast(msg) {
@@ -143,7 +181,7 @@ async function renderDiary() {
     if (add) return openAdd(add.dataset.addMeal);
     const row = e.target.closest('[data-entry]');
     if (row) return openEntry(entries.find((x) => x.id === row.dataset.entry));
-    if (e.target.closest('[data-go-settings]')) return document.querySelector('[data-tab="settings"]').click();
+    if (e.target.closest('[data-go-settings]')) return go('about');
   };
 }
 
@@ -891,11 +929,12 @@ function safetyBlock(p) {
 }
 
 function renderPlan() {
-  setTopbar(`<h1>Minha dieta</h1>${state.profile.photo ? `<img class="avatar sm" src="${esc(state.profile.photo)}" alt="">` : ''}`);
+  setTopbar('<h1>Minha Dieta</h1>');
   topbar.onclick = null;
   const p = { sex: 'm', activity: 'light', objective: 'maintain', wake: '07:00', sleep: '23:00', ...state.profile };
   if (!p.weight) p.weight = latestWeight() ?? '';
   const v = (x) => (x === null || x === undefined ? '' : x);
+  const goal = goalFor(state.goals, localDate()) ?? {};
   const opt = (list, cur) => list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
 
   view.innerHTML = `
@@ -974,6 +1013,21 @@ function renderPlan() {
       <div id="plan-progress"></div>
     </section>
     <div id="plan-meals"></div>
+    <details class="card goals-manual"><summary><b>Metas diárias (ajuste manual)</b></summary>
+
+      <p class="small muted" style="margin:4px 0 0">Valem a partir de hoje; dias anteriores continuam com a meta da época.</p>
+      <div class="grid2">
+        <label class="field">Calorias (kcal)<input name="kcal" type="number" inputmode="numeric" min="0" value="${esc(v(goal.kcal))}"></label>
+        <label class="field">Carboidratos (g)<input name="carbs" type="number" inputmode="numeric" min="0" value="${esc(v(goal.carbs))}"></label>
+        <label class="field">Proteínas (g)<input name="protein" type="number" inputmode="numeric" min="0" value="${esc(v(goal.protein))}"></label>
+        <label class="field">Gorduras (g)<input name="fat" type="number" inputmode="numeric" min="0" value="${esc(v(goal.fat))}"></label>
+        <label class="field">Fibras (g)<input name="fiber" type="number" inputmode="numeric" min="0" value="${esc(v(goal.fiber))}"></label>
+      </div>
+      <p class="small muted" style="margin:6px 0 0">Não sabe quanto? Use o cálculo acima com "Usar como minhas metas diárias". Fibras: em geral 25 a 38 g por dia.</p>
+      <p class="small muted" id="macro-kcal" style="margin:8px 0 0"></p>
+      <div class="btn-row"><button class="btn primary" data-save-goal>Salvar metas</button></div>
+    </details>
+
     <p class="muted small" style="text-align:center;margin-top:18px">Cálculo de referência (Mifflin-St Jeor e Parâmetros nutricionais consolidados da ConsultoriaJP). Pontos de partida para adultos: acompanhe o peso por algumas semanas e ajuste. Não substitui avaliação de nutricionista.</p>`;
 
   const readProfile = () => ({
@@ -1015,7 +1069,16 @@ function renderPlan() {
       : '<p class="small warn" style="margin:0">Preencha todos os dados acima (horários, treino e quantas refeições) para gerar o cardápio automático.</p>';
   };
 
+  // O ajuste manual mostra sempre as metas em vigor (também depois de gerar o cardápio).
+  const fillGoals = () => {
+    const g = goalFor(state.goals, localDate()) ?? {};
+    for (const k of ['kcal', 'carbs', 'protein', 'fat', 'fiber']) $(`.goals-manual [name="${k}"]`, view).value = v(g[k]);
+    const sum = (g.carbs ?? 0) * 4 + (g.protein ?? 0) * 4 + (g.fat ?? 0) * 9;
+    $('#macro-kcal', view).textContent = sum ? `Os macros somam ${fmt(sum, 0)} kcal (4 kcal/g carb. e prot., 9 kcal/g gord.).` : '';
+  };
+
   const drawPlan = () => {
+    fillGoals();
     const target = targetsNow();
     const { totals } = planTotals(state.plan.items);
     const bar = (key, label, unit = 'g') => {
@@ -1120,6 +1183,14 @@ function renderPlan() {
       $('[name="activity"]', view).value = suggestActivity(readProfile());
       $('[name="activity"]', view).dispatchEvent(new CustomEvent('change', { bubbles: true, detail: { auto: true } }));
       return;
+    }
+    if (e.target.closest('[data-save-goal]')) {
+      const today = localDate();
+      const num = (n) => { const x = $(`.goals-manual [name="${n}"]`, view).value; return x === '' ? null : Number(x); };
+      await db.put('goals', { id: `goal-${today}`, startsAt: today, kcal: num('kcal'), carbs: num('carbs'), protein: num('protein'), fat: num('fat'), fiber: num('fiber'), updatedAt: Date.now() });
+      state.goals = await db.getAll('goals');
+      drawPlan();
+      return toast('Metas salvas.');
     }
     if (e.target.closest('[data-use-targets]')) {
       const t = calcTargets(readProfile());
@@ -1368,7 +1439,7 @@ function weightChart(list) {
 // ---------- alimentos ----------
 
 function renderFoods() {
-  setTopbar('<h1>Alimentos</h1>');
+  setTopbar('<h1>Biblioteca de Alimentos</h1>');
   topbar.onclick = null;
   const mine = state.userFoods.filter((f) => !f.deletedAt).sort((a, b) => a.name.localeCompare(b.name));
   view.innerHTML = `
@@ -1416,45 +1487,37 @@ function defaultMeal(h = new Date().getHours()) {
   return 'snack';
 }
 
-// ---------- ajustes ----------
+// ---------- perfil (só os dados do aluno) ----------
 
 async function renderSettings() {
   setTopbar('<h1>Perfil</h1>');
   topbar.onclick = null;
-  const today = localDate();
-  const goal = goalFor(state.goals, today) ?? {};
-  const v = (x) => (x === null || x === undefined ? '' : x);
+  view.innerHTML = await renderProfileCard();
+  $('#photo-file', view).addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      await saveProfile({ ...state.profile, photo: await resizePhoto(file) });
+    } catch {
+      return toast('Não foi possível abrir essa imagem.');
+    }
+    // Atualiza só a foto, sem apagar o que já foi digitado nos campos.
+    $('.avatar', view).innerHTML = `<img src="${esc(state.profile.photo)}" alt="Foto de perfil">`;
+    toast('Foto salva.');
+  });
+  view.onclick = async (e) => {
+    await handleProfileClick(e);
+  };
+}
+
+// ---------- sobre o app ----------
+
+async function renderAbout() {
+  setTopbar('<h1>Sobre o app</h1>');
+  topbar.onclick = null;
   const persisted = await navigator.storage?.persisted?.();
   view.innerHTML = `
-    ${await renderProfileCard()}
-
-    <section class="card">
-      <h2>Metas diárias</h2>
-      <p class="small muted" style="margin:4px 0 0">Valem a partir de hoje; dias anteriores continuam com a meta da época.</p>
-      <div class="grid2">
-        <label class="field">Calorias (kcal)<input name="kcal" type="number" inputmode="numeric" min="0" value="${esc(v(goal.kcal))}"></label>
-        <label class="field">Carboidratos (g)<input name="carbs" type="number" inputmode="numeric" min="0" value="${esc(v(goal.carbs))}"></label>
-        <label class="field">Proteínas (g)<input name="protein" type="number" inputmode="numeric" min="0" value="${esc(v(goal.protein))}"></label>
-        <label class="field">Gorduras (g)<input name="fat" type="number" inputmode="numeric" min="0" value="${esc(v(goal.fat))}"></label>
-        <label class="field">Fibras (g)<input name="fiber" type="number" inputmode="numeric" min="0" value="${esc(v(goal.fiber))}"></label>
-      </div>
-      <p class="small muted" style="margin:6px 0 0">Não sabe quanto? Calcule pelo seu objetivo em <b>Dieta</b>. Fibras: em geral 25 a 38 g por dia.</p>
-      <p class="small muted" id="macro-kcal" style="margin:8px 0 0"></p>
-      <div class="btn-row"><button class="btn primary" data-save-goal>Salvar metas</button></div>
-    </section>
-
-    <section class="card">
-      <h2>Backup</h2>
-      <p class="small muted" style="margin:4px 0 0">Seus dados ficam só neste aparelho. Exporte de vez em quando e guarde o arquivo (Drive, e-mail). ${state.lastBackup ? `Último backup: ${esc(new Date(state.lastBackup + 'T12:00').toLocaleDateString('pt-BR'))}.` : 'Nenhum backup feito ainda.'}</p>
-      <div class="btn-row">
-        <button class="btn" data-export>Exportar backup</button>
-        <button class="btn" data-import>Importar backup</button>
-        <input type="file" accept="application/json,.json" hidden id="import-file">
-      </div>
-      <p class="small ${persisted ? 'muted' : 'warn'}" style="margin:10px 0 0">${persisted ? 'Armazenamento protegido: o navegador não apaga os dados sozinho.' : 'O navegador pode apagar os dados se faltar espaço. Instale o app na tela inicial e toque abaixo para proteger.'}</p>
-      ${persisted ? '' : '<div class="btn-row"><button class="btn small" data-persist>Proteger armazenamento</button></div>'}
-    </section>
-
     <div class="about-hero">
       <img src="assets/logo.jpg" alt="Logo JPCOMPANY">
       <div><h2>JPlate</h2><p>by JPCOMPANY</p></div>
@@ -1491,47 +1554,53 @@ async function renderSettings() {
       </ul>
       <p class="muted small">Os números são estimativas para acompanhamento pessoal e não substituem orientação de nutricionista ou médico.</p>
       <p class="muted small">© ${new Date().getFullYear()} JPCOMPANY. Todos os direitos reservados.</p>
+    </section>
+
+    <section class="card">
+      <h2>Backup</h2>
+      <p class="small muted" style="margin:4px 0 0">Seus dados ficam só neste aparelho. Exporte de vez em quando e guarde o arquivo (Drive, e-mail). ${state.lastBackup ? `Último backup: ${esc(new Date(state.lastBackup + 'T12:00').toLocaleDateString('pt-BR'))}.` : 'Nenhum backup feito ainda.'}</p>
+      <div class="btn-row">
+        <button class="btn" data-export>Exportar backup</button>
+        <button class="btn" data-import>Importar backup</button>
+        <input type="file" accept="application/json,.json" hidden id="import-file">
+      </div>
+      <p class="small ${persisted ? 'muted' : 'warn'}" style="margin:10px 0 0">${persisted ? 'Armazenamento protegido: o navegador não apaga os dados sozinho.' : 'O navegador pode apagar os dados se faltar espaço. Instale o app na tela inicial e toque abaixo para proteger.'}</p>
+      ${persisted ? '' : '<div class="btn-row"><button class="btn small" data-persist>Proteger armazenamento</button></div>'}
     </section>`;
-
-  const macroKcal = () => {
-    const g = (n) => Number($(`[name="${n}"]`, view).value) || 0;
-    const sum = g('carbs') * 4 + g('protein') * 4 + g('fat') * 9;
-    $('#macro-kcal', view).textContent = sum ? `Os macros somam ${fmt(sum, 0)} kcal (4 kcal/g carb. e prot., 9 kcal/g gord.).` : '';
-  };
-  macroKcal();
-  view.oninput = macroKcal;
-
   $('#import-file', view).addEventListener('change', importBackup);
-  $('#photo-file', view).addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      await saveProfile({ ...state.profile, photo: await resizePhoto(file) });
-    } catch {
-      return toast('Não foi possível abrir essa imagem.');
-    }
-    // Atualiza só a foto, sem apagar o que já foi digitado nos campos.
-    $('.avatar', view).innerHTML = `<img src="${esc(state.profile.photo)}" alt="Foto de perfil">`;
-    toast('Foto salva.');
-  });
   view.onclick = async (e) => {
-    if (await handleProfileClick(e)) return;
-    if (e.target.closest('[data-save-goal]')) {
-      const num = (n) => { const x = $(`[name="${n}"]`, view).value; return x === '' ? null : Number(x); };
-      const g = { id: `goal-${today}`, startsAt: today, kcal: num('kcal'), carbs: num('carbs'), protein: num('protein'), fat: num('fat'), fiber: num('fiber'), updatedAt: Date.now() };
-      await db.put('goals', g);
-      state.goals = await db.getAll('goals');
-      return toast('Metas salvas.');
-    }
     if (e.target.closest('[data-export]')) return exportBackup();
     if (e.target.closest('[data-import]')) return $('#import-file', view).click();
     if (e.target.closest('[data-persist]')) {
       const ok = await navigator.storage?.persist?.();
       toast(ok ? 'Armazenamento protegido.' : 'O navegador não permitiu. Instale o app na tela inicial e tente de novo.');
-      return renderSettings();
+      return renderAbout();
     }
   };
+}
+
+// ---------- dúvidas frequentes ----------
+
+const FAQ = [
+  ['Como registro o que comi?', 'Em Meu Diário, toque em "+ Adicionar" na refeição, busque o alimento, escolha a porção e salve. Para lançar o dia inteiro do cardápio, use "Lançar tudo no diário de hoje" em Minha Dieta.'],
+  ['Como o app calcula minhas metas?', 'Pelo gasto em repouso (equação de Mifflin-St Jeor) multiplicado pelo fator da sua rotina, com o ajuste do objetivo aplicado uma vez sobre esse gasto. Depois vêm a proteína em g/kg, a gordura em % das calorias, o carboidrato com o que sobra e a fibra (14 g a cada 1.000 kcal). Os parâmetros são os da ConsultoriaJP.'],
+  ['Por que o app me colocou num nível de atividade mais baixo?', 'As perguntas sobre o trabalho e os passos sugerem o nível de forma conservadora: na dúvida, fica no mais baixo e você ajusta pela evolução do peso. "Muito ativo" só vale quando as respostas confirmam.'],
+  ['O cardápio gerado é uma prescrição?', 'Não. É um ponto de partida automático para adultos saudáveis. Para gestantes, menores de 18 anos, doença renal, diabetes com remédio ou transtorno alimentar o app mostra só as metas e recomenda acompanhamento profissional.'],
+  ['Posso trocar um alimento do cardápio?', 'Sim. Toque no alimento para mudar a quantidade ou remover, use "+ Adicionar" na refeição, ou "Gerar outra opção de cardápio". Intolerâncias e preferidos são respeitados quando o cardápio é gerado.'],
+  ['Onde ficam o pré e o pós-treino?', 'Marque que treina e informe o horário do treino em Minha Dieta. O app encaixa um pré-treino até 2 horas antes e um pós-treino até 2 horas depois.'],
+  ['De onde vêm os alimentos?', 'Da TACO (tabela brasileira), de pratos calculados a partir dela, da USDA e de produtos de marca do Open Food Facts. Cada alimento mostra a fonte. Na Biblioteca de Alimentos uma busca só procura em tudo.'],
+  ['Não achei um alimento. E agora?', 'Ao adicionar no diário, use "Buscar online" para produtos de marca ou o código de barras. Se ainda não achar, cadastre em "Novo alimento" com os dados do rótulo.'],
+  ['Meus dados ficam salvos onde?', 'Só neste aparelho, sem cadastro nem login. Faça backup em Sobre o app de vez em quando e guarde o arquivo; com ele você recupera tudo em outro aparelho.'],
+  ['Por que meu peso oscila tanto?', 'Água, sal e intestino mudam o peso de um dia para o outro. Em Peso, a linha de tendência (média dos últimos registros) mostra a direção real. Avalie por algumas semanas antes de mudar a dieta.'],
+  ['O app funciona sem internet?', 'Sim, depois de aberto uma vez. Só a busca online de marcas e o código de barras precisam de internet. Quando há versão nova, o app se atualiza sozinho ao abrir.'],
+];
+
+function renderFaq() {
+  setTopbar('<h1>Dúvidas frequentes</h1>');
+  topbar.onclick = null;
+  view.innerHTML = `<section class="card faq">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section>
+    <p class="muted small" style="text-align:center;margin-top:18px">Não achou sua dúvida? Fale com seu treinador ou nutricionista.</p>`;
+  view.onclick = null;
 }
 
 async function exportBackup() {
@@ -1547,7 +1616,7 @@ async function exportBackup() {
   state.lastBackup = localDate();
   await db.kvSet('lastBackup', state.lastBackup);
   toast('Backup exportado.');
-  renderSettings();
+  render();
 }
 
 async function importBackup(e) {
