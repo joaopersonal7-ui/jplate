@@ -234,3 +234,19 @@ test('texto exportado traz metas, horários e total', () => {
   assert.match(txt, /Ovo cozido: 2 unidades/);
   assert.match(txt, /TOTAL DO DIA: 146 kcal/);
 });
+
+test('número de refeições escolhido define o cardápio', () => {
+  const targets = calcTargets({ sex: 'f', age: 35, height: 165, weight: 70, activity: 'light', objective: 'lose', trains: 'yes', level: 'beginner' });
+  for (const [count, n] of [['3', 3], ['4', 4], ['5', 5], ['6', 6]]) {
+    assert.equal(mealSlots('07:00', '23:00', count).length, n);
+    for (const seed of [0, 1, 2]) {
+      const plan = generatePlan({ targets, wake: '07:00', sleep: '23:00', meals: count, seed }, byId);
+      assert.equal(new Set(plan.items.map((i) => i.slot)).size, n);
+      for (const k of ['kcal', 'protein', 'carbs', 'fat']) {
+        const err = Math.abs(plan.totals[k] - targets[k]) / targets[k];
+        assert.ok(err < 0.12, `${count} refeições, ${k} ${plan.totals[k]} vs ${targets[k]}`);
+      }
+    }
+  }
+  assert.deepEqual(mealSlots('06:00', '22:00', '3').map((s) => s.time), ['06:30', '12:45', '19:00']);
+});

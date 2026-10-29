@@ -349,3 +349,4 @@ label.field > textarea { resize: vertical; min-height: 70px; }
   .print-goals { margin: 10px 0; }
   .print-note { color: #666; font-size: 9pt; margin-top: 14px; }
 }
+[hidden] { display: none !important; }
