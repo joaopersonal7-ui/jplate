@@ -176,20 +176,11 @@ function compose(q, ranked, pool = DOCS) {
       .map((d) => ({ d, v: conceptScore(d, term) + 0.5 * conceptScore(d, key) })).sort((a, b) => b.v - a.v)[0];
     if (full && full.v >= 2) parts.splice(1, 0, { d: full.d, score: full.v });
   }
-  const related = ranked.filter((x) => !parts.some((p) => p.d === x.d) && x.score >= 2).slice(0, 2).map((x) => x.d.title);
-  const refs = [...new Set(parts.flatMap((p) => p.d.refs ?? []))];
-  if (parts.length === 1) {
-    const d = parts[0].d;
-    return { title: d.title, text: d.text, from: d.from, refs: d.refs, related };
-  }
-  return {
-    title: parts[0].d.title,
-    text: parts.map((p) => p.d.text).join('\n\n'),
-    parts: parts.map((p) => ({ title: p.d.title, text: p.d.text })),
-    from: [...new Set(parts.map((p) => p.d.from))].join(' | '),
-    refs: refs.length ? refs : undefined,
-    related,
-  };
+  // Regra do Joao: uma resposta cadastrada por vez. Os outros assuntos da pergunta viram "Veja também".
+  const related = [...parts.slice(1).map((p) => p.d.title), ...ranked.filter((x) => !parts.some((p) => p.d === x.d) && x.score >= 2).map((x) => x.d.title)]
+    .filter((t, k, a) => a.indexOf(t) === k).slice(0, 3);
+  const d = parts[0].d;
+  return { title: d.title, text: d.text, from: d.from, refs: d.refs, related };
 }
 
 // ---------- equivalências ----------

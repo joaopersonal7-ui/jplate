@@ -28,11 +28,12 @@ test('assistente acha cada pergunta da base e guarda as referências', async () 
   assert.equal(answer('vou viajar semana que vem').title, 'O que fazer com a dieta quando vou viajar?');
 });
 
-test('assistente junta assuntos numa resposta só (ATP e emagrecimento)', () => {
+test('assistente responde um assunto e oferece os outros (ATP e emagrecimento)', () => {
+  // Uma resposta só; os outros assuntos da pergunta aparecem em "Veja também".
   const r = answer('Como o ATP interfere no emagrecimento?');
-  assert.ok(r.parts.length >= 2);
-  assert.equal(r.parts[0].title, 'O que é ATP?');
-  assert.ok(r.parts.some((p) => /gordura/i.test(p.title)));
+  assert.equal(r.parts, undefined);
+  assert.equal(r.title, 'O que é ATP?');
+  assert.ok(r.related.some((t) => /gordura/i.test(t)));
 });
 
 test('assistente usa a base de medicamentos e fecha com a equipe', async () => {
