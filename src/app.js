@@ -10,6 +10,7 @@ import { generatePlan, planToText, MEAL_COUNTS, INTOLERANCES, avoidTerms, parseT
 import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
 import { LABEL_NUTRIENTS, STATUS_LABEL, SOURCES as PRODUCT_SOURCES, searchProducts, productToFood, fromIndexRow, indexRow } from './products.js';
 import { loadLibrary, getProduct, findByGtin, rememberProduct, resetLibrary } from './library.js';
+import { EQ_SOURCE, EQ_HOW, EQ_GROUPS, EQ_TIP, EQ_SECTIONS, EQ_FOOTNOTE } from './equivalencias.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const view = $('#view');
@@ -42,13 +43,15 @@ const state = {
   firstUse: null,
   plan: { items: [] },
   profile: {},
+  water: {},
+  shopping: { days: 7, checked: [] },
 };
 
 // ---------- carga ----------
 
 async function load() {
   const data = (f) => fetch(`data/${f}`).then((r) => r.json());
-  const [taco, receitas, usda, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan, profile] = await Promise.all([
+  const [taco, receitas, usda, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan, profile, water, shopping] = await Promise.all([
     data('taco.json').then((list) => list.map((f) => ({ ...f, source: 'taco' }))),
     data('receitas.json'),
     data('usda.json'),
@@ -62,10 +65,12 @@ async function load() {
     db.kvGet('firstUse', null),
     db.kvGet('plan', { items: [] }),
     db.kvGet('profile', null),
+    db.kvGet('water', {}),
+    db.kvGet('shopping', { days: 7, checked: [] }),
   ]);
   const base = [...receitas, ...taco, ...usda];
   // Dados do aluno moravam dentro do plano na versão anterior.
-  Object.assign(state, { base, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan, profile: profile ?? plan.profile ?? {} });
+  Object.assign(state, { base, userFoods, goals, weights, favorites, recents, servings, lastBackup, firstUse, plan, profile: profile ?? plan.profile ?? {}, water, shopping });
   if (!firstUse) {
     state.firstUse = localDate();
     await db.kvSet('firstUse', state.firstUse);
@@ -90,6 +95,7 @@ function openDrawer() {
   const p = state.profile;
   $('#drawer-head').innerHTML = `<span class="avatar lg">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${esc((p.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>`}</span>
     <span class="drawer-name">${esc(p.name || 'Toque para preencher seu perfil')}</span>`;
+  $('[data-needs-plan]', drawer).hidden = !hasDiet();
   for (const b of drawer.querySelectorAll('.drawer-list [data-tab]')) {
     if (b.dataset.tab === state.tab) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
@@ -131,9 +137,10 @@ drawer.addEventListener('touchend', (e) => {
 });
 
 async function render() {
-  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings, faq: renderFaq, about: renderAbout };
+  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings, faq: renderFaq, about: renderAbout, eq: renderEquivalences, shopping: renderShopping };
   view.oninput = null;
   view.onchange = null;
+  if (state.tab === 'shopping' && !hasDiet()) state.tab = 'plan';
   await renderers[state.tab]();
 }
 
@@ -174,6 +181,7 @@ async function renderDiary() {
     ${backupReminder()}
     <section class="card" aria-label="Resumo do dia">${summaryHTML(totals, missing, goal)}</section>
     ${MEALS.map((m) => mealHTML(m, groups[m.id])).join('')}
+    ${waterHTML()}
     <p class="muted small" style="text-align:center;margin-top:18px">Valores aproximados. Não substitui orientação de nutricionista ou médico.</p>`;
 
   view.onclick = (e) => {
@@ -182,7 +190,64 @@ async function renderDiary() {
     const row = e.target.closest('[data-entry]');
     if (row) return openEntry(entries.find((x) => x.id === row.dataset.entry));
     if (e.target.closest('[data-go-settings]')) return go('about');
+    const water = e.target.closest('[data-water]');
+    if (water) return addWater(Number(water.dataset.water));
+    if (e.target.closest('[data-water-goal]')) return editWaterGoal();
   };
+}
+
+// ---------- hidratação ----------
+
+// Meta: 35 ml por kg (+500 ml em quem treina), arredondada a 100 ml; o aluno pode trocar.
+function waterGoal() {
+  if (state.profile.waterGoal) return state.profile.waterGoal;
+  const kg = latestWeight() ?? Number(state.profile.weight || state.plan.profile?.weight || 0);
+  if (!kg) return 2000;
+  const ml = Math.round((kg * 35) / 100) * 100 + (state.profile.trains === 'yes' ? 500 : 0);
+  return Math.min(Math.max(ml, 1500), 5000);
+}
+
+const liters = (ml) => fmt(ml / 1000, 2);
+
+function waterHTML() {
+  const ml = state.water[state.date] ?? 0;
+  const goal = waterGoal();
+  const pct = Math.round((ml / goal) * 100);
+  const left = goal - ml;
+  const drop = '<svg class="water-art" viewBox="0 0 120 120" aria-hidden="true"><path d="M44 18c-6 20-28 34-28 58a28 28 0 0 0 56 0c0-24-22-38-28-58z"/><path d="M84 8c-4 16-12 24-16 30m16-30c5 20 30 34 30 62a30 30 0 0 1-50 22"/></svg>';
+  return `<section class="card water" aria-label="Água">
+    ${drop}
+    <p class="water-kicker">${state.date === localDate() ? 'Hoje' : esc(parseLocalDate(state.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }))} · Água</p>
+    <p class="water-total"><b>${liters(ml)}</b> L <span>de ${liters(goal)} L</span></p>
+    <div class="water-bar"><i style="width:${Math.min(pct, 100)}%"></i></div>
+    <p class="water-left">${left > 0 ? `Faltam ${liters(left)} L · ${pct}% da meta` : `Meta batida! ${pct}% da meta`}</p>
+    <div class="water-btns">
+      <button data-water="250">+ 250 ml</button><button data-water="500">+ 500 ml</button><button data-water="1000">+ 1 L</button>
+    </div>
+    <div class="water-foot">
+      <button class="link" data-water="-250"${ml ? '' : ' disabled'}>− Desfazer 250 ml</button>
+      <button class="link" data-water-goal>Ajustar meta</button>
+    </div>
+  </section>`;
+}
+
+async function addWater(ml) {
+  const next = Math.max(0, (state.water[state.date] ?? 0) + ml);
+  state.water = { ...state.water, [state.date]: next };
+  await db.kvSet('water', state.water);
+  const card = $('.water', view);
+  if (card) card.outerHTML = waterHTML();
+}
+
+async function editWaterGoal() {
+  const atual = liters(waterGoal());
+  const v = prompt('Meta de água por dia, em litros (deixe vazio para a sugestão do app):', state.profile.waterGoal ? atual : '');
+  if (v === null) return;
+  const l = parseFloat(v.replace(',', '.'));
+  const { waterGoal: _old, ...rest } = state.profile;
+  await saveProfile(v.trim() === '' || !(l > 0) ? rest : { ...rest, waterGoal: Math.round(Math.min(l, 8) * 1000) });
+  const card = $('.water', view);
+  if (card) card.outerHTML = waterHTML();
 }
 
 function backupReminder() {
@@ -217,7 +282,7 @@ function summaryHTML(totals, missing, goal) {
       ${macro('protein', 'Proteínas')}
       ${macro('fat', 'Gorduras')}
       ${macro('fiber', 'Fibras')}
-      ${!goal ? '<p class="small muted" style="margin:6px 0 0">Defina suas metas em Ajustes.</p>' : ''}
+      ${!goal ? '<p class="small muted" style="margin:6px 0 0">Defina suas metas em Minha Dieta.</p>' : ''}
     </div>
   </div>
   ${['carbs', 'protein', 'fat'].some((k) => missing[k]) ? '<p class="small warn" style="margin:10px 0 0">* Total incompleto: algum alimento não informa esse nutriente.</p>' : ''}`;
@@ -1636,6 +1701,183 @@ function renderFaq() {
   view.onclick = null;
 }
 
+// ---------- tabela de equivalências ----------
+
+function renderEquivalences() {
+  setTopbar('<h1>Tabela de equivalências</h1>');
+  topbar.onclick = null;
+  view.onclick = null;
+  const table = (g) => `<section class="card eq">
+    <div class="eq-head"><h2>${esc(g.title)}</h2><span class="eq-portion">${esc(g.portion)}</span></div>
+    <ul class="eq-list">${g.rows.map(([w, name, home, kcal]) => `<li>
+      <span class="eq-w">${esc(w)}</span>
+      <span class="grow"><span class="name">${esc(name)}</span><span class="muted small">${esc(home)}</span></span>
+      <span class="eq-kcal">${esc(kcal)}${/\d/.test(kcal) ? '<small> kcal</small>' : ''}</span></li>`).join('')}</ul>
+    ${g.note ? `<p class="small muted eq-note">${esc(g.note)}</p>` : ''}
+  </section>`;
+  view.innerHTML = `
+    <section class="card eq-how">
+      <h2>Como usar</h2>
+      <p>${esc(EQ_HOW.text)}</p>
+      <div class="eq-example"><span><small>Na sua dieta</small><b>${esc(EQ_HOW.example[0])}</b></span><span class="eq-eq">=</span><span><small>Pode trocar por</small><b>${esc(EQ_HOW.example[1])}</b></span></div>
+    </section>
+    <nav class="eq-jump" aria-label="Grupos">${EQ_GROUPS.map((g) => `<a href="#eq-${g.id}">${esc(g.title)}</a>`).join('')}</nav>
+    ${EQ_GROUPS.map((g) => `<div id="eq-${g.id}" class="eq-anchor">${table(g)}</div>`).join('')}
+    <section class="card eq-tip"><h2>Dica</h2><p>${esc(EQ_TIP)}</p></section>
+    ${EQ_SECTIONS.map((x) => `<section class="card eq-text${x.warn ? ' eq-warn' : ''}"><h2>${esc(x.title)}</h2>${x.lines.map((l) => `<p>${esc(l)}</p>`).join('')}</section>`).join('')}
+    <p class="muted small eq-foot">${esc(EQ_FOOTNOTE)}</p>
+    <p class="muted small eq-foot">${esc(EQ_SOURCE)}</p>`;
+}
+
+// ---------- lista de compras ----------
+
+// Só existe depois que o aluno tem um cardápio em Minha Dieta.
+function hasDiet() {
+  return state.plan.items.length > 0;
+}
+
+const SHOP_DAYS = [1, 7, 15, 30];
+
+function shoppingRows(days) {
+  const byFood = new Map();
+  for (const { item, food } of planTotals(state.plan.items).rows) {
+    const cur = byFood.get(food.id) ?? { food, amount: 0, unit: baseUnit(food) };
+    cur.amount += item.quantity * item.amount * days;
+    byFood.set(food.id, cur);
+  }
+  return [...byFood.values()];
+}
+
+function shopAmount({ amount, unit }) {
+  if (unit === 'g') return amount >= 1000 ? `${fmt(amount / 1000, 2)} kg` : `${fmt(Math.ceil(amount / 10) * 10, 0)} g`;
+  if (unit === 'ml') return amount >= 1000 ? `${fmt(amount / 1000, 2)} L` : `${fmt(Math.ceil(amount / 10) * 10, 0)} ml`;
+  return `${fmt(Math.ceil(amount), 0)} ${amount > 1 ? 'porções' : 'porção'}`;
+}
+
+async function renderShopping() {
+  setTopbar('<h1>Lista de compras</h1>');
+  topbar.onclick = null;
+  // Cardápio novo começa com a lista desmarcada.
+  const key = state.plan.items.map((x) => `${x.foodId}:${x.quantity * x.amount}`).sort().join('|');
+  if (state.shopping.key !== key) {
+    state.shopping = { days: state.shopping.days ?? 7, checked: [], key };
+    await db.kvSet('shopping', state.shopping);
+  }
+  const { days, checked } = state.shopping;
+  const rows = shoppingRows(days);
+  const groups = new Map();
+  for (const r of rows.sort((a, b) => a.food.name.localeCompare(b.food.name, 'pt-BR'))) {
+    const g = r.food.recipe ? 'Preparações' : r.food.group || 'Outros';
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(r);
+  }
+  const done = rows.filter((r) => checked.includes(r.food.id)).length;
+  view.innerHTML = `
+    <section class="card">
+      <h2>Comprar para</h2>
+      <div class="chips" role="group" aria-label="Dias">${SHOP_DAYS.map((d) => `<button class="chip${d === days ? ' on' : ''}" data-days="${d}" aria-pressed="${d === days}">${d === 1 ? '1 dia' : `${d} dias`}</button>`).join('')}</div>
+      <p class="small muted" style="margin:10px 0 0">Feita a partir do seu cardápio de Minha Dieta. As quantidades são do alimento pronto, como no cardápio: compre um pouco a mais do que for cozido em água (arroz, feijão, massas rendem mais depois de prontos).</p>
+      <p class="small" style="margin:8px 0 0"><b>${done}</b> de ${rows.length} itens no carrinho</p>
+    </section>
+    ${[...groups].map(([g, list]) => `<section class="card"><h2>${esc(g)}</h2><ul class="shop-list">${list.map((r) => {
+      const on = checked.includes(r.food.id);
+      return `<li><label class="shop-item${on ? ' done' : ''}"><input type="checkbox" data-shop="${esc(r.food.id)}"${on ? ' checked' : ''}><span class="grow">${esc(r.food.name)}</span><span class="num">${shopAmount(r)}</span></label></li>`;
+    }).join('')}</ul></section>`).join('')}
+    <div class="btn-row"><button class="btn" data-shop-share>Compartilhar lista</button>${done ? '<button class="btn" data-shop-clear>Desmarcar tudo</button>' : ''}</div>`;
+
+  view.onclick = async (e) => {
+    const d = e.target.closest('[data-days]');
+    if (d) {
+      state.shopping = { ...state.shopping, days: Number(d.dataset.days) };
+      await db.kvSet('shopping', state.shopping);
+      return renderShopping();
+    }
+    if (e.target.closest('[data-shop-clear]')) {
+      state.shopping = { ...state.shopping, checked: [] };
+      await db.kvSet('shopping', state.shopping);
+      return renderShopping();
+    }
+    if (e.target.closest('[data-shop-share]')) {
+      const text = `Lista de compras · ${days === 1 ? '1 dia' : `${days} dias`}\n\n` + [...groups].map(([g, list]) => `${g}\n${list.map((r) => `- ${r.food.name}: ${shopAmount(r)}`).join('\n')}`).join('\n\n');
+      if (navigator.share) return navigator.share({ title: 'Lista de compras', text }).catch(() => {});
+      await navigator.clipboard?.writeText(text);
+      return toast('Lista copiada.');
+    }
+  };
+  view.onchange = async (e) => {
+    const box = e.target.closest('[data-shop]');
+    if (!box) return;
+    const id = box.dataset.shop;
+    const set = new Set(state.shopping.checked);
+    box.checked ? set.add(id) : set.delete(id);
+    state.shopping = { ...state.shopping, checked: [...set] };
+    await db.kvSet('shopping', state.shopping);
+    box.closest('.shop-item').classList.toggle('done', box.checked);
+    $('section.card p.small b', view).textContent = rows.filter((r) => set.has(r.food.id)).length;
+  };
+}
+
+// ---------- boas-vindas ----------
+
+// Depois da abertura: "Seja bem-vindo(a), nome" e o botão Entrar. Na primeira vez, o aluno preenche nome e foto.
+const welcome = $('#welcome');
+
+function showWelcome(editing = false) {
+  const p = state.profile;
+  const ask = editing || !p.name;
+  const avatar = `<span class="avatar xl">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : `<span>${esc((p.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>`}</span>`;
+  welcome.innerHTML = ask ? `
+    <div class="welcome-box">
+      <button class="welcome-photo" data-w-photo aria-label="Escolher foto">${avatar}<span class="small">${p.photo ? 'Trocar foto' : 'Adicionar foto'}</span></button>
+      <input type="file" accept="image/*" hidden id="w-photo">
+      <h1>Seja bem-vindo(a)!</h1>
+      <p class="muted">Como você quer ser chamado(a)?</p>
+      <input class="welcome-name" id="w-name" type="text" autocomplete="given-name" maxlength="40" placeholder="Seu nome" value="${esc(p.name ?? '')}">
+      <button class="btn primary welcome-enter" data-w-enter ${p.name ? '' : 'disabled'}>Entrar</button>
+    </div>` : `
+    <div class="welcome-box">
+      ${avatar}
+      <h1>Seja bem-vindo(a),<b>${esc(p.name)}</b></h1>
+      <button class="btn primary welcome-enter" data-w-enter>Entrar</button>
+      <button class="link" data-w-edit>Trocar nome ou foto</button>
+    </div>`;
+  welcome.hidden = false;
+  document.body.classList.add('welcome-on');
+  const name = $('#w-name', welcome);
+  if (name) {
+    name.oninput = () => { $('[data-w-enter]', welcome).disabled = !name.value.trim(); };
+    name.onkeydown = (e) => { if (e.key === 'Enter' && name.value.trim()) enter(); };
+    $('#w-photo', welcome).onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await saveProfile({ ...state.profile, name: name.value.trim() || state.profile.name, photo: await resizePhoto(file) });
+      } catch { return toast('Não foi possível ler essa imagem.'); }
+      showWelcome(true);
+    };
+  }
+}
+
+async function enter() {
+  const name = $('#w-name', welcome);
+  if (name) {
+    if (!name.value.trim()) return;
+    await saveProfile({ ...state.profile, name: name.value.trim() });
+  }
+  welcome.classList.add('hide');
+  document.body.classList.remove('welcome-on');
+  setTimeout(() => { welcome.hidden = true; welcome.classList.remove('hide'); }, 300);
+  state.tab = 'diary';
+  state.date = localDate();
+  render();
+}
+
+welcome.addEventListener('click', (e) => {
+  if (e.target.closest('[data-w-enter]')) return enter();
+  if (e.target.closest('[data-w-edit]')) return showWelcome(true);
+  if (e.target.closest('[data-w-photo]')) $('#w-photo', welcome).click();
+});
+
 async function exportBackup() {
   const data = { app: 'nutri-pessoal', version: BACKUP_VERSION, exportedAt: new Date().toISOString(), ...(await db.exportAll()) };
   const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
@@ -1693,6 +1935,6 @@ splash.addEventListener('click', hideSplash, { once: true });
 // 1,65 s de abertura + 0,35 s de saída = 2 s no total.
 const splashMin = new Promise((r) => setTimeout(r, 1650));
 
-load().then(render).catch((err) => {
+load().then(() => { showWelcome(); return render(); }).catch((err) => {
   view.innerHTML = `<div class="card">Não foi possível abrir o app: ${esc(err.message)}</div>`;
 }).finally(() => splashMin.then(hideSplash));
