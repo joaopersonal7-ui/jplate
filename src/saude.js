@@ -31,7 +31,7 @@ export const HEALTH_TOPICS = [
   {
     id: 'remedios',
     label: 'Medicamentos',
-    match: /\b(remedio\w*|medicament\w*|medicacao|ozempic|mounjaro|wegovy|saxenda|victoza|trulicity|rybelsus|semaglutida|liraglutida|tirzepatida|dulaglutida|exenatida|lixisenatida|sibutramina|orlistate?|naltrexona|bupropiona|metformina|glp ?1|retatrutida|peptideos?|emagrecedor\w*|anticoncepcional|antidepressiv\w*|caneta\w*)\b/,
+    match: /\b(remedio\w*|medicament\w*|medicacao|ozempic|mounjaro|wegovy|saxenda|victoza|trulicity|rybelsus|semaglutida|liraglutida|tirzepatida|dulaglutida|exenatida|lixisenatida|sibutramina|orlistate?|naltrexona|bupropiona|metformina|glp ?1|retatrutida|peptideos?|olire|lirux|lyrza|wylovol|aribet|embeltah|sevema|zepbound|byetta|lyxumia|bydureon|emagrecedor\w*|anticoncepcional|antidepressiv\w*|caneta\w*)\b/,
     text: 'Alguns medicamentos podem mudar o apetite, o peso, a digestão ou a forma como certos alimentos e suplementos agem no corpo. Por isso, não comece, pare ou mude a dose de nenhum remédio por conta própria, e avise a equipe sobre todos os medicamentos e suplementos que você usa. Assim o plano alimentar pode ser ajustado com segurança.',
   },
   {

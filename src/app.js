@@ -1770,9 +1770,9 @@ const br = (t) => esc(t).replace(/\n/g, '<br>');
 function chatHTML() {
   const bubble = (m) => m.role === 'user'
     ? `<div class="msg me">${esc(m.text)}</div>`
-    : `<div class="msg bot"><span class="msg-who">SÁ</span>${m.parts
+    : `<div class="msg bot"><span class="msg-who">SÁ</span>${m.intro ? `<p class="msg-intro">${esc(m.intro)}</p>` : ''}${m.parts
       ? m.parts.map((p) => `<b>${esc(p.title)}</b>${br(p.text)}`).join('<hr class="msg-sep">') + (m.team ? `<p class="msg-team">${esc(m.team)}</p>` : '')
-      : `${m.title ? `<b>${esc(m.title)}</b>` : ''}${br(m.text)}`}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}${m.related?.length ? `<div class="msg-rel"><span>Veja também</span>${m.related.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}</div>`;
+      : `${m.title ? `<b>${esc(m.title)}</b>` : ''}${br(m.text)}`}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}${m.options?.length ? `<div class="msg-rel msg-opts">${m.options.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}${m.related?.length ? `<div class="msg-rel"><span>Veja também</span>${m.related.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}</div>`;
   return chat.length ? chat.map(bubble).join('') : `<div class="msg bot"><span class="msg-who">SÁ</span>Olá${state.profile.name ? `, ${esc(state.profile.name)}` : ''}! Eu sou a SÁ, a assistente do JPlate. Irei Responder suas perguntas e curiosidades sobre Nutrição, alimentação e dieta. Com base ao meu vasto Banco de Dados da JP COMPANY.<br><br>Fique à vontade, Pergunte algo…</div>`;
 }
 
@@ -1790,8 +1790,10 @@ function renderAssistant() {
   const send = (q, exact = false) => {
     q = q.trim();
     if (!q) return;
+    const last = [...chat].reverse().find((m) => m.role === 'bot');
+    const topic = [...chat].reverse().find((m) => m.role === 'bot' && m.title);
     chat.push({ role: 'user', text: q });
-    chat.push({ role: 'bot', ...assistantAnswer(q, { exact }) });
+    chat.push({ role: 'bot', ...assistantAnswer(q, { exact, name: state.profile.name, last, topic }) });
     $('#chat', view).innerHTML = chatHTML();
     $('#chat-input', view).value = '';
     $('#chat', view).lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });

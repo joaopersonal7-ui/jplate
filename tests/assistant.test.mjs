@@ -37,14 +37,38 @@ test('assistente junta assuntos numa resposta só (ATP e emagrecimento)', () => 
 
 test('assistente usa a base de medicamentos e fecha com a equipe', async () => {
   const { KB_MED } = await import('../src/kb-med.js');
-  assert.ok(KB_MED.length >= 40);
+  assert.ok(KB_MED.length >= 35);
   assert.ok(KB_MED.every((k) => !/\bA IA\b/.test(k.resposta)));
   const r = answer('estou com náusea com o ozempic');
   assert.equal(r.title, 'Estou com náusea por causa da caneta. O que fazer?');
-  assert.match(r.text, /entre em contato com a equipe/);
-  assert.equal(answer('o que é mounjaro').title, 'O que é tirzepatida?');
+  assert.match(r.text, /equipe da ConsultoriaJP/);
+  assert.equal(r.related[0], 'O que é semaglutida (Ozempic, Wegovy, Rybelsus)?');
+  assert.equal(answer('tirzepatida').title, 'O que é tirzepatida (Mounjaro)?');
+  assert.equal(answer('o que é mounjaro').title, 'O que é tirzepatida (Mounjaro)?');
+  assert.match(answer('o que é mounjaro').text, /equipe da ConsultoriaJP e com o seu médico/);
   // Remédio que não é para emagrecer continua na orientação geral.
   assert.equal(answer('tomo remédio para pressão').title, 'Medicamentos');
   // "Veja também" abre o texto exato da base de medicamentos.
   assert.match(answer('Posso fazer cardio em jejum?', { exact: true }).text, /caneta/);
+});
+
+test('SÁ conversa: cumprimenta pelo nome, responde sobre ela e lembra o último assunto', () => {
+  const ctx = { name: 'João Paulo' };
+  assert.match(answer('oi', ctx).text, /João/);
+  assert.match(answer('quem é você?', ctx).text, /SÁ/);
+  assert.match(answer('você é humana?', ctx).text, /assistente virtual/);
+  const r = answer('oi, creatina funciona?', ctx);
+  assert.equal(r.intro, 'Olá, João!');
+  assert.equal(r.title, 'Creatina: para que serve?');
+  const mais = answer('fala mais', { ...ctx, topic: r });
+  assert.ok(mais.options.length >= 1);
+  // Mensagens com "não" não viram conquista.
+  assert.notEqual(answer('não consegui emagrecer', ctx).conv, 'conquista');
+  assert.equal(answer('qual a capital da frança').text, 'Não tenho uma resposta cadastrada para essa pergunta no momento.');
+  assert.ok(answer('dieta', ctx).options.length >= 2);
+});
+
+test('perguntas de teste: pelo menos 50 de 55 certas', async () => {
+  const { avaliar } = await import('./perguntas-teste.mjs');
+  assert.ok(avaliar(answer).acertos >= 50);
 });

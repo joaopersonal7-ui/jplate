@@ -34,13 +34,8 @@ SECTIONS = {
 SKIP = ('16', '17', '19', '20', 'Apêndice A')
 # Na seção 1 só o parágrafo para o aluno; as regras da IA ficam de fora.
 ONLY_PARAS = {'1': [2]}
-# Perguntas próprias para os itens "Termo: explicação".
+# Perguntas próprias para os itens "Termo: explicação" (as canetas têm ficha própria em src/kb-canetas.js).
 TERMS = {
-    'Semaglutida': 'O que é semaglutida?',
-    'Liraglutida': 'O que é liraglutida?',
-    'Tirzepatida': 'O que é tirzepatida?',
-    'Dulaglutida': 'O que é dulaglutida?',
-    'Exenatida e lixisenatida': 'O que são exenatida e lixisenatida?',
     'Orlistate': 'O que é orlistate?',
     'Sibutramina': 'O que é sibutramina?',
     'Naltrexona/bupropiona': 'O que é naltrexona com bupropiona?',
@@ -52,12 +47,8 @@ TERMS = {
 }
 # Nomes comerciais conhecidos, só para a busca (não aparecem no texto).
 KEYS = {
-    'O que é semaglutida?': ['semaglutida', 'ozempic', 'wegovy', 'rybelsus'],
-    'O que é liraglutida?': ['liraglutida', 'saxenda', 'victoza'],
-    'O que é tirzepatida?': ['tirzepatida', 'mounjaro'],
-    'O que é dulaglutida?': ['dulaglutida', 'trulicity'],
     'O que acontece quando paro a caneta ou o remédio para emagrecer?': ['parar a caneta', 'parar o remédio', 'interromper', 'suspender', 'desmame', 'reganho', 'efeito rebote'],
-    'Quais são as canetas emagrecedoras e quais as diferenças?': ['caneta emagrecedora', 'glp 1', 'ozempic', 'mounjaro', 'wegovy', 'saxenda'],
+    'Quais são as canetas emagrecedoras e quais as diferenças?': ['caneta emagrecedora', 'glp 1'],
 }
 OTHER_DRUGS = 'Metformina'  # último item da seção 4 vira pergunta própria
 OTHER_DRUGS_Q = 'Posso usar metformina, diurético ou laxante para emagrecer?'

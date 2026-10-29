@@ -5,7 +5,9 @@ import { EQ_GROUPS, EQ_SECTIONS } from './equivalencias.js';
 import { KB } from './kb.js';
 import { KB_BASE } from './kb-base.js';
 import { KB_MED } from './kb-med.js';
+import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
+import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER } from './conversa.js';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9,.]+/g, ' ').trim();
 // Plural simples e variações de gênero, para "ovos" achar "ovo" e "cozida" achar "cozido".
@@ -18,7 +20,7 @@ const stem = (w) => {
   return w.replace(/(imento|amento|mente|coes|cao|ando|endo|indo|ados|idos|ado|ido|ar|er|ir|ou|ei|as|es|os|a|e|o|s)$/, '');
 };
 
-const STOP = new Set(`a o e de da do das dos em no na nos nas um uma uns umas para pra por com sem que se eu meu minha meus minhas
+const STOP = new Set(`consigo consegui conseguir conseguindo a o e de da do das dos em no na nos nas um uma uns umas para pra pro pros por com sem que q se eu meu minha meus minhas ta pq
   me mim voce vc posso pode podem devo deve preciso precisa como qual quais quanto quantos quantas quando onde porque por que
   ou mais menos muito pouco isso esse essa este esta ao aos as os ja tem ter sou estou fazer faco faz e ne la ai so tambem
   dia dias app aplicativo funciona funcionam serve vale bom boa melhor
@@ -38,7 +40,10 @@ const DOCS = [
   ...KB_BASE.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
-const MED_DOCS = KB_MED.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave }));
+const MED_DOCS = [
+  ...KB_MED.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave })),
+  ...KB_CANETAS.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave, close: CANETAS_FECHO })),
+];
 const ALL_DOCS = [...DOCS, ...MED_DOCS];
 
 const idf = new Map();
@@ -58,13 +63,64 @@ const EXPAND = {
   metabolism: ['gast', 'energi'], hipertrofi: ['muscul', 'massa'], energi: ['atp', 'gast'],
 };
 
+// ---------- interpretação: erros de digitação e jeitos informais de perguntar ----------
+
+// Palavra da base mais parecida com uma palavra que a base não conhece ("ozempik" → "ozempic", "caimbra" → "caibra").
+const SURFACE = new Map();
+for (const d of ALL_DOCS) for (const t of norm(`${d.title} ${(d.keys ?? []).join(' ')} ${d.text}`).replace(/[,.]/g, ' ').split(' ')) if (t.length > 3 && !STOP.has(t) && !SURFACE.has(stem(t))) SURFACE.set(stem(t), t);
+
+function editDistance(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+function fixTypos(n) {
+  return n.split(' ').map((t) => {
+    const st = stem(t);
+    if (st.length < 6 || STOP.has(t) || idf.has(st) || /\d/.test(t)) return t;
+    const max = t.length >= 8 ? 2 : 1;
+    let best = null, bd = max + 1;
+    for (const [v, surf] of SURFACE) {
+      const dist = editDistance(st, v, max);
+      if (dist < bd || (dist === bd && best && (idf.get(v) ?? 9) < (idf.get(best[0]) ?? 9))) { bd = dist; best = [v, surf]; }
+    }
+    return best && bd <= max ? best[1] : t;
+  }).join(' ');
+}
+
+// Jeitos comuns de perguntar que não usam as palavras da base.
+const INTENTS = [
+  [/\b(nao (consigo|consegui|to conseguindo|estou conseguindo) (mais )?(emagrec|perder|baixar)|peso (parou|travou|estacionou|nao (cai|desce|baixa)))/, 'plato peso parou de cair'],
+  [/\bdormi (mal|pouco)|\bnoite mal dormida|\bsem dormir/, 'fome depois de dormir pouco'],
+  [/\b(comer fora|restaurante|lanchonete|marmita fora)/, 'comer fora'],
+  [/\b(barat\w*|economiz\w*|sem dinheiro|orcamento|grana)/, 'caro orcamento'],
+  [/\b(barriga|pochete|abdominais?|gordura localizada)\b/, 'gordura localizada'],
+  [/\bincha(r|m|ndo)?\b|\bretem\b|\breter\b/, 'retencao liquido'],
+  [/\bganhar massa\b|\bcrescer\b|\bficar (grande|forte)\b/, 'hipertrofia massa muscular'],
+];
+
+const TITLE_KEYS = new Set(ALL_DOCS.map((d) => words(d.title).join(' ')));
+
+export function interpret(q) {
+  const n = fixTypos(norm(q));
+  if (TITLE_KEYS.has(words(n).join(' '))) return n;
+  const extra = INTENTS.filter(([re]) => re.test(n)).map(([, w]) => w);
+  return extra.length ? `${n} ${extra.join(' ')}` : n;
+}
+
 function queryWords(q) {
   const base = [...new Set(words(q))];
   const extra = [...new Set(base.flatMap((w) => EXPAND[w] ?? []))].filter((w) => !base.includes(w));
   return { base, extra };
 }
 
-function searchDocs(q, pool = DOCS) {
+export function searchDocs(q, pool = DOCS) {
   const { base: qw, extra } = queryWords(q);
   if (!qw.length) return [];
   const qs = ` ${qw.join(' ')} `;
@@ -220,9 +276,26 @@ export const SUGGESTIONS = [
 ]
 
 // Remédios e canetas para emagrecer (não "remédio para pressão" ou anticoncepcional, que ficam na orientação geral).
-const MED_RE = /\b(caneta\w*|emagrec\w*|ozempic|mounjaro|wegovy|saxenda|victoza|trulicity|rybelsus|semaglutida|liraglutida|tirzepatida|dulaglutida|exenatida|lixisenatida|sibutramina|orlistate?|naltrexona|bupropiona|metformina|glp ?1|retatrutida|peptideos?)\b/;
+const MED_RE = /\b(caneta\w*|emagrec\w*|ozempic|mounjaro|wegovy|saxenda|victoza|trulicity|rybelsus|semaglutida|liraglutida|tirzepatida|dulaglutida|exenatida|lixisenatida|sibutramina|orlistate?|naltrexona|bupropiona|metformina|glp ?1|retatrutida|peptideos?|olire|lirux|lyrza|wylovol|aribet|embeltah|sevema|zepbound|byetta|lyxumia|bydureon)\b/;
+
+const FICHA_WORDS = new Set(KB_CANETAS.flatMap((k) => k.palavras_chave.map(stem)));
 
 function medAnswer(q, ranked) {
+  // "Náusea com Ozempic": primeiro o assunto (náusea), depois a ficha da caneta citada.
+  const ficha = ranked.find((x) => x.d.close);
+  const rest = norm(q).replace(/[,.]/g, ' ').split(' ').filter((w) => w && !STOP.has(w) && !FICHA_WORDS.has(stem(w)) && !MED_CONTEXT.has(stem(w))).join(' ');
+  // Só o nome da caneta ("tirzepatida", "o que é Mounjaro"): a ficha inteira, sem misturar outros textos.
+  if (ficha && ranked[0] === ficha && (!rest || /^o que (e|sao|significa) /.test(norm(q)))) {
+    return { title: ficha.d.title, text: ficha.d.text, from: ficha.d.from, refs: ficha.d.refs, related: ranked.filter((x) => x !== ficha && x.score >= 2).slice(0, 2).map((x) => x.d.title) };
+  }
+  // Pergunta sobre um assunto citando a caneta: responde o assunto e oferece a ficha da caneta em "Veja também".
+  if (ficha && ranked[0] === ficha && rest) {
+    const [topic] = searchDocs(rest, MED_DOCS.filter((d) => !d.close));
+    if (topic && topic.score >= 3) {
+      const related = [ficha.d.title, ...ranked.filter((x) => x !== ficha && x.d !== topic.d && x.score >= 2).map((x) => x.d.title)].slice(0, 2);
+      return { title: topic.d.title, text: topic.d.text, from: topic.d.from, refs: topic.d.refs, related };
+    }
+  }
   const a = compose(q, ranked, MED_DOCS);
   // "Náusea com Ozempic": primeiro a náusea, depois o verbete da substância.
   if (!a.parts || !/^O que (é|são) /.test(a.parts[0].title) || /^o que (e|sao|significa) /.test(norm(q))) return a;
@@ -230,23 +303,98 @@ function medAnswer(q, ranked) {
   return { ...a, title: parts[0].title, parts, text: parts.map((p) => p.text).join('\n\n') };
 }
 
-export function answer(q, { exact = false } = {}) {
-  const n = norm(q);
+// ---------- conversa ----------
+
+const lastPick = new Map();
+function pick(id, falas) {
+  // Sorteia uma fala diferente da última usada para o mesmo assunto.
+  let i = Math.floor(Math.random() * falas.length);
+  if (falas.length > 1 && i === lastPick.get(id)) i = (i + 1) % falas.length;
+  lastPick.set(id, i);
+  return falas[i];
+}
+
+function saudacao(h = new Date().getHours()) {
+  return h >= 5 && h < 12 ? 'bom dia' : h >= 12 && h < 18 ? 'boa tarde' : 'boa noite';
+}
+
+function fill(t, { name, last } = {}) {
+  const s = saudacao();
+  t = t.replace(/\{saudacao_cap\}/g, s[0].toUpperCase() + s.slice(1)).replace(/\{saudacao\}/g, s).replace(/\{assunto\}/g, last?.title ?? '');
+  return name ? t.replace(/\{nome\}/g, name.split(' ')[0]) : t.replace(/,? \{nome\}/g, '').replace(/\{nome\},? ?/g, '');
+}
+
+// Falas que só valem em mensagens curtas, para não confundir "não consegui emagrecer" com uma conquista.
+const SHORT_ONLY = 7;
+const LONG_OK = new Set(['estou-mal', 'desistir', 'desanimo', 'quem-e-voce', 'e-humana', 'quem-criou', 'o-que-faz']);
+const NEGATION_SKIP = new Set(['conquista', 'elogio', 'estou-bem', 'te-amo']);
+
+function smallTalk(n, ctx) {
+  const t = n.replace(/[,.!?]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const nw = t.split(' ').length;
+  const neg = /\bnao\b/.test(t);
+  for (const [id, re, falas] of CONVERSA) {
+    if (!re.test(t)) continue;
+    if (nw > SHORT_ONLY && !LONG_OK.has(id)) continue;
+    if (neg && NEGATION_SKIP.has(id)) continue;
+    if (id === 'objetivo') {
+      const opts = searchDocs(interpret(t)).slice(0, 3).map((x) => x.d.title);
+      return { text: fill(pick(id, OBJETIVO_FALAS), ctx), options: opts, conv: id, from: null };
+    }
+    // "Sim" logo depois de a SÁ perguntar "e com você, tudo bem?" é resposta à pergunta dela.
+    if (id === 'sim' && ctx.last?.conv === 'tudo-bem') {
+      const bem = CONVERSA.find((c) => c[0] === 'estou-bem');
+      return { text: fill(pick('estou-bem', bem[2]), ctx), conv: 'estou-bem', from: null };
+    }
+    return { text: fill(pick(id, falas), ctx), conv: id, from: null };
+  }
+  if (CONTINUAR.test(t)) {
+    const last = ctx.topic ?? ctx.last;
+    if (!last?.title) return { text: fill(pick('continuar-sem', CONTINUAR_SEM), ctx), conv: 'continuar', from: null };
+    const opts = [...(last.related ?? []), ...searchDocs(interpret(last.title), ALL_DOCS).map((x) => x.d.title)]
+      .filter((x, i, a) => x !== last.title && !(last.parts ?? []).some((p) => p.title === x) && a.indexOf(x) === i).slice(0, 3);
+    return { text: fill(pick('continuar', CONTINUAR_FALAS), { ...ctx, last }), options: opts, conv: 'continuar', from: null };
+  }
+  return null;
+}
+
+// Cumprimento antes da pergunta ("oi, creatina funciona?"): guarda o cumprimento e responde a pergunta.
+const GREETING_PREFIX = /^(oi+|ola|opa|bom dia|boa tarde|boa noite|e ai|eai|hey|sa|oi sa|ola sa)\b[\s,!.]*(sa\b[\s,!.]*)?/;
+
+export function answer(q, ctx = {}) {
+  const { exact = false } = ctx;
+  let n = norm(q);
   if (!n) return null;
+  const g = !exact && n.match(GREETING_PREFIX);
+  const greetingOnly = !g || n.slice(g[0].length).replace(/[,.!?\s]/g, '').length <= 3;
+  const talk = !exact && greetingOnly && smallTalk(n, ctx);
+  // Uma pergunta que é exatamente um título da base vale mais que a conversa.
+  if (talk && !healthTopic(` ${n.replace(/[,.]/g, ' ')} `) && !TITLE_KEYS.has(words(n).join(' '))) return talk;
+  if (g && !greetingOnly) {
+    const rest = answer(n.slice(g[0].length), { ...ctx, exact: false });
+    const hi = /^bom dia/.test(n) ? 'Bom dia' : /^boa tarde/.test(n) ? 'Boa tarde' : /^boa noite/.test(n) ? 'Boa noite' : 'Olá';
+    return { ...rest, intro: fill(`${hi}, {nome}!`, ctx) };
+  }
   // "Veja também": abre exatamente o texto do título tocado.
   const hit = exact && ALL_DOCS.find((d) => d.title === q);
   if (hit) {
     const med = MED_DOCS.includes(hit);
-    return { title: hit.title, text: med ? `${hit.text}\n\n${TEAM_CLOSE}` : hit.text, from: hit.from, refs: hit.refs, team: med ? TEAM_CLOSE : undefined };
+    const team = med ? hit.close ?? TEAM_CLOSE : undefined;
+    return { title: hit.title, text: team ? `${hit.text}\n\n${team}` : hit.text, from: hit.from, refs: hit.refs, team };
   }
+  q = interpret(q);
+  n = norm(q);
   const health = healthTopic(` ${n.replace(/[,.]/g, ' ')} `);
   if (health) {
     // Se a base tem uma resposta feita para essa pergunta, usa ela; senão, a orientação geral. Sempre fecha com a equipe.
     const med = searchDocs(q, MED_DOCS);
     const exact = med[0] && words(med[0].d.title).join(' ') === queryWords(q).base.join(' ');
-    if (health.id !== 'alerta' && med[0] && (exact || (MED_RE.test(` ${n} `) && med[0].score >= 3))) {
+    if (health.id !== 'alerta' && med[0] && (exact || (health.id === 'remedios' && MED_RE.test(` ${n} `) && med[0].score >= 3))) {
       const a = medAnswer(q, med);
-      return { ...a, text: `${a.text}\n\n${TEAM_CLOSE}`, team: TEAM_CLOSE };
+      // Fichas das canetas fecham com "equipe e médico"; o resto da base, com a equipe.
+      const titles = a.parts ? a.parts.map((p) => p.title) : [a.title];
+      const team = MED_DOCS.find((d) => d.close && titles.includes(d.title))?.close ?? TEAM_CLOSE;
+      return { ...a, text: `${a.text}\n\n${team}`, team };
     }
     const [top] = searchDocs(q);
     if (health.id !== 'alerta' && top && top.score >= 6 && healthTopic(` ${norm(top.d.title)} `)?.id === health.id) return { title: top.d.title, text: `${top.d.text}\n\n${TEAM_CLOSE}`, from: top.d.from, refs: top.d.refs };
@@ -258,10 +406,9 @@ export function answer(q, { exact = false } = {}) {
     if (wantsSwap || !searchDocs(q)[0] || searchDocs(q)[0].score < 3) return eq;
   }
   const ranked = searchDocs(q);
-  if (ranked[0] && ranked[0].score >= 1.2) return compose(q, ranked);
+  if (ranked[0] && ranked[0].score >= 4) return compose(q, ranked);
   if (eq) return eq;
-  return {
-    text: 'Não encontrei essa resposta no material da ConsultoriaJP. Tente perguntar de outro jeito (por exemplo, "posso trocar arroz por batata?") ou fale com a equipe pelo suporte do app.',
-    from: null,
-  };
+  // Pouca certeza: em vez de chutar, oferece as perguntas mais próximas.
+  if (ranked[0] && ranked[0].score >= 1.2) return { text: fill(QUIS_DIZER, ctx), options: [...new Set(ranked.slice(0, 3).map((x) => x.d.title))], from: null };
+  return { text: NAO_ENCONTREI, from: null };
 }

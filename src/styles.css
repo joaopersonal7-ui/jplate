@@ -555,6 +555,8 @@ body::after {
 .msg .refs ul { margin: 4px 0 0; padding-left: 16px; }
 .msg-sep { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
 .msg-team { margin: 10px 0 0; }
+.msg-intro { margin: 0 0 6px; }
+.msg-opts { margin-top: 8px; }
 .msg-rel { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .msg-rel span { flex-basis: 100%; font-size: .75rem; color: var(--muted); }
 .msg-rel .chip { font-size: .8rem; text-align: left; }
