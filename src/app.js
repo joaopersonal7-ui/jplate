@@ -192,19 +192,18 @@ async function renderDiary() {
     if (e.target.closest('[data-go-settings]')) return go('about');
     const water = e.target.closest('[data-water]');
     if (water) return addWater(Number(water.dataset.water));
-    if (e.target.closest('[data-water-goal]')) return editWaterGoal();
+    if (e.target.closest('[data-go-weight]')) return go('weight');
   };
 }
 
 // ---------- hidratação ----------
 
-// Meta: 35 ml por kg (+500 ml em quem treina), arredondada a 100 ml; o aluno pode trocar.
+// Meta: 40 ml por kg do último peso registrado no app (tela Peso ou Perfil). Sem peso, sem meta.
+const WATER_ML_PER_KG = 40;
+
 function waterGoal() {
-  if (state.profile.waterGoal) return state.profile.waterGoal;
-  const kg = latestWeight() ?? Number(state.profile.weight || state.plan.profile?.weight || 0);
-  if (!kg) return 2000;
-  const ml = Math.round((kg * 35) / 100) * 100 + (state.profile.trains === 'yes' ? 500 : 0);
-  return Math.min(Math.max(ml, 1500), 5000);
+  const kg = latestWeight();
+  return kg ? Math.round(kg * WATER_ML_PER_KG) : null;
 }
 
 const liters = (ml) => fmt(ml / 1000, 2);
@@ -212,21 +211,21 @@ const liters = (ml) => fmt(ml / 1000, 2);
 function waterHTML() {
   const ml = state.water[state.date] ?? 0;
   const goal = waterGoal();
-  const pct = Math.round((ml / goal) * 100);
-  const left = goal - ml;
+  const pct = goal ? Math.round((ml / goal) * 100) : 0;
+  const left = goal ? goal - ml : 0;
   const drop = '<svg class="water-art" viewBox="0 0 120 120" aria-hidden="true"><path d="M44 18c-6 20-28 34-28 58a28 28 0 0 0 56 0c0-24-22-38-28-58z"/><path d="M84 8c-4 16-12 24-16 30m16-30c5 20 30 34 30 62a30 30 0 0 1-50 22"/></svg>';
   return `<section class="card water" aria-label="Água">
     ${drop}
     <p class="water-kicker">${state.date === localDate() ? 'Hoje' : esc(parseLocalDate(state.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }))} · Água</p>
-    <p class="water-total"><b>${liters(ml)}</b> L <span>de ${liters(goal)} L</span></p>
+    <p class="water-total"><b>${liters(ml)}</b> L${goal ? ` <span>de ${liters(goal)} L</span>` : ''}</p>
     <div class="water-bar"><i style="width:${Math.min(pct, 100)}%"></i></div>
-    <p class="water-left">${left > 0 ? `Faltam ${liters(left)} L · ${pct}% da meta` : `Meta batida! ${pct}% da meta`}</p>
+    <p class="water-left">${!goal ? 'Registre seu peso em <b>Peso</b> para calcular sua meta (40 ml por kg).' : left > 0 ? `Faltam ${liters(left)} L · ${pct}% da meta` : `Meta batida! ${pct}% da meta`}</p>
     <div class="water-btns">
       <button data-water="250">+ 250 ml</button><button data-water="500">+ 500 ml</button><button data-water="1000">+ 1 L</button>
     </div>
     <div class="water-foot">
       <button class="link" data-water="-250"${ml ? '' : ' disabled'}>− Desfazer 250 ml</button>
-      <button class="link" data-water-goal>Ajustar meta</button>
+      ${goal ? `<span class="water-rule">40 ml × ${fmt(latestWeight())} kg</span>` : '<button class="link" data-go-weight>Registrar peso</button>'}
     </div>
   </section>`;
 }
@@ -235,17 +234,6 @@ async function addWater(ml) {
   const next = Math.max(0, (state.water[state.date] ?? 0) + ml);
   state.water = { ...state.water, [state.date]: next };
   await db.kvSet('water', state.water);
-  const card = $('.water', view);
-  if (card) card.outerHTML = waterHTML();
-}
-
-async function editWaterGoal() {
-  const atual = liters(waterGoal());
-  const v = prompt('Meta de água por dia, em litros (deixe vazio para a sugestão do app):', state.profile.waterGoal ? atual : '');
-  if (v === null) return;
-  const l = parseFloat(v.replace(',', '.'));
-  const { waterGoal: _old, ...rest } = state.profile;
-  await saveProfile(v.trim() === '' || !(l > 0) ? rest : { ...rest, waterGoal: Math.round(Math.min(l, 8) * 1000) });
   const card = $('.water', view);
   if (card) card.outerHTML = waterHTML();
 }

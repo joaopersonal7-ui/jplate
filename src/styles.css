@@ -526,3 +526,4 @@ body.welcome-on { overflow: hidden; }
 .crop-zoom { width: 100%; margin: 20px 0 6px; accent-color: #e8834a; }
 .cropper .btn-row { justify-content: center; }
 .cropper .btn:not(.primary) { background: transparent; color: #f6e6d8; border-color: #5a3a28; }
+.water-rule { font-size: .85rem; color: rgb(246 230 216 / .7); align-self: center; }
