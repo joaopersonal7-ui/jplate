@@ -1350,7 +1350,7 @@ async function renderProfileCard() {
       <div class="profile-head">
         <button class="avatar lg" data-photo aria-label="Trocar foto de perfil">${p.photo ? `<img src="${esc(p.photo)}" alt="Foto de perfil">` : `<span>${esc((p.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>`}</button>
         <div><h2>${esc(p.name || 'Área do aluno')}</h2><p class="small muted">${w ? `${fmt(w)} kg` : 'Sem peso registrado'}${p.objective ? ` · ${esc(OBJECTIVES.find((o) => o.id === p.objective)?.label ?? '')}` : ''}</p>
-        <button class="btn small" data-photo>${p.photo ? 'Trocar foto' : 'Adicionar foto'}</button>${p.photo ? ' <button class="btn small danger" data-photo-remove>Remover</button>' : ''}</div>
+        <button class="btn small" data-photo>${p.photo ? 'Trocar foto' : 'Adicionar foto'}</button>${p.photo ? ' <button class="btn small" data-photo-adjust>Ajustar posição</button> <button class="btn small danger" data-photo-remove>Remover</button>' : ''}</div>
         <input type="file" accept="image/*" hidden id="photo-file">
       </div>
       <label class="field">Nome<input name="pname" value="${esc(v(p.name))}" autocomplete="name"></label>
@@ -1381,29 +1381,148 @@ function ageFrom(birth) {
   return a > 0 && a < 120 ? a : null;
 }
 
-// Reduz a foto para 320 px no lado maior antes de guardar (cabe no backup e abre rápido).
-function resizePhoto(file) {
+// Fotos: a original (até 1024 px) fica guardada para reajustar depois; o avatar é o recorte quadrado de 320 px.
+function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => {
-      const max = 320;
-      const k = Math.min(1, max / Math.max(img.width, img.height));
-      const c = document.createElement('canvas');
-      c.width = Math.round(img.width * k);
-      c.height = Math.round(img.height * k);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(img.src);
-      resolve(c.toDataURL('image/jpeg', 0.85));
-    };
+    img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+    img.src = src;
   });
+}
+
+async function photoSource(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    const k = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k);
+    c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.85);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Editor de posição: arraste para mover, pinça ou barra para aproximar. Devolve { photo, photoSrc } ou null.
+async function cropPhoto(src) {
+  const img = await loadImage(src);
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const box = document.createElement('div');
+  box.className = 'cropper';
+  box.innerHTML = `<div class="cropper-inner">
+      <h2>Ajuste sua foto</h2>
+      <p class="small">Arraste para posicionar e use a barra para aproximar.</p>
+      <div class="crop-frame"><img src="${src}" alt="" draggable="false"></div>
+      <input class="crop-zoom" type="range" min="1" max="4" step="0.01" value="1" aria-label="Aproximar">
+      <div class="btn-row"><button class="btn" data-crop-cancel>Cancelar</button><button class="btn primary" data-crop-ok>Usar foto</button></div>
+    </div>`;
+  document.body.append(box);
+  const frame = $('.crop-frame', box);
+  const pic = $('img', frame);
+  const zoom = $('.crop-zoom', box);
+  const F = () => frame.clientWidth;
+  let z = 1, x = 0, y = 0;
+  const scale = () => (F() / Math.min(W, H)) * z;
+  const clamp = () => {
+    const s = scale();
+    x = Math.min(0, Math.max(F() - W * s, x));
+    y = Math.min(0, Math.max(F() - H * s, y));
+  };
+  const draw = () => {
+    clamp();
+    const s = scale();
+    pic.style.width = `${W * s}px`;
+    pic.style.height = `${H * s}px`;
+    pic.style.transform = `translate(${x}px, ${y}px)`;
+  };
+  const setZoom = (nz) => {
+    const s0 = scale();
+    const cx = (F() / 2 - x) / s0, cy = (F() / 2 - y) / s0;
+    z = Math.min(4, Math.max(1, nz));
+    const s1 = scale();
+    x = F() / 2 - cx * s1;
+    y = F() / 2 - cy * s1;
+    zoom.value = z;
+    draw();
+  };
+  { const s = scale(); x = (F() - W * s) / 2; y = (F() - H * s) / 2; }
+  draw();
+
+  const pts = new Map();
+  let pinch = null;
+  frame.addEventListener('pointerdown', (e) => {
+    frame.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z };
+    }
+  });
+  frame.addEventListener('pointermove', (e) => {
+    const prev = pts.get(e.pointerId);
+    if (!prev) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    pts.set(e.pointerId, cur);
+    if (pts.size === 1) {
+      x += cur.x - prev.x;
+      y += cur.y - prev.y;
+      draw();
+    } else if (pinch) {
+      const [a, b] = [...pts.values()];
+      setZoom(pinch.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.d));
+    }
+  });
+  const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; };
+  frame.addEventListener('pointerup', up);
+  frame.addEventListener('pointercancel', up);
+  frame.addEventListener('wheel', (e) => { e.preventDefault(); setZoom(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+  zoom.addEventListener('input', () => setZoom(Number(zoom.value)));
+
+  return new Promise((resolve) => {
+    box.addEventListener('click', (e) => {
+      if (e.target.closest('[data-crop-cancel]')) { box.remove(); resolve(null); }
+      if (e.target.closest('[data-crop-ok]')) {
+        const s = scale();
+        const c = document.createElement('canvas');
+        c.width = c.height = 320;
+        c.getContext('2d').drawImage(img, -x / s, -y / s, F() / s, F() / s, 0, 0, 320, 320);
+        box.remove();
+        resolve({ photo: c.toDataURL('image/jpeg', 0.85), photoSrc: src });
+      }
+    });
+  });
+}
+
+// Escolha de arquivo ou reajuste da foto atual; salva no perfil. Devolve true se mudou.
+async function editPhoto(file, extra = {}) {
+  let src;
+  try {
+    src = file ? await photoSource(file) : state.profile.photoSrc || state.profile.photo;
+  } catch {
+    toast('Não foi possível abrir essa imagem.');
+    return false;
+  }
+  if (!src) return false;
+  const res = await cropPhoto(src);
+  if (!res) return false;
+  await saveProfile({ ...state.profile, ...extra, ...res });
+  return true;
 }
 
 async function handleProfileClick(e) {
   if (e.target.closest('[data-photo]')) { $('#photo-file', view).click(); return true; }
+  if (e.target.closest('[data-photo-adjust]')) {
+    if (await editPhoto(null)) {
+      $('.avatar', view).innerHTML = `<img src="${esc(state.profile.photo)}" alt="Foto de perfil">`;
+      toast('Foto ajustada.');
+    }
+    return true;
+  }
   if (e.target.closest('[data-photo-remove]')) {
-    const { photo, ...rest } = state.profile;
+    const { photo, photoSrc, ...rest } = state.profile;
     await saveProfile(rest);
     toast('Foto removida.');
     renderSettings();
@@ -1562,11 +1681,7 @@ async function renderSettings() {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    try {
-      await saveProfile({ ...state.profile, photo: await resizePhoto(file) });
-    } catch {
-      return toast('Não foi possível abrir essa imagem.');
-    }
+    if (!(await editPhoto(file))) return;
     // Atualiza só a foto, sem apagar o que já foi digitado nos campos.
     $('.avatar', view).innerHTML = `<img src="${esc(state.profile.photo)}" alt="Foto de perfil">`;
     toast('Foto salva.');
@@ -1834,6 +1949,7 @@ function showWelcome(editing = false) {
       <p class="muted">Como você quer ser chamado(a)?</p>
       <input class="welcome-name" id="w-name" type="text" autocomplete="given-name" maxlength="40" placeholder="Seu nome" value="${esc(p.name ?? '')}">
       <button class="btn primary welcome-enter" data-w-enter ${p.name ? '' : 'disabled'}>Entrar</button>
+      ${p.photo ? '<button class="link" data-w-adjust>Ajustar posição da foto</button>' : ''}
     </div>` : `
     <div class="welcome-box">
       ${avatar}
@@ -1850,10 +1966,8 @@ function showWelcome(editing = false) {
     $('#w-photo', welcome).onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      try {
-        await saveProfile({ ...state.profile, name: name.value.trim() || state.profile.name, photo: await resizePhoto(file) });
-      } catch { return toast('Não foi possível ler essa imagem.'); }
-      showWelcome(true);
+      e.target.value = '';
+      if (await editPhoto(file, { name: name.value.trim() || state.profile.name })) showWelcome(true);
     };
   }
 }
@@ -1876,6 +1990,10 @@ welcome.addEventListener('click', (e) => {
   if (e.target.closest('[data-w-enter]')) return enter();
   if (e.target.closest('[data-w-edit]')) return showWelcome(true);
   if (e.target.closest('[data-w-photo]')) $('#w-photo', welcome).click();
+  if (e.target.closest('[data-w-adjust]')) {
+    const name = $('#w-name', welcome)?.value.trim();
+    editPhoto(null, name ? { name } : {}).then((ok) => ok && showWelcome(true));
+  }
 });
 
 async function exportBackup() {

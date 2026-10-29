@@ -450,26 +450,26 @@ body.welcome-on { overflow: hidden; }
 /* ---------- hidratação ---------- */
 
 .water {
-  position: relative; overflow: hidden; color: #fff;
-  background: #274e60; border-color: #2f5d72; padding: 22px 20px 14px;
+  position: relative; overflow: hidden; color: #f6e6d8;
+  background: linear-gradient(160deg, #4a2a1a, #2a1810 70%); border-color: #5a3422; padding: 22px 20px 14px;
 }
 .water > *:not(.water-art) { position: relative; }
-.water-art { position: absolute; right: -14px; bottom: -14px; width: 190px; height: 190px; fill: none; stroke: rgb(255 255 255 / .12); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
-.water-kicker { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgb(255 255 255 / .7); }
-.water-total { margin: 6px 0 12px; font-size: 1.1rem; font-weight: 700; }
+.water-art { position: absolute; right: -14px; bottom: -14px; width: 190px; height: 190px; fill: none; stroke: rgb(243 176 122 / .14); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.water-kicker { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #f3b07a; }
+.water-total { margin: 6px 0 12px; font-size: 1.1rem; font-weight: 700; color: #fff; }
 .water-total b { font-size: 3rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
-.water-total span { font-weight: 400; color: rgb(255 255 255 / .7); font-size: 1.4rem; }
-.water-bar { height: 12px; border-radius: 99px; background: rgb(0 0 0 / .25); overflow: hidden; }
-.water-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7fd3ea, #b8ecf7); transition: width .35s ease; }
-.water-left { margin: 10px 0 14px; font-size: .95rem; color: rgb(255 255 255 / .85); }
+.water-total span { font-weight: 400; color: rgb(246 230 216 / .7); font-size: 1.4rem; }
+.water-bar { height: 12px; border-radius: 99px; background: rgb(0 0 0 / .3); overflow: hidden; }
+.water-bar i { display: block; height: 100%; border-radius: inherit; background: var(--bronze); transition: width .35s ease; }
+.water-left { margin: 10px 0 14px; font-size: .95rem; color: rgb(246 230 216 / .85); }
 .water-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .water-btns button {
-  border: 0; border-radius: 14px; padding: 14px 4px; background: #121212; color: #9bdcef;
+  border: 1px solid rgb(243 176 122 / .25); border-radius: 14px; padding: 14px 4px; background: #1d110b; color: #f3b07a;
   font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
 }
 .water-btns button:active { transform: scale(.97); }
 .water-foot { display: flex; justify-content: space-between; margin-top: 8px; }
-.water .link { color: #fff; }
+.water .link { color: #f6e6d8; }
 
 /* ---------- equivalências ---------- */
 
@@ -504,3 +504,25 @@ body.welcome-on { overflow: hidden; }
 .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .shop-item .grow { flex: 1; min-width: 0; }
 .shop-item .num { flex: none; font-weight: 600; }
+
+/* ---------- foto: recorte ---------- */
+
+.avatar { position: relative; }
+.avatar img { position: absolute; inset: 0; }
+.cropper {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; overflow-y: auto;
+  padding: calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
+  background: #140c08; color: #f6e6d8;
+}
+.cropper-inner { width: min(100%, 340px); text-align: center; }
+.cropper h2 { margin: 0; }
+.cropper p { margin: 6px 0 16px; color: #c9b3a3; }
+.crop-frame {
+  position: relative; width: min(78vw, 280px); aspect-ratio: 1; margin: 0 auto; overflow: hidden;
+  border-radius: 50%; outline: 3px solid #e8834a; outline-offset: 2px; background: #000;
+  touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+}
+.crop-frame img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+.crop-zoom { width: 100%; margin: 20px 0 6px; accent-color: #e8834a; }
+.cropper .btn-row { justify-content: center; }
+.cropper .btn:not(.primary) { background: transparent; color: #f6e6d8; border-color: #5a3a28; }
