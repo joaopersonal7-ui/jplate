@@ -1765,10 +1765,14 @@ function renderFaq() {
 // Conversa da sessão; respostas vêm do material da ConsultoriaJP (src/assistant.js).
 const chat = [];
 
+const br = (t) => esc(t).replace(/\n/g, '<br>');
+
 function chatHTML() {
   const bubble = (m) => m.role === 'user'
     ? `<div class="msg me">${esc(m.text)}</div>`
-    : `<div class="msg bot"><span class="msg-who">SÁ</span>${m.title ? `<b>${esc(m.title)}</b>` : ''}${esc(m.text).replace(/\n/g, '<br>')}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}</div>`;
+    : `<div class="msg bot"><span class="msg-who">SÁ</span>${m.parts
+      ? m.parts.map((p) => `<b>${esc(p.title)}</b>${br(p.text)}`).join('<hr class="msg-sep">') + (m.team ? `<p class="msg-team">${esc(m.team)}</p>` : '')
+      : `${m.title ? `<b>${esc(m.title)}</b>` : ''}${br(m.text)}`}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}${m.related?.length ? `<div class="msg-rel"><span>Veja também</span>${m.related.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}</div>`;
   return chat.length ? chat.map(bubble).join('') : `<div class="msg bot"><span class="msg-who">SÁ</span>Olá${state.profile.name ? `, ${esc(state.profile.name)}` : ''}! Eu sou a SÁ, a assistente do JPlate. Irei Responder suas perguntas e curiosidades sobre Nutrição, alimentação e dieta. Com base ao meu vasto Banco de Dados da JP COMPANY.<br><br>Fique à vontade, Pergunte algo…</div>`;
 }
 
@@ -1783,17 +1787,17 @@ function renderAssistant() {
       <button class="btn primary" type="submit">Enviar</button>
     </form>
     <p class="muted small" style="margin-top:10px">Orientações gerais; não substituem a avaliação individual da equipe.</p>`;
-  const send = (q) => {
+  const send = (q, exact = false) => {
     q = q.trim();
     if (!q) return;
     chat.push({ role: 'user', text: q });
-    chat.push({ role: 'bot', ...assistantAnswer(q) });
+    chat.push({ role: 'bot', ...assistantAnswer(q, { exact }) });
     $('#chat', view).innerHTML = chatHTML();
     $('#chat-input', view).value = '';
     $('#chat', view).lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   $('#chat-form', view).onsubmit = (e) => { e.preventDefault(); send($('#chat-input', view).value); };
-  view.onclick = (e) => { const b = e.target.closest('[data-ask]'); if (b) send(b.dataset.ask); };
+  view.onclick = (e) => { const b = e.target.closest('[data-ask]'); if (b) send(b.dataset.ask, 'exact' in b.dataset); };
 }
 
 // ---------- tabela de equivalências ----------

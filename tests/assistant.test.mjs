@@ -27,3 +27,24 @@ test('assistente acha cada pergunta da base e guarda as referências', async () 
   }
   assert.equal(answer('vou viajar semana que vem').title, 'O que fazer com a dieta quando vou viajar?');
 });
+
+test('assistente junta assuntos numa resposta só (ATP e emagrecimento)', () => {
+  const r = answer('Como o ATP interfere no emagrecimento?');
+  assert.ok(r.parts.length >= 2);
+  assert.equal(r.parts[0].title, 'O que é ATP?');
+  assert.ok(r.parts.some((p) => /gordura/i.test(p.title)));
+});
+
+test('assistente usa a base de medicamentos e fecha com a equipe', async () => {
+  const { KB_MED } = await import('../src/kb-med.js');
+  assert.ok(KB_MED.length >= 40);
+  assert.ok(KB_MED.every((k) => !/\bA IA\b/.test(k.resposta)));
+  const r = answer('estou com náusea com o ozempic');
+  assert.equal(r.title, 'Estou com náusea por causa da caneta. O que fazer?');
+  assert.match(r.text, /entre em contato com a equipe/);
+  assert.equal(answer('o que é mounjaro').title, 'O que é tirzepatida?');
+  // Remédio que não é para emagrecer continua na orientação geral.
+  assert.equal(answer('tomo remédio para pressão').title, 'Medicamentos');
+  // "Veja também" abre o texto exato da base de medicamentos.
+  assert.match(answer('Posso fazer cardio em jejum?', { exact: true }).text, /caneta/);
+});

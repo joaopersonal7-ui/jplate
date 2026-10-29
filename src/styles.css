@@ -553,4 +553,9 @@ body::after {
 .msg .refs { margin-top: 6px; font-size: .75rem; color: var(--muted); }
 .msg .refs summary { cursor: pointer; }
 .msg .refs ul { margin: 4px 0 0; padding-left: 16px; }
+.msg-sep { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+.msg-team { margin: 10px 0 0; }
+.msg-rel { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.msg-rel span { flex-basis: 100%; font-size: .75rem; color: var(--muted); }
+.msg-rel .chip { font-size: .8rem; text-align: left; }
 .msg-who { display: block; font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--accent); margin-bottom: 4px; }

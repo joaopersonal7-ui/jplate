@@ -4,23 +4,26 @@ import { FAQ } from './faq.js';
 import { EQ_GROUPS, EQ_SECTIONS } from './equivalencias.js';
 import { KB } from './kb.js';
 import { KB_BASE } from './kb-base.js';
+import { KB_MED } from './kb-med.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9,.]+/g, ' ').trim();
 // Plural simples e variações de gênero, para "ovos" achar "ovo" e "cozida" achar "cozido".
 const SYN = { suar: 'suor', suei: 'suor', suando: 'suor', suo: 'suor', queimo: 'gasto', queimar: 'gasto', queimei: 'gasto', queimando: 'gasto', queima: 'gasto', gastei: 'gasto', gastar: 'gasto', gasta: 'gasto',
-  correr: 'cardio', correndo: 'cardio', corro: 'cardio', corrida: 'cardio', caminhar: 'cardio', caminhada: 'cardio', caminhando: 'cardio', aerobico: 'cardio', musculo: 'muscul', musculos: 'muscul', muscular: 'muscul', massa: 'massa', engordar: 'engorda', engordam: 'engorda' };
+  correr: 'cardio', correndo: 'cardio', corro: 'cardio', corrida: 'cardio', caminhar: 'cardio', caminhada: 'cardio', caminhando: 'cardio', aerobico: 'cardio', musculo: 'muscul', musculos: 'muscul', muscular: 'muscul', massa: 'massa', engordar: 'engorda', engordam: 'engorda',
+  paro: 'parar', parei: 'parar', parou: 'parar', parando: 'parar' };
 const stem = (w) => {
   w = SYN[w] ?? w;
   if (w.length <= 4) return w.replace(/s$/, '');
-  return w.replace(/(mente|coes|cao|ando|endo|indo|ados|idos|ado|ido|ar|er|ir|ou|ei|as|es|os|a|e|o|s)$/, '');
+  return w.replace(/(imento|amento|mente|coes|cao|ando|endo|indo|ados|idos|ado|ido|ar|er|ir|ou|ei|as|es|os|a|e|o|s)$/, '');
 };
 
 const STOP = new Set(`a o e de da do das dos em no na nos nas um uma uns umas para pra por com sem que se eu meu minha meus minhas
   me mim voce vc posso pode podem devo deve preciso precisa como qual quais quanto quantos quantas quando onde porque por que
   ou mais menos muito pouco isso esse essa este esta ao aos as os ja tem ter sou estou fazer faco faz e ne la ai so tambem
   dia dias app aplicativo funciona funcionam serve vale bom boa melhor
-  tenho estou sinto to quero queria saber gostaria tipo coisa algum alguma quantas quantos`.split(/\s+/));
+  tenho estou sinto to quero queria saber gostaria tipo coisa algum alguma quantas quantos
+  usa usando usar uso usei ajuda ajudar ajudam relacao interfere interferir atrapalha atrapalhar influencia influenciar afeta`.split(/\s+/));
 
 // Alimentos da tabela: só plural, para "franca" não virar "frances".
 const lwords = (s) => norm(s).replace(/[,.]/g, ' ').split(' ').filter((w) => w && !STOP.has(w)).map((w) => (w.length > 3 ? w.replace(/(oes|aes)$/, 'ao').replace(/s$/, '') : w));
@@ -34,29 +37,46 @@ const DOCS = [
   ...KB.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave })),
   ...KB_BASE.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias })),
 ];
+// Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
+const MED_DOCS = KB_MED.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave }));
+const ALL_DOCS = [...DOCS, ...MED_DOCS];
 
 const idf = new Map();
-for (const d of DOCS) {
+for (const d of ALL_DOCS) {
   d.qw = new Set(words(d.title));
   d.aw = new Set(words(d.text));
   d.kw = new Set((d.keys ?? []).flatMap(words));
   d.phrases = (d.keys ?? []).map((k) => words(k).join(' ')).filter(Boolean);
   for (const w of new Set([...d.qw, ...d.aw, ...d.kw])) idf.set(w, (idf.get(w) ?? 0) + 1);
 }
-for (const [w, n] of idf) idf.set(w, Math.log(1 + DOCS.length / n));
+for (const [w, n] of idf) idf.set(w, Math.log(1 + ALL_DOCS.length / n));
+const TITLE_WORDS = new Set(ALL_DOCS.flatMap((d) => [...d.qw, ...d.kw]));
 
-function searchDocs(q) {
-  const qw = [...new Set(words(q))];
+// Conceitos ligados: perguntar de emagrecimento também procura gordura e déficit, e assim por diante.
+const EXPAND = {
+  emagrec: ['gordur', 'deficit', 'perd'], secar: ['gordur', 'deficit'], atp: ['energi', 'muscul'],
+  metabolism: ['gast', 'energi'], hipertrofi: ['muscul', 'massa'], energi: ['atp', 'gast'],
+};
+
+function queryWords(q) {
+  const base = [...new Set(words(q))];
+  const extra = [...new Set(base.flatMap((w) => EXPAND[w] ?? []))].filter((w) => !base.includes(w));
+  return { base, extra };
+}
+
+function searchDocs(q, pool = DOCS) {
+  const { base: qw, extra } = queryWords(q);
   if (!qw.length) return [];
   const qs = ` ${qw.join(' ')} `;
   const glossary = /^o que (e|significa) /.test(norm(q));
-  return DOCS.map((d) => {
+  return pool.map((d) => {
     let score = 0;
     for (const w of qw) {
       const k = idf.get(w) ?? 0;
       if (d.qw.has(w) || d.kw.has(w)) score += 2 * k;
       else if (d.aw.has(w)) score += k;
     }
+    for (const w of extra) if (d.qw.has(w) || d.aw.has(w)) score += 0.4 * (idf.get(w) ?? 0);
     // Palavra-chave inteira na pergunta (ex.: "fim de semana", "plantão") pesa mais.
     for (const ph of d.phrases ?? []) if (qs.includes(` ${ph} `)) score += 1.5 * ph.split(' ').length;
     // Pergunta igual ao título, ou "o que é X" para os verbetes do glossário.
@@ -64,6 +84,56 @@ function searchDocs(q) {
     if (glossary && /^O que é /.test(d.title)) score *= 1.6;
     return { d, score: score / Math.sqrt(qw.length) };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
+}
+
+// Uma pergunta que junta assuntos (ex.: "ATP e emagrecimento") recebe até 3 trechos da base, um por assunto.
+function covers(d, w) {
+  return [w, ...(EXPAND[w] ?? [])].some((x) => d.qw.has(x) || d.kw.has(x) || d.aw.has(x));
+}
+
+const MED_CONTEXT = new Set(['caneta', 'remedi', 'medicament', 'emagrec', 'emagrecedor'].map(stem));
+
+function compose(q, ranked, pool = DOCS) {
+  const { base: qw } = queryWords(q);
+  // Só assuntos (palavras que aparecem em algum título), não verbos soltos como "interfere".
+  // Na base de medicamentos, "caneta"/"remédio"/"emagrecer" são o contexto de tudo, não um assunto a mais.
+  const key = qw.filter((w) => (idf.get(w) ?? 0) > 1 && TITLE_WORDS.has(w) && !(pool === MED_DOCS && MED_CONTEXT.has(w)));
+  const parts = [ranked[0]];
+  const exact = words(ranked[0].d.title).join(' ') === qw.join(' ');
+  const done = (w) => parts.some((p) => covers(p.d, w));
+  // Próximo trecho: o que melhor cobre o assunto que falta e ainda conversa com os já usados (ex.: energia + gordura).
+  const conceptScore = (d, ws) => ws.reduce((t, w) => t + (idf.get(w) ?? 0) * (d.qw.has(w) || d.kw.has(w) ? 2 : d.aw.has(w) ? 1 : 0)
+    + (EXPAND[w] ?? []).reduce((u, x) => u + (idf.get(x) ?? 0) * (d.qw.has(x) ? 1.6 : d.aw.has(x) ? 0.8 : 0), 0), 0);
+  while (!exact && parts.length < 3 && key.some((w) => !done(w))) {
+    const missing = key.filter((w) => !done(w));
+    const have = key.filter((w) => done(w));
+    const next = pool.filter((d) => !parts.some((p) => p.d === d) && missing.some((w) => covers(d, w)) && (pool === MED_DOCS || !/^O que é /.test(d.title)))
+      .map((d) => ({ d, v: conceptScore(d, missing) + 0.6 * conceptScore(d, have) }))
+      .sort((a, b) => b.v - a.v)[0];
+    if (!next || next.v < 2) break;
+    parts.push({ d: next.d, score: next.v });
+  }
+  // Verbete curto do glossário fora de "o que é": completa com o texto mais completo sobre o mesmo termo.
+  if (!exact && parts.length < 3 && /^O que é /.test(parts[0].d.title) && !/^o que (e|significa) /.test(norm(q))) {
+    const term = words(parts[0].d.title).filter((w) => key.includes(w));
+    const full = pool.filter((d) => !parts.some((p) => p.d === d) && !/^O que é /.test(d.title) && term.some((w) => d.aw.has(w) || d.qw.has(w)))
+      .map((d) => ({ d, v: conceptScore(d, term) + 0.5 * conceptScore(d, key) })).sort((a, b) => b.v - a.v)[0];
+    if (full && full.v >= 2) parts.splice(1, 0, { d: full.d, score: full.v });
+  }
+  const related = ranked.filter((x) => !parts.some((p) => p.d === x.d) && x.score >= 2).slice(0, 2).map((x) => x.d.title);
+  const refs = [...new Set(parts.flatMap((p) => p.d.refs ?? []))];
+  if (parts.length === 1) {
+    const d = parts[0].d;
+    return { title: d.title, text: d.text, from: d.from, refs: d.refs, related };
+  }
+  return {
+    title: parts[0].d.title,
+    text: parts.map((p) => p.d.text).join('\n\n'),
+    parts: parts.map((p) => ({ title: p.d.title, text: p.d.text })),
+    from: [...new Set(parts.map((p) => p.d.from))].join(' | '),
+    refs: refs.length ? refs : undefined,
+    related,
+  };
 }
 
 // ---------- equivalências ----------
@@ -149,12 +219,35 @@ export const SUGGESTIONS = [
   'Meu peso parou de baixar',
 ]
 
-export function answer(q) {
+// Remédios e canetas para emagrecer (não "remédio para pressão" ou anticoncepcional, que ficam na orientação geral).
+const MED_RE = /\b(caneta\w*|emagrec\w*|ozempic|mounjaro|wegovy|saxenda|victoza|trulicity|rybelsus|semaglutida|liraglutida|tirzepatida|dulaglutida|exenatida|lixisenatida|sibutramina|orlistate?|naltrexona|bupropiona|metformina|glp ?1|retatrutida|peptideos?)\b/;
+
+function medAnswer(q, ranked) {
+  const a = compose(q, ranked, MED_DOCS);
+  // "Náusea com Ozempic": primeiro a náusea, depois o verbete da substância.
+  if (!a.parts || !/^O que (é|são) /.test(a.parts[0].title) || /^o que (e|sao|significa) /.test(norm(q))) return a;
+  const parts = [...a.parts.slice(1), a.parts[0]];
+  return { ...a, title: parts[0].title, parts, text: parts.map((p) => p.text).join('\n\n') };
+}
+
+export function answer(q, { exact = false } = {}) {
   const n = norm(q);
   if (!n) return null;
+  // "Veja também": abre exatamente o texto do título tocado.
+  const hit = exact && ALL_DOCS.find((d) => d.title === q);
+  if (hit) {
+    const med = MED_DOCS.includes(hit);
+    return { title: hit.title, text: med ? `${hit.text}\n\n${TEAM_CLOSE}` : hit.text, from: hit.from, refs: hit.refs, team: med ? TEAM_CLOSE : undefined };
+  }
   const health = healthTopic(` ${n.replace(/[,.]/g, ' ')} `);
   if (health) {
     // Se a base tem uma resposta feita para essa pergunta, usa ela; senão, a orientação geral. Sempre fecha com a equipe.
+    const med = searchDocs(q, MED_DOCS);
+    const exact = med[0] && words(med[0].d.title).join(' ') === queryWords(q).base.join(' ');
+    if (health.id !== 'alerta' && med[0] && (exact || (MED_RE.test(` ${n} `) && med[0].score >= 3))) {
+      const a = medAnswer(q, med);
+      return { ...a, text: `${a.text}\n\n${TEAM_CLOSE}`, team: TEAM_CLOSE };
+    }
     const [top] = searchDocs(q);
     if (health.id !== 'alerta' && top && top.score >= 6 && healthTopic(` ${norm(top.d.title)} `)?.id === health.id) return { title: top.d.title, text: `${top.d.text}\n\n${TEAM_CLOSE}`, from: top.d.from, refs: top.d.refs };
     return { title: health.label, text: `${health.text}\n\n${TEAM_CLOSE}`, from: 'SÁ · Orientação geral de saúde' };
@@ -164,8 +257,8 @@ export function answer(q) {
   if (eq && (wantsSwap || findFoods(q).length)) {
     if (wantsSwap || !searchDocs(q)[0] || searchDocs(q)[0].score < 3) return eq;
   }
-  const [best] = searchDocs(q);
-  if (best && best.score >= 1.2) return { title: best.d.title, text: best.d.text, from: best.d.from, refs: best.d.refs };
+  const ranked = searchDocs(q);
+  if (ranked[0] && ranked[0].score >= 1.2) return compose(q, ranked);
   if (eq) return eq;
   return {
     text: 'Não encontrei essa resposta no material da ConsultoriaJP. Tente perguntar de outro jeito (por exemplo, "posso trocar arroz por batata?") ou fale com a equipe pelo suporte do app.',
