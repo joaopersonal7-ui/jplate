@@ -1,5 +1,5 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v24';
+const VERSION = 'jplate-v25';
 const ASSETS = [
   './',
   'index.html',
@@ -29,6 +29,8 @@ const ASSETS = [
   'src/kb-canetas.js',
   'src/conversa.js',
   'src/saude.js',
+  'src/config.js',
+  'src/servidor.js',
   'data/taco.json',
   'data/receitas.json',
   'data/usda.json',
@@ -79,5 +81,32 @@ self.addEventListener('fetch', (e) => {
       if (hit) return hit;
       throw new Error('offline');
     }
+  })());
+});
+
+// Dica do dia enviada pelo servidor (server/). Tocar abre o app na SÁ com a explicação completa.
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data?.json() ?? {}; } catch { d = { body: e.data?.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'JPlate', {
+    body: d.body || '',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: 'dica-do-dia',
+    data: { url: new URL(d.url || './', self.registration.scope).href },
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || self.registration.scope;
+  e.waitUntil((async () => {
+    const abertas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const app = abertas.find((c) => c.url.startsWith(self.registration.scope));
+    if (app) {
+      await app.focus();
+      return app.navigate(url).catch(() => {});
+    }
+    return self.clients.openWindow(url);
   })());
 });

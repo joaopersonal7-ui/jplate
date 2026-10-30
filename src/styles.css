@@ -561,3 +561,6 @@ body::after {
 .msg-rel span { flex-basis: 100%; font-size: .75rem; color: var(--muted); }
 .msg-rel .chip { font-size: .8rem; text-align: left; }
 .msg-who { display: block; font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--accent); margin-bottom: 4px; }
+.msg-ia { border-style: dashed; }
+.chip-ia { font-size: .75rem; opacity: .85; }
+.msg-ia .msg-who { color: var(--muted); }

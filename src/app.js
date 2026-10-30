@@ -12,6 +12,9 @@ import { LABEL_NUTRIENTS, STATUS_LABEL, SOURCES as PRODUCT_SOURCES, searchProduc
 import { loadLibrary, getProduct, findByGtin, rememberProduct, resetLibrary } from './library.js';
 import { FAQ, FAQ_NOTE } from './faq.js';
 import { answer as assistantAnswer, SUGGESTIONS } from './assistant.js';
+import { NAO_ENCONTREI, CONFLITO } from './conversa.js';
+import { TEAM_CLOSE } from './saude.js';
+import { temServidor, perguntarIA, HORAS, suporteNotificacao, estadoNotificacao, ativarNotificacao, desativarNotificacao, testarNotificacao } from './servidor.js';
 import { EQ_SOURCE, EQ_HOW, EQ_GROUPS, EQ_TIP, EQ_SECTIONS, EQ_FOOTNOTE } from './equivalencias.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -139,7 +142,7 @@ drawer.addEventListener('touchend', (e) => {
 });
 
 async function render() {
-  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings, faq: renderFaq, about: renderAbout, eq: renderEquivalences, shopping: renderShopping, assistant: renderAssistant };
+  const renderers = { diary: renderDiary, plan: renderPlan, weight: renderWeight, foods: renderFoods, settings: renderSettings, faq: renderFaq, about: renderAbout, notif: renderNotifications, eq: renderEquivalences, shopping: renderShopping, assistant: renderAssistant };
   view.oninput = null;
   view.onchange = null;
   if (state.tab === 'shopping' && !hasDiet()) state.tab = 'plan';
@@ -1706,7 +1709,9 @@ async function renderAbout() {
       <h3>Seus dados, só seus</h3>
       <ul class="muted small">
         <li>Sem cadastro e sem login.</li>
-        <li>Tudo fica guardado neste aparelho; nada é enviado para servidores.</li>
+        <li>Tudo fica guardado neste aparelho; seu diário, peso e perfil não são enviados para servidores.</li>
+        <li>Se você ativar a dica do dia, o servidor do JPlate guarda o endereço de notificação do aparelho e o horário escolhido.</li>
+        <li>Quando a SÁ não tem resposta cadastrada, a pergunta (só o texto dela) vai para a IA pelo servidor do JPlate, junto com um código aleatório do aparelho que conta o limite diário.</li>
         <li>A busca de produtos de marca e o código de barras consultam o Open Food Facts pela internet, só quando você pede, e enviam apenas o termo ou o código.</li>
         <li>Funciona offline depois de instalado.</li>
         <li>Backup em arquivo, sob o seu controle.</li>
@@ -1749,6 +1754,46 @@ async function renderAbout() {
   };
 }
 
+// ---------- notificações ----------
+
+async function renderNotifications() {
+  setTopbar('<h1>Notificações</h1>');
+  topbar.onclick = null;
+  const suporte = suporteNotificacao();
+  const est = await estadoNotificacao();
+  const aviso = {
+    'sem-servidor': 'As notificações ainda não foram ligadas neste app.',
+    'instalar-ios': 'No iPhone, as notificações só funcionam com o app instalado: toque em Compartilhar e depois em “Adicionar à Tela de Início”. Abra o JPlate pela tela de início e volte aqui. Precisa do iOS 16.4 ou mais novo.',
+    'sem-suporte': 'Este navegador não recebe notificações. Instale o app pela tela de início ou use o Chrome.',
+    bloqueado: 'As notificações do JPlate estão bloqueadas. Libere nos ajustes do aparelho ou do navegador e volte aqui.',
+  }[suporte];
+  view.innerHTML = `
+    <section class="card">
+      <h2>Dica do dia</h2>
+      <p class="small muted" style="margin:4px 0 0">Uma dica por dia do banco de informações da SÁ, no horário que você escolher. Tocar na notificação abre a explicação completa na SÁ.</p>
+      ${aviso ? `<p class="small warn" style="margin:12px 0 0">${esc(aviso)}</p>` : `
+      <label class="field" style="margin-top:12px">Horário<select name="hora">${HORAS.map((h) => `<option value="${h}"${h === (est.hora ?? 8) ? ' selected' : ''}>${h}h</option>`).join('')}</select></label>
+      <p class="small ${est.ativo ? '' : 'muted'}" style="margin:10px 0 0">${est.ativo ? `Ativada: você recebe a dica todo dia às ${est.hora}h.` : 'Desativada.'}</p>
+      <div class="btn-row">
+        ${est.ativo ? '<button class="btn primary" data-notif-on>Salvar horário</button><button class="btn" data-notif-test>Enviar teste</button><button class="btn" data-notif-off>Desativar</button>' : '<button class="btn primary" data-notif-on>Ativar notificações</button>'}
+      </div>`}
+    </section>
+    <p class="muted small" style="margin-top:10px">Para enviar as notificações, o servidor do JPlate guarda só o endereço de notificação deste aparelho e o horário escolhido. Nada do seu diário sai do aparelho.</p>`;
+  view.onclick = async (e) => {
+    const b = e.target.closest('[data-notif-on], [data-notif-test], [data-notif-off]');
+    if (!b) return;
+    b.disabled = true;
+    try {
+      if ('notifOn' in b.dataset) { await ativarNotificacao(Number($('[name=hora]', view).value)); toast('Notificações ativadas.'); }
+      if ('notifTest' in b.dataset) { await testarNotificacao(); toast('Teste enviado. Deve chegar em instantes.'); }
+      if ('notifOff' in b.dataset) { await desativarNotificacao(); toast('Notificações desativadas.'); }
+    } catch (err) {
+      toast(err.message || 'Não foi possível agora. Tente de novo.');
+    }
+    renderNotifications();
+  };
+}
+
 // ---------- dúvidas frequentes ----------
 
 
@@ -1770,10 +1815,18 @@ const br = (t) => esc(t).replace(/\n/g, '<br>');
 function chatHTML() {
   const bubble = (m) => m.role === 'user'
     ? `<div class="msg me">${esc(m.text)}</div>`
+    : m.ia ? iaBubble(m)
     : `<div class="msg bot"><span class="msg-who">SÁ</span>${m.intro ? `<p class="msg-intro">${esc(m.intro)}</p>` : ''}${m.parts
       ? m.parts.map((p) => `<b>${esc(p.title)}</b>${br(p.text)}`).join('<hr class="msg-sep">') + (m.team ? `<p class="msg-team">${esc(m.team)}</p>` : '')
       : `${m.title ? `<b>${esc(m.title)}</b>` : ''}${br(m.text)}`}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}${m.options?.length ? `<div class="msg-rel msg-opts">${m.options.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}${m.related?.length ? `<div class="msg-rel"><span>Veja também</span>${m.related.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}</div>`;
-  return chat.length ? chat.map(bubble).join('') : `<div class="msg bot"><span class="msg-who">SÁ</span>Olá${state.profile.name ? `, ${esc(state.profile.name)}` : ''}! Eu sou a SÁ, a assistente do JPlate. Irei Responder suas perguntas e curiosidades sobre Nutrição, alimentação e dieta. Com base ao meu vasto Banco de Dados da JP COMPANY.<br><br>Fique à vontade, Pergunte algo…</div>`;
+  return chat.length ? chat.map((m, i) => bubble(m).replace(/<\/div>$/, m.iaQ ? `<div class="msg-rel"><button class="chip chip-ia" data-ask-ia="${i}">Não era isso? Perguntar à IA</button></div></div>` : '</div>')).join('') : `<div class="msg bot"><span class="msg-who">SÁ</span>Olá${state.profile.name ? `, ${esc(state.profile.name)}` : ''}! Eu sou a SÁ, a assistente do JPlate. Irei Responder suas perguntas e curiosidades sobre Nutrição, alimentação e dieta. Com base ao meu vasto Banco de Dados da JP COMPANY.<br><br>Fique à vontade, Pergunte algo…</div>`;
+}
+
+// Resposta da IA: sempre marcada, para o aluno saber que não veio do banco da JP COMPANY.
+function iaBubble(m) {
+  if (m.pending) return '<div class="msg bot msg-ia"><span class="msg-who">SÁ · IA</span><span class="muted">Consultando a IA…</span></div>';
+  if (m.erro) return `<div class="msg bot msg-ia"><span class="msg-who">SÁ · IA</span>${esc(m.erro)}</div>`;
+  return `<div class="msg bot msg-ia"><span class="msg-who">SÁ · Resposta da IA</span>${br(m.text)}${m.fora ? '' : `<small>Gerada por inteligência artificial, fora do banco de informações da JP COMPANY. Confirme com a equipe antes de mudar sua dieta.${m.restantes != null ? ` Perguntas à IA restantes hoje: ${m.restantes}.` : ''}</small>`}</div>`;
 }
 
 function renderAssistant() {
@@ -1793,13 +1846,48 @@ function renderAssistant() {
     const last = [...chat].reverse().find((m) => m.role === 'bot');
     const topic = [...chat].reverse().find((m) => m.role === 'bot' && m.title);
     chat.push({ role: 'user', text: q });
-    chat.push({ role: 'bot', ...assistantAnswer(q, { exact, name: state.profile.name, last, topic }) });
-    $('#chat', view).innerHTML = chatHTML();
+    const a = assistantAnswer(q, { exact, name: state.profile.name, last, topic });
+    // Resposta do banco (ou "você quis dizer"): o aluno pode pedir a IA se não era isso.
+    // Saúde (vai para a equipe) e respostas em conflito (o Joao decide) não passam pela IA.
+    const canIA = temServidor() && !exact && (a.title || a.options?.length) && !a.conv
+      && !a.text.includes(TEAM_CLOSE) && !a.text.startsWith(CONFLITO.split('{')[0]);
+    chat.push({ role: 'bot', ...a, iaQ: canIA ? q : undefined });
+    show();
     $('#chat-input', view).value = '';
+    // Sem resposta cadastrada: a SÁ consulta a IA do servidor sozinha.
+    if (a.text === NAO_ENCONTREI) askIA(q);
+  };
+  const show = () => {
+    if (state.tab !== 'assistant') return;
+    $('#chat', view).innerHTML = chatHTML();
     $('#chat', view).lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  const askIA = (q) => {
+    if (!temServidor() || !navigator.onLine) return;
+    const ia = { role: 'bot', ia: true, pending: true };
+    chat.push(ia);
+    show();
+    perguntarIA(q).then((r) => {
+      delete ia.pending;
+      if (!r) ia.erro = 'A IA não está disponível agora.';
+      else if (r.erro) ia.erro = r.erro;
+      else Object.assign(ia, { text: r.texto, fora: r.fora, restantes: r.restantes });
+      show();
+    });
+  };
+  // Tocar na notificação da dica do dia abre a SÁ já com a resposta.
+  if (state.ask) { send(state.ask, true); state.ask = null; }
   $('#chat-form', view).onsubmit = (e) => { e.preventDefault(); send($('#chat-input', view).value); };
-  view.onclick = (e) => { const b = e.target.closest('[data-ask]'); if (b) send(b.dataset.ask, 'exact' in b.dataset); };
+  view.onclick = (e) => {
+    const ia = e.target.closest('[data-ask-ia]');
+    if (ia) {
+      const m = chat[Number(ia.dataset.askIa)];
+      if (m?.iaQ) { m.iaQ = undefined; askIA(chat[Number(ia.dataset.askIa) - 1]?.text ?? ''); }
+      return;
+    }
+    const b = e.target.closest('[data-ask]');
+    if (b) send(b.dataset.ask, 'exact' in b.dataset);
+  };
 }
 
 // ---------- tabela de equivalências ----------
@@ -2039,6 +2127,15 @@ splash.addEventListener('click', hideSplash, { once: true });
 // 1,65 s de abertura + 0,35 s de saída = 2 s no total.
 const splashMin = new Promise((r) => setTimeout(r, 1650));
 
-load().then(() => { showWelcome(); return render(); }).catch((err) => {
+// Notificação da dica do dia: abre a SÁ com a pergunta (?sa=...).
+const askParam = new URLSearchParams(location.search).get('sa');
+if (askParam) {
+  state.ask = askParam;
+  state.tab = 'assistant';
+  history.replaceState(null, '', location.pathname);
+}
+
+// Vindo da notificação, quem já tem nome vai direto para a SÁ, sem a tela de boas-vindas.
+load().then(() => { if (!(state.ask && state.profile.name)) showWelcome(); return render(); }).catch((err) => {
   view.innerHTML = `<div class="card">Não foi possível abrir o app: ${esc(err.message)}</div>`;
 }).finally(() => splashMin.then(hideSplash));

@@ -1,0 +1,85 @@
+# Publica o servidor do JPlate (server/) no Cloudflare Workers e grava o endereço dele no app (src/config.js).
+# Precisa dos segredos do repositório CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID. ANTHROPIC_API_KEY é opcional:
+# sem ela o servidor envia só as notificações, e a SÁ continua só com o banco.
+name: Publicar servidor (notificações e IA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['server/**', '.github/workflows/servidor.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: servidor
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      WRANGLER_SEND_METRICS: 'false'
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Testes
+        run: npm test
+      - name: Conferir segredos
+        id: segredos
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Faltam os segredos CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID. Veja docs/SERVIDOR.md. Nada foi publicado."
+            echo "pronto=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "pronto=sim" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Banco de dados (D1)
+        if: steps.segredos.outputs.pronto == 'sim'
+        run: |
+          id=$(npx wrangler d1 list --json | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const d=JSON.parse(s).find(x=>x.name==='jplate');process.stdout.write(d?d.uuid:'')})")
+          if [ -z "$id" ]; then
+            npx wrangler d1 create jplate
+            id=$(npx wrangler d1 list --json | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).find(x=>x.name==='jplate').uuid))")
+          fi
+          sed -i "s/PREENCHIDO_PELO_DEPLOY/$id/" wrangler.toml
+          npx wrangler d1 execute jplate --remote --file schema.sql
+      - name: Publicar
+        if: steps.segredos.outputs.pronto == 'sim'
+        run: |
+          npx wrangler deploy 2>&1 | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          if [ -z "$url" ]; then echo "::error::Não achei o endereço do servidor. Abra Workers e Pages no painel da Cloudflare uma vez para criar o subdomínio workers.dev."; exit 1; fi
+          echo "URL=$url" >> "$GITHUB_ENV"
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY
+          else
+            echo "::notice::Sem ANTHROPIC_API_KEY: só as notificações foram ligadas."
+          fi
+          curl -sf "$url/" && echo
+          echo "## Servidor publicado: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Ligar o app ao servidor
+        if: steps.segredos.outputs.pronto == 'sim'
+        working-directory: .
+        run: |
+          if grep -q "SERVIDOR = '$URL'" src/config.js; then echo "O app já aponta para $URL."; exit 0; fi
+          sed -i "s|^export const SERVIDOR = .*|export const SERVIDOR = '$URL';|" src/config.js
+          # Versão nova do app, para os celulares baixarem o config.js novo.
+          n=$(grep -oE "jplate-v[0-9]+" sw.js | head -1 | grep -oE "[0-9]+")
+          sed -i "s/jplate-v$n'/jplate-v$((n + 1))'/" sw.js
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/config.js sw.js
+          git commit -m "App ligado ao servidor: $URL"
+          git push
