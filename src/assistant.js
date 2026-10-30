@@ -9,6 +9,7 @@ import { KB_300 } from './kb-300.js';
 import { KB_CONCEITOS } from './kb-conceitos.js';
 import { KB_NEURAL, KB_NEURAL_FROM } from './kb-neural.js';
 import { KB_FRUTAS } from './kb-frutas.js';
+import { KB_ALIMENTOS } from './kb-alimentos.js';
 import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
 import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER, CONFLITO } from './conversa.js';
@@ -38,6 +39,17 @@ const words = (s) => norm(s).replace(/[,.]/g, ' ').split(' ').filter((w) => w &&
 
 // ---------- documentos (FAQ + textos da tabela) ----------
 
+// Jeitos comuns de perguntar sobre cada seção das fichas técnicas (o texto da ficha não muda).
+const FICHA_TOPICOS = [
+  [/: .*(composição|nutrição|registro)/i, 'calorias kcal valor nutricional nutrientes proteína carboidrato tabela'],
+  [/: .*(safra|sazonalidade|época|estação|disponibilidade)/i, 'safra época estação mês temporada'],
+  [/: .*(pós-colheita|conservação|armazenamento|refrigeração|cura)/i, 'guardar conservar armazenar geladeira durar'],
+  [/: .*congelamento/i, 'congelar freezer'],
+  [/: .*(maturidade|maturação|amadurecimento|ponto)/i, 'madura maduro amadurecer escolher'],
+  [/: .*(cultivo|clima|solo|irrigação|água e manejo|produção|plantio)/i, 'plantar plantio cultivar horta pomar'],
+  [/: .*(alerta|segurança)/i, 'faz mal perigo risco rins'],
+];
+
 const DOCS = [
   ...FAQ.flatMap(([cat, qs]) => qs.map(([q, a]) => ({ title: q.replace(/^\d+\.\s*/, ''), text: a, from: `Dúvidas frequentes · ${cat}` }))),
   ...EQ_SECTIONS.map((x) => ({ title: x.title, text: x.lines.join(' '), from: 'Tabela de equivalências' })),
@@ -49,6 +61,9 @@ const DOCS = [
     keys: [...k.palavras_chave, k.pergunta, ...k.perguntas_alternativas], autoKeys: true, concept: true, id: k.id })),
   ...KB_NEURAL.map((k) => ({ title: k.pergunta, text: k.resposta, from: `${KB_NEURAL_FROM}`, refs: k.referencias, autoKeys: true, id: k.id })),
   ...KB_FRUTAS.map((k) => ({ title: k.pergunta, text: k.resposta, from: `Frutas e vitaminas · ${k.categoria}`, autoKeys: true, id: k.id })),
+  // Fichas técnicas: o título é "Alimento: seção" (ex.: "Caju: composição nutricional e variação").
+  ...KB_ALIMENTOS.map((k) => ({ title: k.pergunta, text: k.resposta, from: `Fichas técnicas de alimentos · ${k.alimento}`, refs: k.referencias,
+    keys: [...k.palavras_chave, ...FICHA_TOPICOS.filter(([re]) => re.test(k.pergunta)).map(([, w]) => w)], autoKeys: true, titleOnly: true, id: k.id })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
 const MED_DOCS = [
@@ -60,7 +75,8 @@ const ALL_DOCS = [...DOCS, ...MED_DOCS];
 const idf = new Map();
 for (const d of ALL_DOCS) {
   d.qw = new Set(words(d.title));
-  d.aw = new Set(words(d.text));
+  // Fichas técnicas têm texto longo e cheio de termos agrícolas: só o título (alimento + assunto) conta na busca.
+  d.aw = new Set(d.titleOnly ? [] : words(d.text));
   d.kw = new Set((d.keys ?? []).flatMap(words));
   // Palavras-chave geradas da própria pergunta (base de 300) não ganham bônus de frase: só repetiriam o título.
   d.phrases = d.autoKeys ? [] : (d.keys ?? []).map((k) => words(k).join(' ')).filter(Boolean);
@@ -79,7 +95,7 @@ const EXPAND = {
 
 // Palavra da base mais parecida com uma palavra que a base não conhece ("ozempik" → "ozempic", "caimbra" → "caibra").
 const SURFACE = new Map();
-for (const d of ALL_DOCS) for (const t of norm(`${d.title} ${(d.keys ?? []).join(' ')} ${d.text}`).replace(/[,.]/g, ' ').split(' ')) if (t.length > 3 && !STOP.has(t) && !SURFACE.has(stem(t))) SURFACE.set(stem(t), t);
+for (const d of ALL_DOCS) for (const t of norm(`${d.title} ${(d.keys ?? []).join(' ')} ${d.titleOnly ? '' : d.text}`).replace(/[,.]/g, ' ').split(' ')) if (t.length > 3 && !STOP.has(t) && !SURFACE.has(stem(t))) SURFACE.set(stem(t), t);
 
 function editDistance(a, b, max) {
   if (Math.abs(a.length - b.length) > max) return max + 1;
@@ -438,9 +454,13 @@ function answerRaw(q, ctx = {}) {
       const team = MED_DOCS.find((d) => d.close && titles.includes(d.title))?.close ?? TEAM_CLOSE;
       return { ...a, text: `${a.text}\n\n${team}`, team };
     }
-    const [top] = searchDocs(q);
-    if (health.id !== 'alerta' && top && top.score >= 6 && healthTopic(` ${norm(top.d.title)} `)?.id === health.id) return { title: top.d.title, text: `${top.d.text}\n\n${TEAM_CLOSE}`, from: top.d.from, refs: top.d.refs };
-    return { title: health.label, text: `${health.text}\n\n${TEAM_CLOSE}`, from: 'SÁ · Orientação geral de saúde' };
+    const ranked = searchDocs(q);
+    const [top] = ranked;
+    // Se a base tem algo mais sobre o que foi perguntado (ex.: o alerta da carambola), aparece em "Veja também".
+    const related = health.id === 'alerta' ? [] : ranked.filter((x) => x.score >= 4).map((x) => x.d.title);
+    const rel = (t) => { const r = related.filter((x) => x !== t).slice(0, 3); return r.length ? { related: r } : {}; };
+    if (health.id !== 'alerta' && top && top.score >= 6 && healthTopic(` ${norm(top.d.title)} `)?.id === health.id) return { title: top.d.title, text: `${top.d.text}\n\n${TEAM_CLOSE}`, from: top.d.from, refs: top.d.refs, ...rel(top.d.title) };
+    return { title: health.label, text: `${health.text}\n\n${TEAM_CLOSE}`, from: 'SÁ · Orientação geral de saúde', ...rel(health.label) };
   }
   const wantsSwap = /\b(troc|substitu|equival|no lugar)/.test(n);
   const eq = equivalenceAnswer(q);

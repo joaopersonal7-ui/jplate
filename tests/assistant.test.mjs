@@ -109,3 +109,13 @@ test('200 perguntas de frutas e vitaminas: cada pergunta acha a si mesma', async
   assert.equal(answer('banana engorda?').title, 'Frutas engordam?');
   assert.match(answer('kiwi tem vitamina c?').text, /vitamina C/);
 });
+
+test('fichas técnicas de alimentos: cada seção acha a si mesma e o texto agrícola não atrapalha outras perguntas', async () => {
+  const { KB_ALIMENTOS } = await import('../src/kb-alimentos.js');
+  assert.ok(KB_ALIMENTOS.length >= 340);
+  for (const k of KB_ALIMENTOS) assert.equal(answer(k.pergunta).title, k.pergunta);
+  assert.ok(KB_ALIMENTOS.every((k) => !/\bSá\b|\bAPI\b|record_id/.test(k.resposta)));
+  assert.equal(answer('quantas calorias tem o caju').title, 'Caju: composição nutricional e variação');
+  assert.equal(answer('como congelar banana').title, 'Banana: congelamento e processamento');
+  assert.ok(answer('carambola faz mal pros rins?').related.includes('Carambola: identidade, variedades e alerta de segurança'));
+});

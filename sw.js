@@ -1,5 +1,5 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v28';
+const VERSION = 'jplate-v29';
 const ASSETS = [
   './',
   'index.html',
@@ -28,6 +28,7 @@ const ASSETS = [
   'src/kb-conceitos.js',
   'src/kb-neural.js',
   'src/kb-frutas.js',
+  'src/kb-alimentos.js',
   'src/kb-canetas.js',
   'src/conversa.js',
   'src/saude.js',
