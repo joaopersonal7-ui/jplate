@@ -375,6 +375,24 @@ function conflictCheck(a, ctx) {
   return c ? { text: fill(CONFLITO.replace('{tema}', c.tema), ctx), options: c.titulos, from: null } : a;
 }
 
+// ---------- interpretação pelo servidor (IA da Cloudflare) ----------
+
+// Banco que o servidor usa para interpretar a pergunta: só os títulos (o servidor nunca recebe nem escreve respostas).
+// Os conceitos levam também a pergunta e as perguntas relacionadas, para a IA entender melhor o assunto.
+export const BANCO = [...new Map(DOCS.map((d) => [d.title, d.concept ? [d.title, ...(({ pergunta, perguntas_alternativas }) => [pergunta, ...perguntas_alternativas])(KB_CONCEITOS.find((k) => k.conceito === d.title))].join(' | ') : d.title])).entries()]
+  .map(([titulo, texto]) => ({ titulo, texto }));
+
+// A pergunta já é igual a um título do banco: não precisa do servidor.
+export const isTitle = (q) => TITLE_KEYS.has(titleKey(q));
+
+// Títulos mais próximos pela busca local, que o servidor junta aos que ele acha pelo sentido.
+export const candidates = (q) => [...new Set(searchDocs(interpret(q)).slice(0, 6).map((x) => x.d.title))];
+
+// Resposta cadastrada de um título escolhido pelo servidor, exatamente como no banco.
+export function answerTitle(title, ctx = {}) {
+  return conflictCheck(answerRaw(title, { ...ctx, exact: true }), ctx);
+}
+
 export function answer(q, ctx = {}) {
   const a = answerRaw(q, ctx);
   return ctx.exact ? a : conflictCheck(a, ctx);

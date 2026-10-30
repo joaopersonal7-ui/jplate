@@ -1,0 +1,27 @@
+# Servidor do JPlate (Cloudflare Workers, plano gratuito).
+# Publicado pelo GitHub Actions: .github/workflows/servidor.yml (cria o banco e preenche o database_id).
+name = "jplate-servidor"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jplate"
+database_id = "PREENCHIDO_PELO_DEPLOY"
+
+# A cada 15 minutos: envia a dica do dia a quem escolheu a hora atual e ainda não recebeu hoje
+# (em lotes, porque o plano gratuito limita os envios por execução).
+[triggers]
+crons = ["*/15 * * * *"]
+
+# IA gratuita da Cloudflare (Workers AI), usada só para interpretar a pergunta.
+[ai]
+binding = "AI"
+
+[vars]
+# Endereços que podem usar o servidor (o app no GitHub Pages e o teste no computador).
+ORIGENS = "https://joaopersonal7-ui.github.io,http://localhost:8080"
+# IA da SÁ: perguntas por aluno por dia e por dia no total (o plano gratuito tem cota diária;
+# acima dela a SÁ segue só com a busca do próprio app).
+IA_POR_ALUNO_DIA = "20"
+IA_TOTAL_DIA = "400"
