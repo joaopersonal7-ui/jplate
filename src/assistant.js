@@ -8,6 +8,7 @@ import { KB_MED } from './kb-med.js';
 import { KB_300 } from './kb-300.js';
 import { KB_CONCEITOS } from './kb-conceitos.js';
 import { KB_NEURAL, KB_NEURAL_FROM } from './kb-neural.js';
+import { KB_FRUTAS } from './kb-frutas.js';
 import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
 import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER, CONFLITO } from './conversa.js';
@@ -16,7 +17,7 @@ const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().rep
 // Plural simples e variações de gênero, para "ovos" achar "ovo" e "cozida" achar "cozido".
 const SYN = { suar: 'suor', suei: 'suor', suando: 'suor', suo: 'suor', queimo: 'gasto', queimar: 'gasto', queimei: 'gasto', queimando: 'gasto', queima: 'gasto', gastei: 'gasto', gastar: 'gasto', gasta: 'gasto',
   correr: 'cardio', correndo: 'cardio', corro: 'cardio', corrida: 'cardio', caminhar: 'cardio', caminhada: 'cardio', caminhando: 'cardio', aerobico: 'cardio', musculo: 'muscul', musculos: 'muscul', muscular: 'muscul', massa: 'massa', engordar: 'engorda', engordam: 'engorda',
-  paro: 'parar', parei: 'parar', parou: 'parar', parando: 'parar' };
+  caimbra: 'caibra', caimbras: 'caibra', caibras: 'caibra', paro: 'parar', parei: 'parar', parou: 'parar', parando: 'parar' };
 const stem = (w) => {
   w = SYN[w] ?? w;
   if (w.length <= 4) return w.replace(/s$/, '');
@@ -47,6 +48,7 @@ const DOCS = [
   ...KB_CONCEITOS.map((k) => ({ title: k.conceito, text: k.resposta, from: `Banco de Conhecimento da SÁ · ${k.categoria}`, refs: k.referencias,
     keys: [...k.palavras_chave, k.pergunta, ...k.perguntas_alternativas], autoKeys: true, concept: true, id: k.id })),
   ...KB_NEURAL.map((k) => ({ title: k.pergunta, text: k.resposta, from: `${KB_NEURAL_FROM}`, refs: k.referencias, autoKeys: true, id: k.id })),
+  ...KB_FRUTAS.map((k) => ({ title: k.pergunta, text: k.resposta, from: `Frutas e vitaminas · ${k.categoria}`, autoKeys: true, id: k.id })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
 const MED_DOCS = [
@@ -113,6 +115,7 @@ const INTENTS = [
   [/\b(barriga|pochete|abdominais?|gordura localizada)\b/, 'gordura localizada'],
   [/\bincha(r|m|ndo)?\b|\bretem\b|\breter\b/, 'retencao liquido'],
   [/\bganhar massa\b|\bcrescer\b|\bficar (grande|forte)\b/, 'hipertrofia massa muscular'],
+  [/\b(frutas?|banana|abacate|manga|uva|maca|mamao|melancia|melao|abacaxi|laranja|morango|pera|kiwi|goiaba|acai)\b.*\bengord|\bengord\w* .*\b(frutas?|banana|abacate|manga|uva)\b/, 'frutas engordam'],
 ];
 
 const TITLE_KEYS = new Set(ALL_DOCS.map((d) => titleKey(d.title)));

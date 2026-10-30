@@ -101,3 +101,11 @@ test('guia de adaptação neural: cada pergunta acha a si mesma, sem a instruç�
   assert.ok(KB_NEURAL.every((k) => !/A Sá deve/.test(k.resposta)));
   assert.equal(answer('força sem hipertrofia').title, 'É possível aumentar força sem hipertrofia?');
 });
+
+test('200 perguntas de frutas e vitaminas: cada pergunta acha a si mesma', async () => {
+  const { KB_FRUTAS } = await import('../src/kb-frutas.js');
+  assert.equal(KB_FRUTAS.length, 200);
+  for (const k of KB_FRUTAS) assert.equal(answer(k.pergunta).title, k.pergunta);
+  assert.equal(answer('banana engorda?').title, 'Frutas engordam?');
+  assert.match(answer('kiwi tem vitamina c?').text, /vitamina C/);
+});
