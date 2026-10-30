@@ -14,10 +14,14 @@ database_id = "PREENCHIDO_PELO_DEPLOY"
 [triggers]
 crons = ["*/15 * * * *"]
 
+# IA gratuita da Cloudflare (Workers AI), usada só para interpretar a pergunta.
+[ai]
+binding = "AI"
+
 [vars]
 # Endereços que podem usar o servidor (o app no GitHub Pages e o teste no computador).
 ORIGENS = "https://joaopersonal7-ui.github.io,http://localhost:8080"
-# IA da SÁ: perguntas por aluno por dia, perguntas por dia no total e teto de gasto por mês (US$).
-IA_POR_ALUNO_DIA = "10"
-IA_TOTAL_DIA = "500"
-IA_TETO_MES_USD = "5"
+# IA da SÁ: perguntas por aluno por dia e por dia no total (o plano gratuito tem cota diária;
+# acima dela a SÁ segue só com a busca do próprio app).
+IA_POR_ALUNO_DIA = "20"
+IA_TOTAL_DIA = "400"

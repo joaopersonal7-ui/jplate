@@ -1,7 +1,7 @@
-// Servidor do JPlate: dica do dia por notificação e IA de reserva da SÁ.
+// Servidor do JPlate: dica do dia por notificação e interpretação das perguntas da SÁ com a IA gratuita da Cloudflare.
 // O app continua funcionando sem ele; o servidor só guarda inscrições de notificação e contadores de uso da IA.
 import { newVapidKeys, sendPush } from './webpush.js';
-import { perguntar, MODELO } from './ia.js';
+import { entender } from './entender.js';
 import { DICAS } from './dicas.js';
 
 const LOTE = 40; // envios por execução (o plano gratuito limita as chamadas externas por execução)
@@ -9,7 +9,6 @@ const LOTE = 40; // envios por execução (o plano gratuito limita as chamadas e
 // Horário de Brasília (UTC−3, sem horário de verão).
 const brasilia = (now = Date.now()) => new Date(now - 3 * 3600e3);
 const hoje = (now) => brasilia(now).toISOString().slice(0, 10);
-const mes = (now) => hoje(now).slice(0, 7);
 const horaAgora = (now) => brasilia(now).getUTCHours();
 
 export function dicaDoDia(now = Date.now()) {
@@ -39,35 +38,26 @@ const json = (data, status, headers) => new Response(JSON.stringify(data), { sta
 
 const texto = (v, min, max) => typeof v === 'string' && v.trim().length >= min && v.length <= max;
 
-async function uso(env, now) {
-  const m = await env.DB.prepare('SELECT usd, perguntas FROM ia_mes WHERE mes = ?').bind(mes(now)).first();
-  return { usd: m?.usd ?? 0, perguntas: m?.perguntas ?? 0, teto: Number(env.IA_TETO_MES_USD ?? 5) };
-}
-
-async function rotaIA(body, env, now) {
+// Interpreta a pergunta do aluno: devolve o título do banco que responde a ela, ou null.
+async function rotaEntender(body, env, now) {
   if (!texto(body.aluno, 8, 64) || !texto(body.pergunta, 2, 500)) return [{ erro: 'pedido_invalido' }, 400];
-  if (!env.ANTHROPIC_API_KEY) return [{ erro: 'indisponivel' }, 503];
-  const u = await uso(env, now);
-  if (u.usd >= u.teto) return [{ erro: 'teto_mes' }, 429];
+  if (!env.AI) return [{ erro: 'indisponivel' }, 503];
   const dia = hoje(now);
-  const porAluno = Number(env.IA_POR_ALUNO_DIA ?? 10);
+  const porAluno = Number(env.IA_POR_ALUNO_DIA ?? 20);
   const n = (await env.DB.prepare('SELECT n FROM ia_dia WHERE aluno = ? AND dia = ?').bind(body.aluno, dia).first())?.n ?? 0;
-  if (n >= porAluno) return [{ erro: 'limite_aluno', limite: porAluno }, 429];
+  if (n >= porAluno) return [{ erro: 'limite_aluno' }, 429];
   const total = (await env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS t FROM ia_dia WHERE dia = ?').bind(dia).first()).t;
-  if (total >= Number(env.IA_TOTAL_DIA ?? 500)) return [{ erro: 'limite_total' }, 429];
-
-  let r;
+  if (total >= Number(env.IA_TOTAL_DIA ?? 400)) return [{ erro: 'limite_total' }, 429];
+  const locais = Array.isArray(body.candidatos) ? body.candidatos.filter((t) => typeof t === 'string').slice(0, 8) : [];
+  let titulo;
   try {
-    r = await perguntar(env, body.pergunta.trim());
+    titulo = await entender(env, body.pergunta.trim(), locais);
   } catch (err) {
-    console.error('IA falhou', err?.status, err?.message);
+    console.error('IA falhou', err?.message);
     return [{ erro: 'indisponivel' }, 502];
   }
-  const writes = [env.DB.prepare('INSERT INTO ia_mes (mes, usd, perguntas) VALUES (?, ?, 1) ON CONFLICT (mes) DO UPDATE SET usd = usd + excluded.usd, perguntas = perguntas + 1').bind(mes(now), r.usd)];
-  // Pergunta fora do tema não gasta a cota do aluno.
-  if (!r.fora) writes.push(env.DB.prepare('INSERT INTO ia_dia (aluno, dia, n) VALUES (?, ?, 1) ON CONFLICT (aluno, dia) DO UPDATE SET n = n + 1').bind(body.aluno, dia));
-  await env.DB.batch(writes);
-  return [{ resposta: r.texto, fora: r.fora, restantes: Math.max(0, porAluno - n - (r.fora ? 0 : 1)), modelo: MODELO }, 200];
+  await env.DB.prepare('INSERT INTO ia_dia (aluno, dia, n) VALUES (?, ?, 1) ON CONFLICT (aluno, dia) DO UPDATE SET n = n + 1').bind(body.aluno, dia).run();
+  return [{ titulo }, 200];
 }
 
 async function rotaInscrever(body, env, now) {
@@ -102,13 +92,13 @@ export async function handle(req, env, now = Date.now()) {
   const { pathname } = new URL(req.url);
   try {
     if (req.method === 'GET' && pathname === '/') {
-      const u = await uso(env, now);
-      return json({ app: 'JPlate', ia: Boolean(env.ANTHROPIC_API_KEY) && u.usd < u.teto, iaMes: { usd: Math.round(u.usd * 10000) / 10000, perguntas: u.perguntas, teto: u.teto } }, 200, h);
+      const hojeN = (await env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS t FROM ia_dia WHERE dia = ?').bind(hoje(now)).first()).t;
+      return json({ app: 'JPlate', ia: Boolean(env.AI), perguntasHoje: hojeN, inscritos: (await env.DB.prepare('SELECT COUNT(*) AS n FROM inscricoes').first()).n }, 200, h);
     }
     if (req.method === 'GET' && pathname === '/push/chave') return json({ chave: (await vapid(env)).publicKey }, 200, h);
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({}));
-      const rotas = { '/ia': rotaIA, '/push/inscrever': rotaInscrever, '/push/teste': rotaTeste };
+      const rotas = { '/entender': rotaEntender, '/push/inscrever': rotaInscrever, '/push/teste': rotaTeste };
       if (pathname === '/push/cancelar') {
         if (texto(body.endpoint, 10, 1000)) await env.DB.prepare('DELETE FROM inscricoes WHERE endpoint = ?').bind(body.endpoint).run();
         return json({ ok: true }, 200, h);

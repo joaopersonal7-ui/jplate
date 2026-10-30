@@ -1,11 +1,11 @@
-// Conversa com o servidor do JPlate (server/): dica do dia por notificação e IA de reserva da SÁ.
-// Nada de dados do diário vai para o servidor: só um código aleatório do aparelho, a pergunta feita à IA e a inscrição de notificação.
+// Conversa com o servidor do JPlate (server/): dica do dia por notificação e interpretação das perguntas da SÁ.
+// Nada de dados do diário vai para o servidor: só um código aleatório do aparelho, a pergunta feita à SÁ e a inscrição de notificação.
 import * as db from './db.js';
 import { SERVIDOR } from './config.js';
 
 export const temServidor = () => Boolean(SERVIDOR);
 
-// Código aleatório deste aparelho, para contar o limite diário de perguntas à IA. Não identifica a pessoa.
+// Código aleatório deste aparelho, para contar o limite diário de perguntas. Não identifica a pessoa.
 async function codigoAluno() {
   let id = await db.kvGet('aluno', null);
   if (!id) {
@@ -20,23 +20,21 @@ async function chamar(caminho, corpo) {
   return r.json();
 }
 
-// ---------- IA ----------
+// ---------- interpretação da pergunta ----------
 
-const ERROS_IA = {
-  limite_aluno: 'Você já usou as perguntas à IA de hoje. Amanhã tem mais.',
-  limite_total: 'A IA atingiu o limite de perguntas de hoje. Tente amanhã.',
-  teto_mes: 'A IA está pausada até o próximo mês. Continuo respondendo pelo meu banco de informações.',
-};
-
-// Devolve { texto, restantes } ou { erro } com uma frase pronta para mostrar.
-export async function perguntarIA(pergunta) {
+// A IA do servidor só escolhe qual pergunta cadastrada no banco responde à dúvida do aluno.
+// Devolve { titulo } (título do banco, ou null se nenhum responde) ou null quando o servidor não pôde ajudar
+// (sem internet, limite do dia, falha): aí a SÁ usa a própria busca do app.
+export async function entenderPergunta(pergunta, candidatos) {
   if (!temServidor() || !navigator.onLine) return null;
   try {
-    const r = await chamar('/ia', { aluno: await codigoAluno(), pergunta });
-    if (r.resposta) return { texto: r.resposta, fora: r.fora, restantes: r.restantes };
-    return { erro: ERROS_IA[r.erro] ?? 'A IA não está disponível agora.' };
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+    const r = await fetch(`${SERVIDOR}/entender`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
+      body: JSON.stringify({ aluno: await codigoAluno(), pergunta, candidatos }) }).then((x) => x.json()).finally(() => clearTimeout(t));
+    return 'titulo' in r ? { titulo: r.titulo } : null;
   } catch {
-    return { erro: 'A IA não está disponível agora.' };
+    return null;
   }
 }
 

@@ -1,6 +1,5 @@
 # Publica o servidor do JPlate (server/) no Cloudflare Workers e grava o endereço dele no app (src/config.js).
-# Precisa dos segredos do repositório CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID. ANTHROPIC_API_KEY é opcional:
-# sem ela o servidor envia só as notificações, e a SÁ continua só com o banco.
+# Precisa dos segredos do repositório CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID (passo a passo em docs/SERVIDOR.md).
 name: Publicar servidor (notificações e IA)
 
 on:
@@ -23,7 +22,6 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       WRANGLER_SEND_METRICS: 'false'
     defaults:
       run:
@@ -62,12 +60,9 @@ jobs:
           url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           if [ -z "$url" ]; then echo "::error::Não achei o endereço do servidor. Abra Workers e Pages no painel da Cloudflare uma vez para criar o subdomínio workers.dev."; exit 1; fi
           echo "URL=$url" >> "$GITHUB_ENV"
-          if [ -n "$ANTHROPIC_API_KEY" ]; then
-            printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY
-          else
-            echo "::notice::Sem ANTHROPIC_API_KEY: só as notificações foram ligadas."
-          fi
           curl -sf "$url/" && echo
+          # Primeira pergunta: prepara o banco da SÁ na IA (leva alguns segundos uma vez só) e confere que a IA responde.
+          curl -s -X POST "$url/entender" -H 'Content-Type: application/json' -d '{"aluno":"publicacao-github","pergunta":"O que são calorias?"}' && echo
           echo "## Servidor publicado: $url" >> "$GITHUB_STEP_SUMMARY"
       - name: Ligar o app ao servidor
         if: steps.segredos.outputs.pronto == 'sim'

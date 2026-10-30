@@ -24,9 +24,9 @@ Cada lançamento guarda os nutrientes do momento em que foi feito, então editar
 
 Busca por nome, marca ou código de barras em produtos vendidos no Brasil, importados do Open Food Facts (ODbL), com marca, embalagem, porção, valores do rótulo, fonte e situação da tabela (completa, parcial ou pendente). Valores ausentes aparecem como "não informado"; nada é estimado. Detalhes, importação e licenças em [docs/BIBLIOTECA.md](docs/BIBLIOTECA.md).
 
-## Servidor (opcional): dica do dia e IA da SÁ
+## Servidor (opcional): dica do dia e SÁ que entende a pergunta
 
-A pasta `server/` tem um servidor pequeno (Cloudflare Workers, plano gratuito) que envia a dica do dia por notificação e responde pela IA quando a SÁ não tem resposta cadastrada, com limites de gasto. Sem ele o app funciona igual, só offline. Passo a passo em [docs/SERVIDOR.md](docs/SERVIDOR.md).
+A pasta `server/` tem um servidor pequeno (Cloudflare Workers, plano gratuito) que envia a dica do dia por notificação e usa a IA gratuita da Cloudflare para interpretar a pergunta e escolher a resposta cadastrada no banco da SÁ (a IA nunca escreve respostas). Sem ele o app funciona igual, só offline. Passo a passo em [docs/SERVIDOR.md](docs/SERVIDOR.md).
 
 ## Como usar
 

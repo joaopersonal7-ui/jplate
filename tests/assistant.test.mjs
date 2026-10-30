@@ -67,7 +67,7 @@ test('SÁ conversa: cumprimenta pelo nome, responde sobre ela e lembra o último
   assert.ok(mais.options.length >= 1);
   // Mensagens com "não" não viram conquista.
   assert.notEqual(answer('não consegui emagrecer', ctx).conv, 'conquista');
-  assert.equal(answer('qual a capital da frança').text, 'Não tenho uma resposta cadastrada para essa pergunta no momento.');
+  assert.match(answer('qual a capital da frança').text, /^Não tenho uma resposta cadastrada para essa pergunta no momento\. Fale com a equipe/);
   assert.ok(answer('dieta', ctx).options.length >= 2);
 });
 

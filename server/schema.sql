@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS inscricoes (
   ultimo TEXT
 );
 CREATE INDEX IF NOT EXISTS inscricoes_hora ON inscricoes (hora);
--- Uso da IA: por aluno por dia, e gasto do mês.
+-- Uso da IA: perguntas por aluno por dia.
 CREATE TABLE IF NOT EXISTS ia_dia (aluno TEXT NOT NULL, dia TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (aluno, dia));
-CREATE TABLE IF NOT EXISTS ia_mes (mes TEXT PRIMARY KEY, usd REAL NOT NULL, perguntas INTEGER NOT NULL);
+-- Vetores dos títulos do banco da SÁ (recalculados quando o banco muda).
+CREATE TABLE IF NOT EXISTS vetores (versao TEXT NOT NULL, lote INTEGER NOT NULL, dados TEXT NOT NULL, PRIMARY KEY (versao, lote));

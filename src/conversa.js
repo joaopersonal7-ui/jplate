@@ -179,7 +179,8 @@ export const OBJETIVO_FALAS = [
 // Quando a base tem respostas diferentes para o mesmo assunto, a SÁ não escolhe uma: mostra as opções.
 export const CONFLITO = 'Tenho mais de uma orientação cadastrada sobre {tema}, {nome}. Escolha qual quer ver. Para o seu caso, confirme com a equipe da ConsultoriaJP.';
 
-export const NAO_ENCONTREI = 'Não tenho uma resposta cadastrada para essa pergunta no momento.';
+// Pedido do Joao (30/10/2026): dizer com sinceridade que não sabe e indicar a equipe, para a SÁ ser preparada.
+export const NAO_ENCONTREI = 'Não tenho uma resposta cadastrada para essa pergunta no momento. Fale com a equipe da ConsultoriaJP, para que eu fique preparada para responder perguntas como essa.';
 export const QUIS_DIZER = 'Não tenho certeza se entendi, {nome}. Você quis dizer:';
 
 // Quantidade de falas cadastradas (para mostrar ao Joao).

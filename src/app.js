@@ -11,10 +11,10 @@ import { searchOnline, productByBarcode, canScan, scanBarcode } from './off.js';
 import { LABEL_NUTRIENTS, STATUS_LABEL, SOURCES as PRODUCT_SOURCES, searchProducts, productToFood, fromIndexRow, indexRow } from './products.js';
 import { loadLibrary, getProduct, findByGtin, rememberProduct, resetLibrary } from './library.js';
 import { FAQ, FAQ_NOTE } from './faq.js';
-import { answer as assistantAnswer, SUGGESTIONS } from './assistant.js';
+import { answer as assistantAnswer, answerTitle, candidates, isTitle, SUGGESTIONS } from './assistant.js';
 import { NAO_ENCONTREI, CONFLITO } from './conversa.js';
 import { TEAM_CLOSE } from './saude.js';
-import { temServidor, perguntarIA, HORAS, suporteNotificacao, estadoNotificacao, ativarNotificacao, desativarNotificacao, testarNotificacao } from './servidor.js';
+import { temServidor, entenderPergunta, HORAS, suporteNotificacao, estadoNotificacao, ativarNotificacao, desativarNotificacao, testarNotificacao } from './servidor.js';
 import { EQ_SOURCE, EQ_HOW, EQ_GROUPS, EQ_TIP, EQ_SECTIONS, EQ_FOOTNOTE } from './equivalencias.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1711,7 +1711,7 @@ async function renderAbout() {
         <li>Sem cadastro e sem login.</li>
         <li>Tudo fica guardado neste aparelho; seu diário, peso e perfil não são enviados para servidores.</li>
         <li>Se você ativar a dica do dia, o servidor do JPlate guarda o endereço de notificação do aparelho e o horário escolhido.</li>
-        <li>Quando a SÁ não tem resposta cadastrada, a pergunta (só o texto dela) vai para a IA pelo servidor do JPlate, junto com um código aleatório do aparelho que conta o limite diário.</li>
+        <li>Com internet, a pergunta feita à SÁ (só o texto dela) passa pelo servidor do JPlate, onde uma IA da Cloudflare identifica qual resposta cadastrada corresponde a ela. A IA não escreve respostas: a SÁ mostra sempre o texto do banco da JP COMPANY.</li>
         <li>A busca de produtos de marca e o código de barras consultam o Open Food Facts pela internet, só quando você pede, e enviam apenas o termo ou o código.</li>
         <li>Funciona offline depois de instalado.</li>
         <li>Backup em arquivo, sob o seu controle.</li>
@@ -1815,18 +1815,11 @@ const br = (t) => esc(t).replace(/\n/g, '<br>');
 function chatHTML() {
   const bubble = (m) => m.role === 'user'
     ? `<div class="msg me">${esc(m.text)}</div>`
-    : m.ia ? iaBubble(m)
+    : m.pending ? '<div class="msg bot"><span class="msg-who">SÁ</span><span class="muted">Pensando…</span></div>'
     : `<div class="msg bot"><span class="msg-who">SÁ</span>${m.intro ? `<p class="msg-intro">${esc(m.intro)}</p>` : ''}${m.parts
       ? m.parts.map((p) => `<b>${esc(p.title)}</b>${br(p.text)}`).join('<hr class="msg-sep">') + (m.team ? `<p class="msg-team">${esc(m.team)}</p>` : '')
       : `${m.title ? `<b>${esc(m.title)}</b>` : ''}${br(m.text)}`}${m.from ? `<small>Fonte: ${esc(m.from)}</small>` : ''}${m.refs?.length ? `<details class="refs"><summary>Referências</summary><ul>${m.refs.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></details>` : ''}${m.options?.length ? `<div class="msg-rel msg-opts">${m.options.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}${m.related?.length ? `<div class="msg-rel"><span>Veja também</span>${m.related.map((t) => `<button class="chip" data-ask="${esc(t)}" data-exact>${esc(t)}</button>`).join('')}</div>` : ''}</div>`;
-  return chat.length ? chat.map((m, i) => bubble(m).replace(/<\/div>$/, m.iaQ ? `<div class="msg-rel"><button class="chip chip-ia" data-ask-ia="${i}">Não era isso? Perguntar à IA</button></div></div>` : '</div>')).join('') : `<div class="msg bot"><span class="msg-who">SÁ</span>Olá${state.profile.name ? `, ${esc(state.profile.name)}` : ''}! Eu sou a SÁ, a assistente do JPlate. Irei Responder suas perguntas e curiosidades sobre Nutrição, alimentação e dieta. Com base ao meu vasto Banco de Dados da JP COMPANY.<br><br>Fique à vontade, Pergunte algo…</div>`;
-}
-
-// Resposta da IA: sempre marcada, para o aluno saber que não veio do banco da JP COMPANY.
-function iaBubble(m) {
-  if (m.pending) return '<div class="msg bot msg-ia"><span class="msg-who">SÁ · IA</span><span class="muted">Consultando a IA…</span></div>';
-  if (m.erro) return `<div class="msg bot msg-ia"><span class="msg-who">SÁ · IA</span>${esc(m.erro)}</div>`;
-  return `<div class="msg bot msg-ia"><span class="msg-who">SÁ · Resposta da IA</span>${br(m.text)}${m.fora ? '' : `<small>Gerada por inteligência artificial, fora do banco de informações da JP COMPANY. Confirme com a equipe antes de mudar sua dieta.${m.restantes != null ? ` Perguntas à IA restantes hoje: ${m.restantes}.` : ''}</small>`}</div>`;
+  return chat.length ? chat.map(bubble).join('') : `<div class="msg bot"><span class="msg-who">SÁ</span>Olá${state.profile.name ? `, ${esc(state.profile.name)}` : ''}! Eu sou a SÁ, a assistente do JPlate. Irei Responder suas perguntas e curiosidades sobre Nutrição, alimentação e dieta. Com base ao meu vasto Banco de Dados da JP COMPANY.<br><br>Fique à vontade, Pergunte algo…</div>`;
 }
 
 function renderAssistant() {
@@ -1840,54 +1833,42 @@ function renderAssistant() {
       <button class="btn primary" type="submit">Enviar</button>
     </form>
     <p class="muted small" style="margin-top:10px">Orientações gerais; não substituem a avaliação individual da equipe.</p>`;
-  const send = (q, exact = false) => {
-    q = q.trim();
-    if (!q) return;
-    const last = [...chat].reverse().find((m) => m.role === 'bot');
-    const topic = [...chat].reverse().find((m) => m.role === 'bot' && m.title);
-    chat.push({ role: 'user', text: q });
-    const a = assistantAnswer(q, { exact, name: state.profile.name, last, topic });
-    // Resposta do banco (ou "você quis dizer"): o aluno pode pedir a IA se não era isso.
-    // Saúde (vai para a equipe) e respostas em conflito (o Joao decide) não passam pela IA.
-    const canIA = temServidor() && !exact && (a.title || a.options?.length) && !a.conv
-      && !a.text.includes(TEAM_CLOSE) && !a.text.startsWith(CONFLITO.split('{')[0]);
-    chat.push({ role: 'bot', ...a, iaQ: canIA ? q : undefined });
-    show();
-    $('#chat-input', view).value = '';
-    // Sem resposta cadastrada: a SÁ consulta a IA do servidor sozinha.
-    if (a.text === NAO_ENCONTREI) askIA(q);
-  };
   const show = () => {
     if (state.tab !== 'assistant') return;
     $('#chat', view).innerHTML = chatHTML();
     $('#chat', view).lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-  const askIA = (q) => {
-    if (!temServidor() || !navigator.onLine) return;
-    const ia = { role: 'bot', ia: true, pending: true };
-    chat.push(ia);
+  const send = async (q, exact = false) => {
+    q = q.trim();
+    if (!q) return;
+    const last = [...chat].reverse().find((m) => m.role === 'bot');
+    const topic = [...chat].reverse().find((m) => m.role === 'bot' && m.title);
+    const ctx = { exact, name: state.profile.name, last, topic };
+    chat.push({ role: 'user', text: q });
+    $('#chat-input', view).value = '';
+    const a = assistantAnswer(q, ctx);
+    // Com internet, a IA do servidor interpreta a pergunta e escolhe a resposta cadastrada que responde a ela.
+    // Ficam só no app: toques em títulos, conversa, saúde (vai para a equipe), respostas em conflito (o Joao decide),
+    // contas da Tabela de equivalências e perguntas iguais a um título do banco.
+    const local = exact || a.conv || isTitle(q) || a.text.includes(TEAM_CLOSE) || a.text.startsWith(CONFLITO.split('{')[0])
+      || (a.from === 'Tabela de equivalências' && !a.title);
+    if (local || !temServidor() || !navigator.onLine) {
+      chat.push({ role: 'bot', ...a });
+      return show();
+    }
+    const bot = { role: 'bot', pending: true };
+    chat.push(bot);
     show();
-    perguntarIA(q).then((r) => {
-      delete ia.pending;
-      if (!r) ia.erro = 'A IA não está disponível agora.';
-      else if (r.erro) ia.erro = r.erro;
-      else Object.assign(ia, { text: r.texto, fora: r.fora, restantes: r.restantes });
-      show();
-    });
+    const r = await entenderPergunta(q, candidates(q));
+    delete bot.pending;
+    // Sem servidor (limite do dia, falha): fica a busca do app. Com servidor: o texto cadastrado do título escolhido.
+    Object.assign(bot, !r ? a : r.titulo ? { ...answerTitle(r.titulo, ctx), intro: a.intro } : { text: NAO_ENCONTREI, intro: a.intro, from: null });
+    show();
   };
   // Tocar na notificação da dica do dia abre a SÁ já com a resposta.
   if (state.ask) { send(state.ask, true); state.ask = null; }
   $('#chat-form', view).onsubmit = (e) => { e.preventDefault(); send($('#chat-input', view).value); };
-  view.onclick = (e) => {
-    const ia = e.target.closest('[data-ask-ia]');
-    if (ia) {
-      const m = chat[Number(ia.dataset.askIa)];
-      if (m?.iaQ) { m.iaQ = undefined; askIA(chat[Number(ia.dataset.askIa) - 1]?.text ?? ''); }
-      return;
-    }
-    const b = e.target.closest('[data-ask]');
-    if (b) send(b.dataset.ask, 'exact' in b.dataset);
-  };
+  view.onclick = (e) => { const b = e.target.closest('[data-ask]'); if (b) send(b.dataset.ask, 'exact' in b.dataset); };
 }
 
 // ---------- tabela de equivalências ----------

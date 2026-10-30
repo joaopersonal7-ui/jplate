@@ -2,12 +2,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createServer } from 'node:http';
 import { createECDH, randomBytes } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import ece from 'http_ece';
 import { handle, enviarDicas, dicaDoDia } from '../src/index.js';
 import { b64url } from '../src/webpush.js';
+import { BANCO } from '../src/banco.js';
 
 function fakeD1() {
   const db = new DatabaseSync(':memory:');
@@ -21,23 +21,20 @@ function fakeD1() {
   return { prepare: (sql) => stmt(sql), batch: async (list) => Promise.all(list.map((s) => s.run())), raw: db };
 }
 
-// API do Claude de mentira: responde fora do tema quando a pergunta fala de futebol.
-const claude = createServer((req, res) => {
-  let body = '';
-  req.on('data', (c) => { body += c; });
-  req.on('end', () => {
-    const r = JSON.parse(body);
-    claude.ultimo = r;
-    const fora = /futebol/.test(r.messages[0].content);
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ id: 'msg_1', type: 'message', role: 'assistant', model: r.model, stop_reason: 'end_turn', stop_sequence: null,
-      content: [{ type: 'text', text: fora ? 'FORA_DO_TEMA' : 'Prefira frutas inteiras ao suco, porque a fibra ajuda na saciedade.' }],
-      usage: { input_tokens: 400, output_tokens: 100 } }));
-  });
-});
-await new Promise((r) => claude.listen(0, r));
-test.after(() => claude.close());
-
+// Workers AI de mentira. Vetores: um eixo por palavra-chave, para "sentido" parecido dar vetor parecido.
+// Modelo de texto: escolhe o primeiro item da lista que fala de caloria, ou 0 quando a pergunta fala de futebol.
+const EIXOS = ['caloria', 'agua', 'proteina', 'sono', 'futebol'];
+const ai = {
+  chamadas: [],
+  async run(model, input) {
+    this.chamadas.push({ model, input });
+    if (model === '@cf/baai/bge-m3') return { data: input.text.map((t) => EIXOS.map((e) => (t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(e) ? 1 : 0.01))) };
+    const msg = input.messages[1].content;
+    if (/futebol/.test(msg)) return { response: '0' };
+    const linha = msg.split('\n').find((l) => /^\d+\. .*[Cc]aloria/.test(l));
+    return { response: linha ? linha.split('.')[0] : '0' };
+  },
+};
 // Serviço de push de mentira: guarda o que chegou; o endpoint "vencido" responde 410.
 const entregues = [];
 const realFetch = globalThis.fetch;
@@ -51,57 +48,59 @@ globalThis.fetch = async (url, init) => {
   return realFetch(url, init);
 };
 
-const env = (extra = {}) => ({ DB: fakeD1(), ORIGENS: 'https://joaopersonal7-ui.github.io', ANTHROPIC_API_KEY: 'teste', ANTHROPIC_BASE_URL: `http://127.0.0.1:${claude.address().port}`, IA_POR_ALUNO_DIA: '2', IA_TOTAL_DIA: '500', IA_TETO_MES_USD: '5', ...extra });
+const env = (extra = {}) => ({ DB: fakeD1(), AI: ai, ORIGENS: 'https://joaopersonal7-ui.github.io', IA_POR_ALUNO_DIA: '2', IA_TOTAL_DIA: '500', ...extra });
 const post = (e, path, body, now) => handle(new Request(`https://srv${path}`, { method: 'POST', headers: { Origin: 'https://joaopersonal7-ui.github.io', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), e, now);
 const ALUNO = 'aluno-0001-teste';
 
-test('IA responde, conta a cota do aluno e o gasto do mês', async () => {
+test('IA interpreta a pergunta e devolve só um título do banco, nunca uma resposta', async () => {
   const e = env();
-  const r = await post(e, '/ia', { aluno: ALUNO, pergunta: 'Suco de fruta é tão bom quanto a fruta?' });
+  const r = await post(e, '/entender', { aluno: ALUNO, pergunta: 'Quanta caloria eu gasto por dia?', candidatos: ['Suar significa queimar mais gordura?', 'título que não existe'] });
   assert.equal(r.status, 200);
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), 'https://joaopersonal7-ui.github.io');
-  const d = await r.json();
-  assert.match(d.resposta, /fibra/);
-  assert.equal(d.restantes, 1);
-  assert.equal(claude.ultimo.model, 'claude-haiku-5-5');
-  assert.equal(claude.ultimo.max_tokens, 400);
-  const m = e.DB.raw.prepare('SELECT * FROM ia_mes').get();
-  assert.equal(m.perguntas, 1);
-  assert.ok(Math.abs(m.usd - (400 * 0.1e-6 + 100 * 0.5e-6)) < 1e-12);
+  const { titulo, ...resto } = await r.json();
+  assert.deepEqual(resto, {}, 'só o título, nenhum texto de resposta');
+  assert.ok(BANCO.some((b) => b.titulo === titulo) && /caloria/i.test(titulo), titulo);
+  const lista = ai.chamadas.at(-1).input.messages[1].content;
+  assert.match(lista, /\d+\. Suar significa queimar mais gordura\?/, 'candidato do app entra na lista');
+  assert.doesNotMatch(lista, /título que não existe/, 'título fora do banco é ignorado');
+  assert.equal(e.DB.raw.prepare('SELECT n FROM ia_dia').get().n, 1);
+});
+
+test('sem pergunta parecida no banco, devolve null', async () => {
+  const d = await (await post(env(), '/entender', { aluno: ALUNO, pergunta: 'Quem ganhou o jogo de futebol?' })).json();
+  assert.deepEqual(d, { titulo: null });
+});
+
+test('vetores do banco são calculados uma vez e reaproveitados', async () => {
+  ai.chamadas.length = 0;
+  const e = env();
+  await post(e, '/entender', { aluno: ALUNO, pergunta: 'agua' });
+  await post(e, '/entender', { aluno: ALUNO, pergunta: 'sono' });
+  const vet = ai.chamadas.filter((c) => c.model === '@cf/baai/bge-m3');
+  // Banco já em memória: só a pergunta é vetorizada.
+  assert.ok(vet.every((c) => c.input.text.length === 1));
 });
 
 test('limite por aluno: a terceira pergunta do dia é recusada sem chamar a IA', async () => {
   const e = env();
-  await post(e, '/ia', { aluno: ALUNO, pergunta: 'pergunta um' });
-  await post(e, '/ia', { aluno: ALUNO, pergunta: 'pergunta dois' });
-  claude.ultimo = null;
-  const r = await post(e, '/ia', { aluno: ALUNO, pergunta: 'pergunta três' });
+  await post(e, '/entender', { aluno: ALUNO, pergunta: 'pergunta um' });
+  await post(e, '/entender', { aluno: ALUNO, pergunta: 'pergunta dois' });
+  ai.chamadas.length = 0;
+  const r = await post(e, '/entender', { aluno: ALUNO, pergunta: 'pergunta três' });
   assert.equal(r.status, 429);
   assert.equal((await r.json()).erro, 'limite_aluno');
-  assert.equal(claude.ultimo, null);
-  // Outro aluno continua podendo perguntar.
-  assert.equal((await post(e, '/ia', { aluno: 'aluno-0002-teste', pergunta: 'pergunta' })).status, 200);
+  assert.equal(ai.chamadas.length, 0);
+  assert.equal((await post(e, '/entender', { aluno: 'aluno-0002-teste', pergunta: 'pergunta' })).status, 200);
 });
 
-test('fora do tema: resposta padrão e não gasta a cota do aluno', async () => {
-  const e = env();
-  const d = await (await post(e, '/ia', { aluno: ALUNO, pergunta: 'Quem ganhou o jogo de futebol?' })).json();
-  assert.equal(d.fora, true);
-  assert.match(d.resposta, /nutrição, alimentação e dieta/);
-  assert.equal(d.restantes, 2);
+test('limite total do dia', async () => {
+  const e = env({ IA_TOTAL_DIA: '1' });
+  await post(e, '/entender', { aluno: ALUNO, pergunta: 'um' });
+  assert.equal((await (await post(e, '/entender', { aluno: 'aluno-0003-teste', pergunta: 'dois' })).json()).erro, 'limite_total');
 });
 
-test('teto do mês: a IA para e o app fica só com o banco', async () => {
-  const e = env({ IA_TETO_MES_USD: '0.00001' });
-  await post(e, '/ia', { aluno: ALUNO, pergunta: 'pergunta' });
-  const r = await post(e, '/ia', { aluno: 'aluno-0003-teste', pergunta: 'outra' });
-  assert.equal((await r.json()).erro, 'teto_mes');
-  const st = await (await handle(new Request('https://srv/'), e)).json();
-  assert.equal(st.ia, false);
-});
-
-test('sem chave da IA, o servidor avisa que a IA está indisponível', async () => {
-  const r = await post(env({ ANTHROPIC_API_KEY: '' }), '/ia', { aluno: ALUNO, pergunta: 'pergunta' });
+test('sem a IA ligada, o servidor avisa que está indisponível', async () => {
+  const r = await post(env({ AI: undefined }), '/entender', { aluno: ALUNO, pergunta: 'pergunta' });
   assert.equal(r.status, 503);
 });
 
