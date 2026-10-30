@@ -7,6 +7,7 @@ import { KB_BASE } from './kb-base.js';
 import { KB_MED } from './kb-med.js';
 import { KB_300 } from './kb-300.js';
 import { KB_CONCEITOS } from './kb-conceitos.js';
+import { KB_NEURAL, KB_NEURAL_FROM } from './kb-neural.js';
 import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
 import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER, CONFLITO } from './conversa.js';
@@ -45,6 +46,7 @@ const DOCS = [
   // 50 conceitos: o título é o nome do conceito; as "perguntas relacionadas" do material ajudam a achar o conceito.
   ...KB_CONCEITOS.map((k) => ({ title: k.conceito, text: k.resposta, from: `Banco de Conhecimento da SÁ · ${k.categoria}`, refs: k.referencias,
     keys: [...k.palavras_chave, k.pergunta, ...k.perguntas_alternativas], autoKeys: true, concept: true, id: k.id })),
+  ...KB_NEURAL.map((k) => ({ title: k.pergunta, text: k.resposta, from: `${KB_NEURAL_FROM}`, refs: k.referencias, autoKeys: true, id: k.id })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
 const MED_DOCS = [

@@ -93,3 +93,11 @@ test('50 conceitos: o nome do conceito abre a definição', async () => {
   for (const k of KB_CONCEITOS) assert.equal(answer(k.conceito).title, k.conceito);
   assert.equal(answer('o que é lipólise?').title, 'Lipólise');
 });
+
+test('guia de adaptação neural: cada pergunta acha a si mesma, sem a instrução para a Sá', async () => {
+  const { KB_NEURAL } = await import('../src/kb-neural.js');
+  assert.equal(KB_NEURAL.length, 23);
+  for (const k of KB_NEURAL) assert.equal(answer(k.pergunta).title, k.pergunta);
+  assert.ok(KB_NEURAL.every((k) => !/A Sá deve/.test(k.resposta)));
+  assert.equal(answer('força sem hipertrofia').title, 'É possível aumentar força sem hipertrofia?');
+});
