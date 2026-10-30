@@ -6,6 +6,7 @@ import { KB } from './kb.js';
 import { KB_BASE } from './kb-base.js';
 import { KB_MED } from './kb-med.js';
 import { KB_300 } from './kb-300.js';
+import { KB_CONCEITOS } from './kb-conceitos.js';
 import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
 import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER, CONFLITO } from './conversa.js';
@@ -41,6 +42,9 @@ const DOCS = [
   ...KB.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias, keys: k.palavras_chave })),
   ...KB_BASE.map((k) => ({ title: k.pergunta, text: k.resposta, from: `ConsultoriaJP · ${k.categoria}`, refs: k.referencias })),
   ...KB_300.map((k) => ({ title: k.pergunta, text: k.resposta, from: `Banco da SÁ · ${k.categoria}`, keys: k.palavras_chave, autoKeys: true, id: k.id })),
+  // 50 conceitos: o título é o nome do conceito; as "perguntas relacionadas" do material ajudam a achar o conceito.
+  ...KB_CONCEITOS.map((k) => ({ title: k.conceito, text: k.resposta, from: `Banco de Conhecimento da SÁ · ${k.categoria}`, refs: k.referencias,
+    keys: [...k.palavras_chave, k.pergunta, ...k.perguntas_alternativas], autoKeys: true, concept: true, id: k.id })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
 const MED_DOCS = [
@@ -144,7 +148,7 @@ export function searchDocs(q, pool = DOCS) {
     if (titleKey(d.title) === qw.join(' ')) score += 50;
     // Duas perguntas que só diferem em "a", "o", "todos"...: fica a escrita igual à do aluno.
     if (raw === norm(d.title).replace(/[,.?]/g, '').trim()) score += 2;
-    if (glossary && /^O que é /.test(d.title)) score *= 1.6;
+    if (glossary && (/^O que é /.test(d.title) || d.concept)) score *= 1.6;
     return { d, score: score / Math.sqrt(qw.length) };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
 }

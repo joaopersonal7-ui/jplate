@@ -86,3 +86,10 @@ test('base de 300: cada pergunta acha a si mesma ou uma igual da base antiga, e 
   assert.ok(r.options.includes('Refeição livre') && r.options.includes('Preciso fazer refeição livre?'));
   assert.equal(answer('Refeição livre', { exact: true }).title, 'Refeição livre');
 });
+
+test('50 conceitos: o nome do conceito abre a definição', async () => {
+  const { KB_CONCEITOS } = await import('../src/kb-conceitos.js');
+  assert.equal(KB_CONCEITOS.length, 50);
+  for (const k of KB_CONCEITOS) assert.equal(answer(k.conceito).title, k.conceito);
+  assert.equal(answer('o que é lipólise?').title, 'Lipólise');
+});
