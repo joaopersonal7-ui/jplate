@@ -1,4 +1,4 @@
-// Servidor do JPlate: dica do dia por notificação e interpretação das perguntas da SÁ com a IA gratuita da Cloudflare.
+// Servidor do JPlate: dicas de nutrição por notificação e interpretação das perguntas da SÁ com a IA gratuita da Cloudflare.
 // O app continua funcionando sem ele; o servidor só guarda inscrições de notificação e contadores de uso da IA.
 import { newVapidKeys, sendPush } from './webpush.js';
 import { entender } from './entender.js';
@@ -9,12 +9,42 @@ const LOTE = 40; // envios por execução (o plano gratuito limita as chamadas e
 // Horário de Brasília (UTC−3, sem horário de verão).
 const brasilia = (now = Date.now()) => new Date(now - 3 * 3600e3);
 const hoje = (now) => brasilia(now).toISOString().slice(0, 10);
-const horaAgora = (now) => brasilia(now).getUTCHours();
 
-export function dicaDoDia(now = Date.now()) {
-  const dias = Math.floor(brasilia(now).getTime() / 86400e3);
-  const d = DICAS[dias % DICAS.length];
-  return { title: `Dica do dia: ${d.titulo}`, body: d.texto, url: `./?sa=${encodeURIComponent(d.titulo)}` };
+// Três dicas por dia, sem horário fixo: uma em cada janela (horário de Brasília, em minutos), num minuto sorteado
+// para cada aparelho e cada dia. As janelas têm pelo menos 1 h de intervalo entre si.
+export const JANELAS = [[8 * 60, 11 * 60], [12 * 60, 16 * 60], [17 * 60, 21 * 60]];
+const PASSO = 15; // o cron roda a cada 15 minutos
+const ATRASO_MAX = 2 * 3600e3; // envio atrasado mais que isso (servidor parado) é pulado, para não mandar fora de hora
+
+// Número pseudoaleatório estável a partir de um texto (FNV-1a).
+function sorteio(txt) {
+  let h = 2166136261;
+  for (let i = 0; i < txt.length; i++) h = Math.imul(h ^ txt.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+// Os três horários (em ms, UTC) do aparelho no dia de Brasília que contém `now`.
+export function horariosDoDia(endpoint, now) {
+  const inicio = Date.UTC(...hoje(now).split('-').map((x, i) => Number(x) - (i === 1 ? 1 : 0))) + 3 * 3600e3;
+  return JANELAS.map(([de, ate], k) => {
+    const passos = (ate - de) / PASSO;
+    return inicio + (de + (sorteio(`${endpoint}|${hoje(now)}|${k}`) % (passos + 1)) * PASSO) * 60e3;
+  });
+}
+
+// Próximo envio depois de `now` (hoje ou amanhã).
+export function proximoEnvio(endpoint, now) {
+  return [...horariosDoDia(endpoint, now), ...horariosDoDia(endpoint, now + 86400e3)].find((t) => t > now);
+}
+
+// Dica da vez: as três do dia são diferentes e mudam todo dia (a mesma para todos os aparelhos).
+export function dicaDaVez(now = Date.now()) {
+  const b = brasilia(now);
+  const minuto = b.getUTCHours() * 60 + b.getUTCMinutes();
+  const k = Math.max(0, JANELAS.findLastIndex(([de]) => minuto >= de));
+  const dias = Math.floor(b.getTime() / 86400e3);
+  const d = DICAS[(dias * JANELAS.length + k) % DICAS.length];
+  return { title: `Dica de nutrição: ${d.titulo}`, body: d.texto, url: `./?sa=${encodeURIComponent(d.titulo)}` };
 }
 
 async function vapid(env) {
@@ -62,19 +92,29 @@ async function rotaEntender(body, env, now) {
 
 async function rotaInscrever(body, env, now) {
   const s = body.inscricao;
-  const hora = Number(body.hora);
+  // "hora" vem de versões antigas do app, quando havia uma dica por dia em horário escolhido; hoje não é usada.
+  const hora = body.hora === undefined ? 0 : Number(body.hora);
   if (!texto(body.aluno, 8, 64) || !s || !texto(s.endpoint, 10, 1000) || !/^https:\/\//.test(s.endpoint) || !texto(s.keys?.p256dh, 40, 200) || !texto(s.keys?.auth, 10, 100)
     || !Number.isInteger(hora) || hora < 0 || hora > 23) return [{ erro: 'pedido_invalido' }, 400];
   await env.DB.prepare(`INSERT INTO inscricoes (endpoint, aluno, p256dh, auth, hora, criado) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT (endpoint) DO UPDATE SET aluno = excluded.aluno, p256dh = excluded.p256dh, auth = excluded.auth, hora = excluded.hora`)
     .bind(s.endpoint, body.aluno, s.keys.p256dh, s.keys.auth, hora, new Date(now).toISOString()).run();
+  await agendar(env, s.endpoint, now);
   return [{ ok: true }, 200];
 }
+
+const agendar = (env, endpoint, now) => env.DB.prepare('INSERT INTO agenda (endpoint, proximo) VALUES (?, ?) ON CONFLICT (endpoint) DO UPDATE SET proximo = excluded.proximo')
+  .bind(endpoint, proximoEnvio(endpoint, now)).run();
+
+const remover = (env, endpoint) => env.DB.batch([
+  env.DB.prepare('DELETE FROM inscricoes WHERE endpoint = ?').bind(endpoint),
+  env.DB.prepare('DELETE FROM agenda WHERE endpoint = ?').bind(endpoint),
+]);
 
 async function enviar(env, sub, dado) {
   const status = await sendPush(sub, dado, await vapid(env), contato(env)).catch(() => 0);
   // 404/410: o aparelho cancelou ou o app foi removido. A inscrição sai da lista.
-  if (status === 404 || status === 410) await env.DB.prepare('DELETE FROM inscricoes WHERE endpoint = ?').bind(sub.endpoint).run();
+  if (status === 404 || status === 410) await remover(env, sub.endpoint);
   return status;
 }
 
@@ -82,7 +122,7 @@ async function rotaTeste(body, env, now) {
   if (!texto(body.endpoint, 10, 1000)) return [{ erro: 'pedido_invalido' }, 400];
   const sub = await env.DB.prepare('SELECT * FROM inscricoes WHERE endpoint = ?').bind(body.endpoint).first();
   if (!sub) return [{ erro: 'nao_inscrito' }, 404];
-  const status = await enviar(env, sub, dicaDoDia(now));
+  const status = await enviar(env, sub, dicaDaVez(now));
   return [{ ok: status >= 200 && status < 300, status }, 200];
 }
 
@@ -100,7 +140,7 @@ export async function handle(req, env, now = Date.now()) {
       const body = await req.json().catch(() => ({}));
       const rotas = { '/entender': rotaEntender, '/push/inscrever': rotaInscrever, '/push/teste': rotaTeste };
       if (pathname === '/push/cancelar') {
-        if (texto(body.endpoint, 10, 1000)) await env.DB.prepare('DELETE FROM inscricoes WHERE endpoint = ?').bind(body.endpoint).run();
+        if (texto(body.endpoint, 10, 1000)) await remover(env, body.endpoint);
         return json({ ok: true }, 200, h);
       }
       if (rotas[pathname]) {
@@ -115,15 +155,18 @@ export async function handle(req, env, now = Date.now()) {
   }
 }
 
-// Envia a dica do dia a quem escolheu a hora atual e ainda não recebeu hoje.
+// Envia a dica a quem chegou a hora (três vezes por dia, em horários sorteados) e marca o próximo envio.
 export async function enviarDicas(env, now = Date.now()) {
-  const dia = hoje(now);
-  const { results } = await env.DB.prepare('SELECT * FROM inscricoes WHERE hora = ? AND (ultimo IS NULL OR ultimo < ?) LIMIT ?').bind(horaAgora(now), dia, LOTE).all();
+  // Inscrições sem agenda (feitas antes das três dicas por dia) ganham o próximo horário, sem envio agora.
+  const { results: novos } = await env.DB.prepare('SELECT endpoint FROM inscricoes WHERE endpoint NOT IN (SELECT endpoint FROM agenda) LIMIT 200').all();
+  for (const { endpoint } of novos) await agendar(env, endpoint, now);
+  const { results } = await env.DB.prepare('SELECT i.*, a.proximo FROM agenda a JOIN inscricoes i ON i.endpoint = a.endpoint WHERE a.proximo <= ? ORDER BY a.proximo LIMIT ?')
+    .bind(now, LOTE).all();
   if (!results.length) return 0;
-  const dado = dicaDoDia(now);
-  await Promise.all(results.map((s) => enviar(env, s, dado)));
-  await env.DB.batch(results.map((s) => env.DB.prepare('UPDATE inscricoes SET ultimo = ? WHERE endpoint = ?').bind(dia, s.endpoint)));
-  return results.length;
+  const vez = results.filter((s) => now - s.proximo <= ATRASO_MAX);
+  await Promise.all(vez.map((s) => enviar(env, s, dicaDaVez(s.proximo))));
+  await env.DB.batch(results.map((s) => env.DB.prepare('UPDATE agenda SET proximo = ? WHERE endpoint = ?').bind(proximoEnvio(s.endpoint, now), s.endpoint)));
+  return vez.length;
 }
 
 export default {

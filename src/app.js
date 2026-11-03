@@ -14,7 +14,7 @@ import { FAQ, FAQ_NOTE } from './faq.js';
 import { answer as assistantAnswer, answerTitle, candidates, isTitle, SUGGESTIONS } from './assistant.js';
 import { NAO_ENCONTREI, CONFLITO } from './conversa.js';
 import { TEAM_CLOSE } from './saude.js';
-import { temServidor, entenderPergunta, HORAS, suporteNotificacao, estadoNotificacao, ativarNotificacao, desativarNotificacao, testarNotificacao } from './servidor.js';
+import { temServidor, entenderPergunta, suporteNotificacao, estadoNotificacao, ativarNotificacao, desativarNotificacao, testarNotificacao } from './servidor.js';
 import { EQ_SOURCE, EQ_HOW, EQ_GROUPS, EQ_TIP, EQ_SECTIONS, EQ_FOOTNOTE } from './equivalencias.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1710,7 +1710,7 @@ async function renderAbout() {
       <ul class="muted small">
         <li>Sem cadastro e sem login.</li>
         <li>Tudo fica guardado neste aparelho; seu diário, peso e perfil não são enviados para servidores.</li>
-        <li>Se você ativar a dica do dia, o servidor do JPlate guarda o endereço de notificação do aparelho e o horário escolhido.</li>
+        <li>Se você ativar as dicas de nutrição, o servidor do JPlate guarda o endereço de notificação do aparelho.</li>
         <li>Com internet, a pergunta feita à SÁ (só o texto dela) passa pelo servidor do JPlate, onde uma IA da Cloudflare identifica qual resposta cadastrada corresponde a ela. A IA não escreve respostas: a SÁ mostra sempre o texto do banco da JP COMPANY.</li>
         <li>A busca de produtos de marca e o código de barras consultam o Open Food Facts pela internet, só quando você pede, e enviam apenas o termo ou o código.</li>
         <li>Funciona offline depois de instalado.</li>
@@ -1769,22 +1769,21 @@ async function renderNotifications() {
   }[suporte];
   view.innerHTML = `
     <section class="card">
-      <h2>Dica do dia</h2>
-      <p class="small muted" style="margin:4px 0 0">Uma dica por dia do banco de informações da SÁ, no horário que você escolher. Tocar na notificação abre a explicação completa na SÁ.</p>
+      <h2>Dicas de nutrição</h2>
+      <p class="small muted" style="margin:4px 0 0">Três dicas por dia do banco de informações da SÁ, em horários que mudam todo dia: uma de manhã, uma à tarde e uma no fim do dia, sempre entre 8h e 21h. Tocar na notificação abre a explicação completa na SÁ.</p>
       ${aviso ? `<p class="small warn" style="margin:12px 0 0">${esc(aviso)}</p>` : `
-      <label class="field" style="margin-top:12px">Horário<select name="hora">${HORAS.map((h) => `<option value="${h}"${h === (est.hora ?? 8) ? ' selected' : ''}>${h}h</option>`).join('')}</select></label>
-      <p class="small ${est.ativo ? '' : 'muted'}" style="margin:10px 0 0">${est.ativo ? `Ativada: você recebe a dica todo dia às ${est.hora}h.` : 'Desativada.'}</p>
+      <p class="small ${est.ativo ? '' : 'muted'}" style="margin:12px 0 0">${est.ativo ? 'Ativadas: você recebe 3 dicas por dia.' : 'Desativadas.'}</p>
       <div class="btn-row">
-        ${est.ativo ? '<button class="btn primary" data-notif-on>Salvar horário</button><button class="btn" data-notif-test>Enviar teste</button><button class="btn" data-notif-off>Desativar</button>' : '<button class="btn primary" data-notif-on>Ativar notificações</button>'}
+        ${est.ativo ? '<button class="btn" data-notif-test>Enviar teste</button><button class="btn" data-notif-off>Desativar</button>' : '<button class="btn primary" data-notif-on>Ativar notificações</button>'}
       </div>`}
     </section>
-    <p class="muted small" style="margin-top:10px">Para enviar as notificações, o servidor do JPlate guarda só o endereço de notificação deste aparelho e o horário escolhido. Nada do seu diário sai do aparelho.</p>`;
+    <p class="muted small" style="margin-top:10px">Para enviar as notificações, o servidor do JPlate guarda só o endereço de notificação deste aparelho. Nada do seu diário sai do aparelho.</p>`;
   view.onclick = async (e) => {
     const b = e.target.closest('[data-notif-on], [data-notif-test], [data-notif-off]');
     if (!b) return;
     b.disabled = true;
     try {
-      if ('notifOn' in b.dataset) { await ativarNotificacao(Number($('[name=hora]', view).value)); toast('Notificações ativadas.'); }
+      if ('notifOn' in b.dataset) { await ativarNotificacao(); toast('Pronto! Você vai receber 3 dicas por dia.'); }
       if ('notifTest' in b.dataset) { await testarNotificacao(); toast('Teste enviado. Deve chegar em instantes.'); }
       if ('notifOff' in b.dataset) { await desativarNotificacao(); toast('Notificações desativadas.'); }
     } catch (err) {
@@ -1865,7 +1864,7 @@ function renderAssistant() {
     Object.assign(bot, !r ? a : r.titulo ? { ...answerTitle(r.titulo, ctx), intro: a.intro } : { text: NAO_ENCONTREI, intro: a.intro, from: null });
     show();
   };
-  // Tocar na notificação da dica do dia abre a SÁ já com a resposta.
+  // Tocar na notificação da dica abre a SÁ já com a resposta.
   if (state.ask) { send(state.ask, true); state.ask = null; }
   $('#chat-form', view).onsubmit = (e) => { e.preventDefault(); send($('#chat-input', view).value); };
   view.onclick = (e) => { const b = e.target.closest('[data-ask]'); if (b) send(b.dataset.ask, 'exact' in b.dataset); };
@@ -2108,7 +2107,7 @@ splash.addEventListener('click', hideSplash, { once: true });
 // 1,65 s de abertura + 0,35 s de saída = 2 s no total.
 const splashMin = new Promise((r) => setTimeout(r, 1650));
 
-// Notificação da dica do dia: abre a SÁ com a pergunta (?sa=...).
+// Notificação da dica de nutrição: abre a SÁ com a pergunta (?sa=...).
 const askParam = new URLSearchParams(location.search).get('sa');
 if (askParam) {
   state.ask = askParam;

@@ -1,4 +1,4 @@
-// Conversa com o servidor do JPlate (server/): dica do dia por notificação e interpretação das perguntas da SÁ.
+// Conversa com o servidor do JPlate (server/): dicas de nutrição por notificação e interpretação das perguntas da SÁ.
 // Nada de dados do diário vai para o servidor: só um código aleatório do aparelho, a pergunta feita à SÁ e a inscrição de notificação.
 import * as db from './db.js';
 import { SERVIDOR } from './config.js';
@@ -40,8 +40,6 @@ export async function entenderPergunta(pergunta, candidatos) {
 
 // ---------- notificações ----------
 
-export const HORAS = [7, 8, 9, 12, 15, 18, 20, 21];
-
 export function suporteNotificacao() {
   if (!temServidor()) return 'sem-servidor';
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
@@ -61,10 +59,11 @@ async function inscricaoAtual() {
 export async function estadoNotificacao() {
   if (suporteNotificacao() !== 'ok') return { ativo: false };
   const sub = await inscricaoAtual();
-  return { ativo: Boolean(sub), hora: await db.kvGet('dicaHora', 8) };
+  return { ativo: Boolean(sub) };
 }
 
-export async function ativarNotificacao(hora) {
+// Três dicas por dia em horários que o servidor sorteia (8h às 21h); não há horário para escolher.
+export async function ativarNotificacao() {
   if (await Notification.requestPermission() !== 'granted') throw new Error('Permissão negada. Libere as notificações do JPlate nos ajustes do aparelho.');
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
@@ -76,9 +75,8 @@ export async function ativarNotificacao(hora) {
       throw new Error('Este aparelho não aceitou a inscrição de notificações. Confira se o app está instalado e com notificações liberadas.');
     }
   }
-  const r = await chamar('/push/inscrever', { aluno: await codigoAluno(), hora, inscricao: sub.toJSON() });
+  const r = await chamar('/push/inscrever', { aluno: await codigoAluno(), inscricao: sub.toJSON() });
   if (!r.ok) throw new Error('O servidor não aceitou a inscrição. Tente de novo.');
-  await db.kvSet('dicaHora', hora);
 }
 
 export async function desativarNotificacao() {

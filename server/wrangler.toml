@@ -9,7 +9,7 @@ binding = "DB"
 database_name = "jplate"
 database_id = "PREENCHIDO_PELO_DEPLOY"
 
-# A cada 15 minutos: envia a dica do dia a quem escolheu a hora atual e ainda não recebeu hoje
+# A cada 15 minutos: envia a dica a quem chegou a hora (três por dia, em horários sorteados entre 8h e 21h)
 # (em lotes, porque o plano gratuito limita os envios por execução).
 [triggers]
 crons = ["*/15 * * * *"]

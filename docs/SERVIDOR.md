@@ -1,8 +1,8 @@
-# Servidor do JPlate: dica do dia e SÁ que entende a pergunta
+# Servidor do JPlate: dicas de nutrição e SÁ que entende a pergunta
 
 O app continua offline e guarda o diário só no aparelho. O servidor (pasta `server/`) roda de graça na Cloudflare e faz duas coisas:
 
-1. **Dica do dia por notificação.** O aluno escolhe o horário em *Notificações* (menu). Todo dia chega uma dica tirada dos 50 conceitos do banco da SÁ; tocar nela abre a explicação completa na SÁ.
+1. **Três dicas de nutrição por dia, por notificação.** O aluno ativa em *Notificações* (menu). Chegam três dicas por dia, sem horário fixo: uma entre 8h e 11h, uma entre 12h e 16h e uma entre 17h e 21h (horário de Brasília), num minuto sorteado para cada aparelho e cada dia. As dicas vêm dos 50 conceitos e das perguntas comuns sobre frutas e vitaminas do banco da SÁ; tocar nela abre a explicação completa na SÁ.
 2. **A SÁ entende a pergunta.** Com internet, uma IA gratuita da Cloudflare (Workers AI) lê a pergunta do aluno e escolhe qual pergunta cadastrada no banco tem o mesmo sentido. A SÁ mostra o texto cadastrado, exatamente como está no banco. **A IA nunca escreve respostas.** Se nenhuma pergunta do banco responde, a SÁ diz com sinceridade que não tem a resposta e pede para o aluno falar com a equipe, para ela ser preparada para perguntas como essa.
 
 Ficam só no app, sem passar pela IA: toques em perguntas sugeridas, conversa (oi, obrigado…), temas de saúde (vão para a equipe), respostas em conflito, contas da Tabela de equivalências e perguntas escritas igual a um título do banco. Sem internet, ou se o servidor falhar, a SÁ usa a busca do próprio app, como antes.
@@ -67,7 +67,7 @@ Em uns 2 minutos o GitHub cria o banco do servidor, publica o servidor, prepara 
 
 ## Dados
 
-O servidor guarda só: o endereço de notificação de cada aparelho e o horário escolhido; um código aleatório do aparelho com a contagem de perguntas do dia. O texto da pergunta passa pela IA da Cloudflare para ser interpretado e não fica guardado. Diário, peso, perfil e foto nunca saem do aparelho.
+O servidor guarda só: o endereço de notificação de cada aparelho e o horário da próxima dica; um código aleatório do aparelho com a contagem de perguntas do dia. O texto da pergunta passa pela IA da Cloudflare para ser interpretado e não fica guardado. Diário, peso, perfil e foto nunca saem do aparelho.
 
 ## Para o desenvolvedor
 

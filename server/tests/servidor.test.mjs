@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { createECDH, randomBytes } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import ece from 'http_ece';
-import { handle, enviarDicas, dicaDoDia } from '../src/index.js';
+import { handle, enviarDicas, dicaDaVez, horariosDoDia, proximoEnvio, JANELAS } from '../src/index.js';
 import { b64url } from '../src/webpush.js';
 import { BANCO } from '../src/banco.js';
 
@@ -109,7 +109,7 @@ test('origem desconhecida não recebe CORS', async () => {
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), null);
 });
 
-test('notificações: inscreve, envia a dica na hora escolhida uma vez por dia e remove inscrição vencida', async () => {
+test('notificações: inscreve, envia três dicas por dia em horários sorteados e remove inscrição vencida', async () => {
   const e = env();
   const chave = (await (await handle(new Request('https://srv/push/chave'), e)).json()).chave;
   assert.equal(chave, (await (await handle(new Request('https://srv/push/chave'), e)).json()).chave, 'a chave não muda');
@@ -118,23 +118,32 @@ test('notificações: inscreve, envia a dica na hora escolhida uma vez por dia e
   ua.generateKeys();
   const auth = randomBytes(16);
   const keys = { p256dh: b64url(ua.getPublicKey()), auth: b64url(auth) };
-  assert.equal((await post(e, '/push/inscrever', { aluno: ALUNO, hora: 8, inscricao: { endpoint: 'https://push.test/a', keys } })).status, 200);
-  assert.equal((await post(e, '/push/inscrever', { aluno: 'aluno-x-0000', hora: 8, inscricao: { endpoint: 'https://push.test/vencido', keys } })).status, 200);
-  assert.equal((await post(e, '/push/inscrever', { aluno: ALUNO, hora: 25, inscricao: { endpoint: 'https://push.test/b', keys } })).status, 400);
+  const meiaNoite = Date.UTC(2026, 9, 30, 3, 0); // 0h em Brasília
+  assert.equal((await post(e, '/push/inscrever', { aluno: ALUNO, inscricao: { endpoint: 'https://push.test/a', keys } }, meiaNoite)).status, 200);
+  assert.equal((await post(e, '/push/inscrever', { aluno: 'aluno-x-0000', hora: 8, inscricao: { endpoint: 'https://push.test/vencido', keys } }, meiaNoite)).status, 200, 'app antigo ainda manda a hora');
+  assert.equal((await post(e, '/push/inscrever', { aluno: ALUNO, hora: 25, inscricao: { endpoint: 'https://push.test/b', keys } }, meiaNoite)).status, 400);
 
-  // 11h UTC = 8h em Brasília.
-  const oito = Date.UTC(2026, 9, 30, 11, 0);
-  assert.equal(await enviarDicas(e, Date.UTC(2026, 9, 30, 10, 0)), 0, '7h: ninguém');
+  // Simula o cron a cada 15 minutos durante dois dias.
   entregues.length = 0;
-  assert.equal(await enviarDicas(e, oito), 2);
-  assert.equal(entregues.length, 1);
-  const aberto = JSON.parse(ece.decrypt(Buffer.from(entregues[0].init.body), { version: 'aes128gcm', privateKey: ua, authSecret: auth }).toString());
-  assert.deepEqual(aberto, dicaDoDia(oito));
-  assert.match(aberto.url, /^\.\/\?sa=/);
-  assert.match(entregues[0].init.headers.Authorization, /^vapid t=.+, k=/);
+  const horas = [];
+  for (let t = meiaNoite; t < meiaNoite + 2 * 86400e3; t += 15 * 60e3) {
+    const n0 = entregues.length;
+    await enviarDicas(e, t);
+    for (let i = n0; i < entregues.length; i++) horas.push(t);
+  }
+  assert.equal(entregues.length, 6, 'três por dia, só para o aparelho válido');
   assert.equal(e.DB.raw.prepare('SELECT COUNT(*) AS n FROM inscricoes').get().n, 1, 'inscrição vencida removida');
-  assert.equal(await enviarDicas(e, oito + 15 * 60e3), 0, 'não repete no mesmo dia');
-  assert.equal(await enviarDicas(e, oito + 86400e3), 1, 'dia seguinte envia de novo');
+  assert.equal(e.DB.raw.prepare('SELECT COUNT(*) AS n FROM agenda').get().n, 1);
+  const hb = horas.map((t) => { const d = new Date(t - 3 * 3600e3); return d.getUTCHours() * 60 + d.getUTCMinutes(); });
+  hb.forEach((m, i) => { const [de, ate] = JANELAS[i % 3]; assert.ok(m >= de && m <= ate, `envio ${i} às ${m / 60}h`); });
+  assert.deepEqual(horas.slice(0, 3), horariosDoDia('https://push.test/a', meiaNoite));
+  assert.notDeepEqual(hb.slice(0, 3), hb.slice(3), 'os horários mudam de um dia para o outro');
+
+  const abertos = entregues.map((x) => JSON.parse(ece.decrypt(Buffer.from(x.init.body), { version: 'aes128gcm', privateKey: ua, authSecret: auth }).toString()));
+  assert.equal(new Set(abertos.map((a) => a.title)).size, 6, 'seis dicas diferentes em dois dias');
+  assert.deepEqual(abertos[0], dicaDaVez(horas[0]));
+  assert.match(abertos[0].url, /^\.\/\?sa=/);
+  assert.match(entregues[0].init.headers.Authorization, /^vapid t=.+, k=/);
 
   // Botão "Enviar teste" e cancelamento.
   entregues.length = 0;
@@ -142,8 +151,27 @@ test('notificações: inscreve, envia a dica na hora escolhida uma vez por dia e
   assert.equal(entregues.length, 1);
   await post(e, '/push/cancelar', { endpoint: 'https://push.test/a' });
   assert.equal(e.DB.raw.prepare('SELECT COUNT(*) AS n FROM inscricoes').get().n, 0);
+  assert.equal(e.DB.raw.prepare('SELECT COUNT(*) AS n FROM agenda').get().n, 0);
 });
 
-test('a dica muda a cada dia', () => {
-  assert.notEqual(dicaDoDia(Date.UTC(2026, 9, 30, 12)).title, dicaDoDia(Date.UTC(2026, 9, 31, 12)).title);
+test('inscrição antiga (sem agenda) entra na agenda sem receber fora de hora, e servidor parado não manda dica atrasada', async () => {
+  const e = env();
+  const keys = { p256dh: 'x'.repeat(87), auth: 'y'.repeat(22) };
+  e.DB.raw.prepare('INSERT INTO inscricoes (endpoint, aluno, p256dh, auth, hora, criado) VALUES (?, ?, ?, ?, 8, ?)').run('https://push.test/velho', ALUNO, keys.p256dh, keys.auth, 'x');
+  const noite = Date.UTC(2026, 9, 31, 1, 0); // 22h em Brasília
+  entregues.length = 0;
+  assert.equal(await enviarDicas(e, noite), 0);
+  const prox = e.DB.raw.prepare('SELECT proximo FROM agenda').get().proximo;
+  assert.equal(prox, proximoEnvio('https://push.test/velho', noite));
+  assert.ok(prox > noite);
+  // Servidor volta 5 h depois do horário: não envia, só reagenda.
+  assert.equal(await enviarDicas(e, prox + 5 * 3600e3), 0);
+  assert.equal(entregues.length, 0);
+  assert.ok(e.DB.raw.prepare('SELECT proximo FROM agenda').get().proximo > prox + 5 * 3600e3);
+});
+
+test('as três dicas do dia são diferentes e mudam no dia seguinte', () => {
+  const dia = [Date.UTC(2026, 9, 30, 12), Date.UTC(2026, 9, 30, 16), Date.UTC(2026, 9, 30, 21)].map((t) => dicaDaVez(t).title);
+  assert.equal(new Set(dia).size, 3);
+  assert.notEqual(dicaDaVez(Date.UTC(2026, 9, 31, 12)).title, dia[0]);
 });

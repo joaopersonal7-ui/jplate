@@ -1,5 +1,5 @@
 // Cache do app para funcionar offline. Troque VERSION a cada publicação para atualizar.
-const VERSION = 'jplate-v29';
+const VERSION = 'jplate-v30';
 const ASSETS = [
   './',
   'index.html',
@@ -87,7 +87,7 @@ self.addEventListener('fetch', (e) => {
   })());
 });
 
-// Dica do dia enviada pelo servidor (server/). Tocar abre o app na SÁ com a explicação completa.
+// Dica de nutrição enviada pelo servidor (server/), três por dia. Tocar abre o app na SÁ com a explicação completa.
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data?.json() ?? {}; } catch { d = { body: e.data?.text() }; }
