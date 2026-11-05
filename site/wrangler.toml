@@ -1,0 +1,10 @@
+# Site do JPlate no Cloudflare Pages (plano gratuito), protegido pelo Cloudflare Access.
+# Publicado pelo GitHub Actions: .github/workflows/site.yml (copia o app para publico/ e publica).
+name = "jplate"
+pages_build_output_dir = "./publico"
+compatibility_date = "2026-10-01"
+
+# Ligação interna com o servidor (server/): /api/* chega nele sem passar pela internet aberta.
+[[services]]
+binding = "SERVIDOR"
+service = "jplate-servidor"

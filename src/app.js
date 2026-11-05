@@ -15,6 +15,7 @@ import { answer as assistantAnswer, answerTitle, candidates, isTitle, SUGGESTION
 import { NAO_ENCONTREI, CONFLITO } from './conversa.js';
 import { TEAM_CLOSE } from './saude.js';
 import { temServidor, entenderPergunta, suporteNotificacao, estadoNotificacao, ativarNotificacao, desativarNotificacao, testarNotificacao } from './servidor.js';
+import { MUDOU_DE_ENDERECO, NOVO_ENDERECO } from './config.js';
 import { EQ_SOURCE, EQ_HOW, EQ_GROUPS, EQ_TIP, EQ_SECTIONS, EQ_FOOTNOTE } from './equivalencias.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -183,6 +184,7 @@ async function renderDiary() {
   const groups = groupByMeal(entries);
 
   view.innerHTML = `
+    ${mudancaHTML()}
     ${backupReminder()}
     <section class="card" aria-label="Resumo do dia">${summaryHTML(totals, missing, goal)}</section>
     ${MEALS.map((m) => mealHTML(m, groups[m.id])).join('')}
@@ -194,6 +196,7 @@ async function renderDiary() {
     if (add) return openAdd(add.dataset.addMeal);
     const row = e.target.closest('[data-entry]');
     if (row) return openEntry(entries.find((x) => x.id === row.dataset.entry));
+    if (e.target.closest('[data-mudanca-export]')) return exportBackup();
     if (e.target.closest('[data-go-settings]')) return go('about');
     const water = e.target.closest('[data-water]');
     if (water) return addWater(Number(water.dataset.water));
@@ -241,6 +244,21 @@ async function addWater(ml) {
   await db.kvSet('water', state.water);
   const card = $('.water', view);
   if (card) card.outerHTML = waterHTML();
+}
+
+// Cópia antiga (GitHub Pages): o app mudou para um endereço protegido por login. Os dados ficam presos a este
+// endereço no aparelho, então o aluno leva tudo pelo backup.
+function mudancaHTML() {
+  if (!MUDOU_DE_ENDERECO) return '';
+  return `<div class="card"><b>O JPlate mudou de endereço.</b>
+    <p class="small" style="margin:6px 0 0">O endereço novo pede login com o seu e-mail. Seus dados não passam sozinhos, então leve-os pelo backup:</p>
+    <ol class="small" style="margin:6px 0 0;padding-left:20px">
+      <li>Toque em <b>Exportar backup</b> e guarde o arquivo.</li>
+      <li>Abra o endereço novo, entre com o seu e-mail e instale o app de novo na tela inicial.</li>
+      <li>No app novo, vá em Backup → <b>Importar backup</b> e escolha o arquivo.</li>
+    </ol>
+    <div class="btn-row"><button class="btn small" data-mudanca-export>Exportar backup</button>
+    <a class="btn small" href="${esc(NOVO_ENDERECO)}" target="_blank" rel="noopener">Abrir o endereço novo</a></div></div>`;
 }
 
 function backupReminder() {

@@ -28,6 +28,10 @@ Busca por nome, marca ou código de barras em produtos vendidos no Brasil, impor
 
 A pasta `server/` tem um servidor pequeno (Cloudflare Workers, plano gratuito) que envia três dicas de nutrição por dia por notificação e usa a IA gratuita da Cloudflare para interpretar a pergunta e escolher a resposta cadastrada no banco da SÁ (a IA nunca escreve respostas). Sem ele o app funciona igual, só offline. Passo a passo em [docs/SERVIDOR.md](docs/SERVIDOR.md).
 
+## Acesso privado
+
+O app pode ficar fechado por login (Cloudflare Pages + Cloudflare Access) e o repositório privado. O que fica exposto e o passo a passo estão em [docs/PRIVACIDADE.md](docs/PRIVACIDADE.md).
+
 ## Como usar
 
 O app precisa ser servido por HTTP (não abre direto do arquivo por causa do modo offline).

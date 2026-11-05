@@ -1,0 +1,96 @@
+# Publica o app no Cloudflare Pages (endereço novo, protegido pelo Cloudflare Access) e grava o endereço no app (src/config.js),
+# para a cópia antiga do GitHub Pages avisar os alunos da mudança.
+# Usa os mesmos segredos do servidor (CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID); o token precisa também da permissão
+# "Cloudflare Pages: Editar". Passo a passo em docs/PRIVACIDADE.md.
+name: Publicar site protegido (Cloudflare Pages)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['server/**', 'docs/**', 'tests/**', 'scripts/**', '**.md']
+  # A importação de produtos grava data/produtos com o token do Actions, que não dispara o "push" acima.
+  workflow_run:
+    workflows: ['Importar produtos (Open Food Facts)']
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+      PROJETO: jplate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testes do app
+        run: npm test
+      - name: Conferir segredos
+        id: segredos
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Faltam os segredos CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID. Veja docs/PRIVACIDADE.md. Nada foi publicado."
+            echo "pronto=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "pronto=sim" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Montar a pasta do site
+        if: steps.segredos.outputs.pronto == 'sim'
+        run: |
+          # Só o que o app precisa para funcionar. Código do servidor, scripts, testes e documentos não vão para o site.
+          rm -rf site/publico && mkdir -p site/publico
+          cp -r index.html manifest.webmanifest sw.js icon-192.png icon-512.png assets src data site/publico/
+          cp site/_headers site/robots.txt site/publico/
+          du -sh site/publico
+      - name: Criar o projeto no Cloudflare Pages (só na primeira vez)
+        if: steps.segredos.outputs.pronto == 'sim'
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJETO"
+          if ! curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api" > /dev/null; then
+            npx --yes wrangler@4.156.0 pages project create "$PROJETO" --production-branch main
+          fi
+      - name: Publicar
+        if: steps.segredos.outputs.pronto == 'sim'
+        working-directory: site
+        run: npx --yes wrangler@4.156.0 pages deploy --branch main --commit-dirty=true
+      - name: Gravar o endereço novo no app
+        if: steps.segredos.outputs.pronto == 'sim'
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJETO"
+          sub=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).result.subdomain||''))")
+          if [ -z "$sub" ]; then echo "::error::Não achei o endereço do site no Cloudflare Pages."; exit 1; fi
+          url="https://$sub"
+          echo "## Site publicado: $url" >> "$GITHUB_STEP_SUMMARY"
+          # Só avisa os alunos (na cópia antiga) quando o endereço novo já pede login (Cloudflare Access).
+          destino=$(curl -s -o /dev/null -w '%{redirect_url}' "$url/")
+          if ! echo "$destino" | grep -q 'cloudflareaccess.com'; then
+            echo "::warning::$url ainda abre sem login. Configure o Cloudflare Access (docs/PRIVACIDADE.md, passo 4) e rode este workflow de novo."
+            echo "Ainda sem login (Cloudflare Access): os alunos não foram avisados." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "Protegido pelo Cloudflare Access." >> "$GITHUB_STEP_SUMMARY"
+          if grep -q "NOVO_ENDERECO = '$url'" src/config.js; then echo "O app já conhece $url."; exit 0; fi
+          sed -i "s|^export const NOVO_ENDERECO = .*|export const NOVO_ENDERECO = '$url';|" src/config.js
+          # Versão nova do app, para os celulares baixarem o config.js novo.
+          n=$(grep -oE "jplate-v[0-9]+" sw.js | head -1 | grep -oE "[0-9]+")
+          sed -i "s/jplate-v$n'/jplate-v$((n + 1))'/" sw.js
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/config.js sw.js
+          git commit -m "Endereço novo do app: $url"
+          git push

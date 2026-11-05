@@ -132,8 +132,8 @@ export async function handle(req, env, now = Date.now()) {
   const { pathname } = new URL(req.url);
   try {
     if (req.method === 'GET' && pathname === '/') {
-      const hojeN = (await env.DB.prepare('SELECT COALESCE(SUM(n), 0) AS t FROM ia_dia WHERE dia = ?').bind(hoje(now)).first()).t;
-      return json({ app: 'JPlate', ia: Boolean(env.AI), perguntasHoje: hojeN, inscritos: (await env.DB.prepare('SELECT COUNT(*) AS n FROM inscricoes').first()).n }, 200, h);
+      // Só diz que está no ar: números de uso (perguntas, inscritos) não ficam à mostra.
+      return json({ app: 'JPlate', ia: Boolean(env.AI) }, 200, h);
     }
     if (req.method === 'GET' && pathname === '/push/chave') return json({ chave: (await vapid(env)).publicKey }, 200, h);
     if (req.method === 'POST') {
