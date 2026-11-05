@@ -175,3 +175,16 @@ test('as três dicas do dia são diferentes e mudam no dia seguinte', () => {
   assert.equal(new Set(dia).size, 3);
   assert.notEqual(dicaDaVez(Date.UTC(2026, 9, 31, 12)).title, dia[0]);
 });
+
+test('vetores guardados em 1 byte por número voltam iguais e mantêm a ordem por sentido', async () => {
+  const { quantizar, paraTexto, deTexto } = await import('../src/entender.js');
+  const a = quantizar([0.9, 0.1, -0.3, 0.2]);
+  const b = quantizar([-0.5, 0.8, 0.1, 0]);
+  const [a2, b2] = deTexto(paraTexto([a, b]), 4);
+  assert.deepEqual([...a2], [...a]);
+  assert.deepEqual([...b2], [...b]);
+  assert.ok(a.every((x) => x >= -127 && x <= 127));
+  const q = [1, 0.1, -0.2, 0.2];
+  const dot = (v) => v.reduce((t, x, i) => t + x * q[i], 0);
+  assert.ok(dot(a2) > dot(b2));
+});

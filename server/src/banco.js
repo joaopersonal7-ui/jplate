@@ -2227,5 +2227,3273 @@ export const BANCO = [
  {
   "titulo": "Recuperação muscular",
   "texto": "Recuperação muscular | O que ajuda na recuperação muscular?"
+ },
+ {
+  "titulo": "O que é adaptação neural?",
+  "texto": "O que é adaptação neural?"
+ },
+ {
+  "titulo": "Como a adaptação neural aumenta a força?",
+  "texto": "Como a adaptação neural aumenta a força?"
+ },
+ {
+  "titulo": "Unidades motoras e controle neural",
+  "texto": "Unidades motoras e controle neural"
+ },
+ {
+  "titulo": "Coordenação intramuscular e intermuscular",
+  "texto": "Coordenação intramuscular e intermuscular"
+ },
+ {
+  "titulo": "Exemplo prático: evolução no supino",
+  "texto": "Exemplo prático: evolução no supino"
+ },
+ {
+  "titulo": "Adaptação neural e hipertrofia: diferenças e relação",
+  "texto": "Adaptação neural e hipertrofia: diferenças e relação"
+ },
+ {
+  "titulo": "O que é hipertrofia muscular?",
+  "texto": "O que é hipertrofia muscular?"
+ },
+ {
+  "titulo": "Como o músculo se adapta ao treinamento?",
+  "texto": "Como o músculo se adapta ao treinamento?"
+ },
+ {
+  "titulo": "Por que os ganhos de força variam ao longo do tempo?",
+  "texto": "Por que os ganhos de força variam ao longo do tempo?"
+ },
+ {
+  "titulo": "Aplicações práticas no treinamento",
+  "texto": "Aplicações práticas no treinamento"
+ },
+ {
+  "titulo": "Por que fico mais forte sem aumentar muito o músculo?",
+  "texto": "Por que fico mais forte sem aumentar muito o músculo?"
+ },
+ {
+  "titulo": "O que é uma unidade motora?",
+  "texto": "O que é uma unidade motora?"
+ },
+ {
+  "titulo": "O que é recrutamento de unidades motoras?",
+  "texto": "O que é recrutamento de unidades motoras?"
+ },
+ {
+  "titulo": "O que é frequência de disparo?",
+  "texto": "O que é frequência de disparo?"
+ },
+ {
+  "titulo": "Qual a diferença entre coordenação intra e intermuscular?",
+  "texto": "Qual a diferença entre coordenação intra e intermuscular?"
+ },
+ {
+  "titulo": "Adaptação neural acontece só com iniciantes?",
+  "texto": "Adaptação neural acontece só com iniciantes?"
+ },
+ {
+  "titulo": "Adaptação neural é a mesma coisa que hipertrofia?",
+  "texto": "Adaptação neural é a mesma coisa que hipertrofia?"
+ },
+ {
+  "titulo": "Hipertrofia é uma adaptação biológica?",
+  "texto": "Hipertrofia é uma adaptação biológica?"
+ },
+ {
+  "titulo": "O músculo cresce porque sofre dano?",
+  "texto": "O músculo cresce porque sofre dano?"
+ },
+ {
+  "titulo": "É possível aumentar força sem hipertrofia?",
+  "texto": "É possível aumentar força sem hipertrofia?"
+ },
+ {
+  "titulo": "Aumentar a carga sempre significa que fiquei mais forte?",
+  "texto": "Aumentar a carga sempre significa que fiquei mais forte?"
+ },
+ {
+  "titulo": "Resumo: adaptação neural e hipertrofia",
+  "texto": "Resumo: adaptação neural e hipertrofia"
+ },
+ {
+  "titulo": "Kiwi tem vitamina?",
+  "texto": "Kiwi tem vitamina?"
+ },
+ {
+  "titulo": "Quais frutas têm mais vitamina C?",
+  "texto": "Quais frutas têm mais vitamina C?"
+ },
+ {
+  "titulo": "Toda fruta tem vitamina?",
+  "texto": "Toda fruta tem vitamina?"
+ },
+ {
+  "titulo": "Qual é a fruta mais rica em vitaminas?",
+  "texto": "Qual é a fruta mais rica em vitaminas?"
+ },
+ {
+  "titulo": "Frutas têm vitamina B12?",
+  "texto": "Frutas têm vitamina B12?"
+ },
+ {
+  "titulo": "Frutas têm vitamina D?",
+  "texto": "Frutas têm vitamina D?"
+ },
+ {
+  "titulo": "Quais frutas contêm vitamina A?",
+  "texto": "Quais frutas contêm vitamina A?"
+ },
+ {
+  "titulo": "Quais frutas têm vitamina E?",
+  "texto": "Quais frutas têm vitamina E?"
+ },
+ {
+  "titulo": "Quais frutas têm vitamina K?",
+  "texto": "Quais frutas têm vitamina K?"
+ },
+ {
+  "titulo": "Quais frutas têm vitaminas do complexo B?",
+  "texto": "Quais frutas têm vitaminas do complexo B?"
+ },
+ {
+  "titulo": "Para que serve a vitamina C das frutas?",
+  "texto": "Para que serve a vitamina C das frutas?"
+ },
+ {
+  "titulo": "A vitamina C da laranja ajuda na imunidade?",
+  "texto": "A vitamina C da laranja ajuda na imunidade?"
+ },
+ {
+  "titulo": "A acerola tem mais vitamina C que a laranja?",
+  "texto": "A acerola tem mais vitamina C que a laranja?"
+ },
+ {
+  "titulo": "A vitamina C é perdida quando corto uma fruta?",
+  "texto": "A vitamina C é perdida quando corto uma fruta?"
+ },
+ {
+  "titulo": "O suco de laranja tem a mesma vitamina C da fruta inteira?",
+  "texto": "O suco de laranja tem a mesma vitamina C da fruta inteira?"
+ },
+ {
+  "titulo": "O mamão tem vitamina A?",
+  "texto": "O mamão tem vitamina A?"
+ },
+ {
+  "titulo": "A manga tem betacaroteno?",
+  "texto": "A manga tem betacaroteno?"
+ },
+ {
+  "titulo": "A banana tem vitamina B6?",
+  "texto": "A banana tem vitamina B6?"
+ },
+ {
+  "titulo": "O abacate tem vitamina E?",
+  "texto": "O abacate tem vitamina E?"
+ },
+ {
+  "titulo": "O kiwi tem vitamina K?",
+  "texto": "O kiwi tem vitamina K?"
+ },
+ {
+  "titulo": "Qual tem mais vitamina C: kiwi ou laranja?",
+  "texto": "Qual tem mais vitamina C: kiwi ou laranja?"
+ },
+ {
+  "titulo": "Qual tem mais fibras: maçã ou banana?",
+  "texto": "Qual tem mais fibras: maçã ou banana?"
+ },
+ {
+  "titulo": "Qual tem mais potássio: banana ou abacate?",
+  "texto": "Qual tem mais potássio: banana ou abacate?"
+ },
+ {
+  "titulo": "Qual fruta tem menos calorias?",
+  "texto": "Qual fruta tem menos calorias?"
+ },
+ {
+  "titulo": "Manga engorda mais que maçã?",
+  "texto": "Manga engorda mais que maçã?"
+ },
+ {
+  "titulo": "Abacate tem mais gordura que as outras frutas?",
+  "texto": "Abacate tem mais gordura que as outras frutas?"
+ },
+ {
+  "titulo": "Qual fruta tem mais fibras?",
+  "texto": "Qual fruta tem mais fibras?"
+ },
+ {
+  "titulo": "Qual fruta tem mais água?",
+  "texto": "Qual fruta tem mais água?"
+ },
+ {
+  "titulo": "Uva tem mais açúcar que morango?",
+  "texto": "Uva tem mais açúcar que morango?"
+ },
+ {
+  "titulo": "Qual fruta tem mais antioxidantes?",
+  "texto": "Qual fruta tem mais antioxidantes?"
+ },
+ {
+  "titulo": "Comer frutas ajuda na imunidade?",
+  "texto": "Comer frutas ajuda na imunidade?"
+ },
+ {
+  "titulo": "Frutas ajudam no funcionamento do intestino?",
+  "texto": "Frutas ajudam no funcionamento do intestino?"
+ },
+ {
+  "titulo": "Mamão ajuda na digestão?",
+  "texto": "Mamão ajuda na digestão?"
+ },
+ {
+  "titulo": "Abacaxi ajuda na digestão?",
+  "texto": "Abacaxi ajuda na digestão?"
+ },
+ {
+  "titulo": "Frutas ajudam na saúde cardiovascular?",
+  "texto": "Frutas ajudam na saúde cardiovascular?"
+ },
+ {
+  "titulo": "Frutas ajudam a controlar a pressão arterial?",
+  "texto": "Frutas ajudam a controlar a pressão arterial?"
+ },
+ {
+  "titulo": "Comer frutas melhora a pele?",
+  "texto": "Comer frutas melhora a pele?"
+ },
+ {
+  "titulo": "Vitamina C das frutas ajuda na produção de colágeno?",
+  "texto": "Vitamina C das frutas ajuda na produção de colágeno?"
+ },
+ {
+  "titulo": "Frutas podem ajudar na prevenção de deficiências nutricionais?",
+  "texto": "Frutas podem ajudar na prevenção de deficiências nutricionais?"
+ },
+ {
+  "titulo": "Comer frutas todos os dias é importante?",
+  "texto": "Comer frutas todos os dias é importante?"
+ },
+ {
+  "titulo": "Quais frutas são boas para emagrecer?",
+  "texto": "Quais frutas são boas para emagrecer?"
+ },
+ {
+  "titulo": "Banana atrapalha o emagrecimento?",
+  "texto": "Banana atrapalha o emagrecimento?"
+ },
+ {
+  "titulo": "Posso comer manga durante o emagrecimento?",
+  "texto": "Posso comer manga durante o emagrecimento?"
+ },
+ {
+  "titulo": "Abacate é ruim para quem quer emagrecer?",
+  "texto": "Abacate é ruim para quem quer emagrecer?"
+ },
+ {
+  "titulo": "Frutas têm açúcar?",
+  "texto": "Frutas têm açúcar?"
+ },
+ {
+  "titulo": "O açúcar da fruta é igual ao açúcar de refrigerante?",
+  "texto": "O açúcar da fruta é igual ao açúcar de refrigerante?"
+ },
+ {
+  "titulo": "Comer fruta à noite engorda?",
+  "texto": "Comer fruta à noite engorda?"
+ },
+ {
+  "titulo": "Posso comer frutas à vontade?",
+  "texto": "Posso comer frutas à vontade?"
+ },
+ {
+  "titulo": "Frutas substituem refeições?",
+  "texto": "Frutas substituem refeições?"
+ },
+ {
+  "titulo": "Frutas ajudam a controlar a fome?",
+  "texto": "Frutas ajudam a controlar a fome?"
+ },
+ {
+  "titulo": "Banana é boa para quem treina?",
+  "texto": "Banana é boa para quem treina?"
+ },
+ {
+  "titulo": "Comer frutas depois do treino é bom?",
+  "texto": "Comer frutas depois do treino é bom?"
+ },
+ {
+  "titulo": "Qual fruta é melhor para comer antes do treino?",
+  "texto": "Qual fruta é melhor para comer antes do treino?"
+ },
+ {
+  "titulo": "Qual fruta é melhor depois do treino?",
+  "texto": "Qual fruta é melhor depois do treino?"
+ },
+ {
+  "titulo": "Frutas ajudam na recuperação muscular?",
+  "texto": "Frutas ajudam na recuperação muscular?"
+ },
+ {
+  "titulo": "Banana ajuda a evitar câimbras?",
+  "texto": "Banana ajuda a evitar câimbras?"
+ },
+ {
+  "titulo": "Uva é uma boa opção para atletas?",
+  "texto": "Uva é uma boa opção para atletas?"
+ },
+ {
+  "titulo": "Frutas podem ser usadas durante treinos longos?",
+  "texto": "Frutas podem ser usadas durante treinos longos?"
+ },
+ {
+  "titulo": "Suco de fruta é melhor que fruta inteira para quem treina?",
+  "texto": "Suco de fruta é melhor que fruta inteira para quem treina?"
+ },
+ {
+  "titulo": "Frutas ajudam a repor eletrólitos?",
+  "texto": "Frutas ajudam a repor eletrólitos?"
+ },
+ {
+  "titulo": "É melhor comer a fruta com casca?",
+  "texto": "É melhor comer a fruta com casca?"
+ },
+ {
+  "titulo": "Tirar a casca da maçã reduz os nutrientes?",
+  "texto": "Tirar a casca da maçã reduz os nutrientes?"
+ },
+ {
+  "titulo": "Congelar frutas faz perder vitaminas?",
+  "texto": "Congelar frutas faz perder vitaminas?"
+ },
+ {
+  "titulo": "Fruta congelada é saudável?",
+  "texto": "Fruta congelada é saudável?"
+ },
+ {
+  "titulo": "Frutas maduras têm mais açúcar?",
+  "texto": "Frutas maduras têm mais açúcar?"
+ },
+ {
+  "titulo": "Fruta verde tem menos açúcar?",
+  "texto": "Fruta verde tem menos açúcar?"
+ },
+ {
+  "titulo": "O amadurecimento aumenta as vitaminas?",
+  "texto": "O amadurecimento aumenta as vitaminas?"
+ },
+ {
+  "titulo": "A geladeira conserva as vitaminas?",
+  "texto": "A geladeira conserva as vitaminas?"
+ },
+ {
+  "titulo": "Suco natural perde nutrientes depois de pronto?",
+  "texto": "Suco natural perde nutrientes depois de pronto?"
+ },
+ {
+  "titulo": "Bater fruta no liquidificador destrói as vitaminas?",
+  "texto": "Bater fruta no liquidificador destrói as vitaminas?"
+ },
+ {
+  "titulo": "Morango tem vitamina C?",
+  "texto": "Morango tem vitamina C?"
+ },
+ {
+  "titulo": "Goiaba tem vitamina C?",
+  "texto": "Goiaba tem vitamina C?"
+ },
+ {
+  "titulo": "Melancia tem vitaminas?",
+  "texto": "Melancia tem vitaminas?"
+ },
+ {
+  "titulo": "Melão tem vitamina A?",
+  "texto": "Melão tem vitamina A?"
+ },
+ {
+  "titulo": "Uva tem antioxidantes?",
+  "texto": "Uva tem antioxidantes?"
+ },
+ {
+  "titulo": "Jabuticaba tem antioxidantes?",
+  "texto": "Jabuticaba tem antioxidantes?"
+ },
+ {
+  "titulo": "Açaí tem vitaminas?",
+  "texto": "Açaí tem vitaminas?"
+ },
+ {
+  "titulo": "Caju tem vitamina C?",
+  "texto": "Caju tem vitamina C?"
+ },
+ {
+  "titulo": "Maracujá tem fibras?",
+  "texto": "Maracujá tem fibras?"
+ },
+ {
+  "titulo": "Pera tem fibras?",
+  "texto": "Pera tem fibras?"
+ },
+ {
+  "titulo": "Diabéticos podem comer frutas?",
+  "texto": "Diabéticos podem comer frutas?"
+ },
+ {
+  "titulo": "Quem tem diabetes pode comer banana?",
+  "texto": "Quem tem diabetes pode comer banana?"
+ },
+ {
+  "titulo": "Quem tem diabetes pode comer manga?",
+  "texto": "Quem tem diabetes pode comer manga?"
+ },
+ {
+  "titulo": "Quem tem doença renal pode comer frutas?",
+  "texto": "Quem tem doença renal pode comer frutas?"
+ },
+ {
+  "titulo": "Gestantes podem consumir todas as frutas?",
+  "texto": "Gestantes podem consumir todas as frutas?"
+ },
+ {
+  "titulo": "Crianças podem consumir frutas todos os dias?",
+  "texto": "Crianças podem consumir frutas todos os dias?"
+ },
+ {
+  "titulo": "Pessoas com gastrite podem comer frutas cítricas?",
+  "texto": "Pessoas com gastrite podem comer frutas cítricas?"
+ },
+ {
+  "titulo": "Quem tem refluxo pode comer laranja?",
+  "texto": "Quem tem refluxo pode comer laranja?"
+ },
+ {
+  "titulo": "Pessoas com intolerância à frutose podem comer frutas?",
+  "texto": "Pessoas com intolerância à frutose podem comer frutas?"
+ },
+ {
+  "titulo": "Quem tem intestino irritável pode comer frutas?",
+  "texto": "Quem tem intestino irritável pode comer frutas?"
+ },
+ {
+  "titulo": "Quantas frutas devo comer por dia?",
+  "texto": "Quantas frutas devo comer por dia?"
+ },
+ {
+  "titulo": "É melhor comer frutas variadas?",
+  "texto": "É melhor comer frutas variadas?"
+ },
+ {
+  "titulo": "Frutas da estação são melhores?",
+  "texto": "Frutas da estação são melhores?"
+ },
+ {
+  "titulo": "Fruta orgânica tem mais vitaminas?",
+  "texto": "Fruta orgânica tem mais vitaminas?"
+ },
+ {
+  "titulo": "Frutas pequenas têm mais nutrientes?",
+  "texto": "Frutas pequenas têm mais nutrientes?"
+ },
+ {
+  "titulo": "Frutas mais coloridas são mais nutritivas?",
+  "texto": "Frutas mais coloridas são mais nutritivas?"
+ },
+ {
+  "titulo": "Frutas desidratadas são saudáveis?",
+  "texto": "Frutas desidratadas são saudáveis?"
+ },
+ {
+  "titulo": "Frutas em calda têm os mesmos nutrientes da fruta fresca?",
+  "texto": "Frutas em calda têm os mesmos nutrientes da fruta fresca?"
+ },
+ {
+  "titulo": "Polpa congelada mantém as vitaminas?",
+  "texto": "Polpa congelada mantém as vitaminas?"
+ },
+ {
+  "titulo": "Qual é a melhor forma de aproveitar os nutrientes das frutas?",
+  "texto": "Qual é a melhor forma de aproveitar os nutrientes das frutas?"
+ },
+ {
+  "titulo": "Qual é a função bioquímica da vitamina C?",
+  "texto": "Qual é a função bioquímica da vitamina C?"
+ },
+ {
+  "titulo": "Como a vitamina C participa da síntese de colágeno?",
+  "texto": "Como a vitamina C participa da síntese de colágeno?"
+ },
+ {
+  "titulo": "Por que a vitamina C melhora a absorção do ferro?",
+  "texto": "Por que a vitamina C melhora a absorção do ferro?"
+ },
+ {
+  "titulo": "Quais fatores reduzem a vitamina C das frutas?",
+  "texto": "Quais fatores reduzem a vitamina C das frutas?"
+ },
+ {
+  "titulo": "Como a maturação influencia a vitamina C?",
+  "texto": "Como a maturação influencia a vitamina C?"
+ },
+ {
+  "titulo": "O congelamento preserva o ácido ascórbico?",
+  "texto": "O congelamento preserva o ácido ascórbico?"
+ },
+ {
+  "titulo": "Por que a acerola apresenta concentrações elevadas de vitamina C?",
+  "texto": "Por que a acerola apresenta concentrações elevadas de vitamina C?"
+ },
+ {
+  "titulo": "Como a oxidação interfere na vitamina C?",
+  "texto": "Como a oxidação interfere na vitamina C?"
+ },
+ {
+  "titulo": "Qual a diferença entre ácido ascórbico e vitamina C total?",
+  "texto": "Qual a diferença entre ácido ascórbico e vitamina C total?"
+ },
+ {
+  "titulo": "Por que os valores de vitamina C variam entre tabelas nutricionais?",
+  "texto": "Por que os valores de vitamina C variam entre tabelas nutricionais?"
+ },
+ {
+  "titulo": "Qual é a relação entre betacaroteno e vitamina A?",
+  "texto": "Qual é a relação entre betacaroteno e vitamina A?"
+ },
+ {
+  "titulo": "Quais frutas apresentam carotenoides?",
+  "texto": "Quais frutas apresentam carotenoides?"
+ },
+ {
+  "titulo": "Todos os carotenoides são convertidos em vitamina A?",
+  "texto": "Todos os carotenoides são convertidos em vitamina A?"
+ },
+ {
+  "titulo": "Como a maturação altera os carotenoides?",
+  "texto": "Como a maturação altera os carotenoides?"
+ },
+ {
+  "titulo": "A absorção de carotenoides depende da gordura da refeição?",
+  "texto": "A absorção de carotenoides depende da gordura da refeição?"
+ },
+ {
+  "titulo": "O processamento pode aumentar a biodisponibilidade de carotenoides?",
+  "texto": "O processamento pode aumentar a biodisponibilidade de carotenoides?"
+ },
+ {
+  "titulo": "Qual a diferença entre betacaroteno e retinol?",
+  "texto": "Qual a diferença entre betacaroteno e retinol?"
+ },
+ {
+  "titulo": "Por que a cor da polpa pode indicar presença de carotenoides?",
+  "texto": "Por que a cor da polpa pode indicar presença de carotenoides?"
+ },
+ {
+  "titulo": "Como os carotenoides atuam como antioxidantes?",
+  "texto": "Como os carotenoides atuam como antioxidantes?"
+ },
+ {
+  "titulo": "A variedade da fruta influencia o teor de carotenoides?",
+  "texto": "A variedade da fruta influencia o teor de carotenoides?"
+ },
+ {
+  "titulo": "Qual a função da vitamina B6?",
+  "texto": "Qual a função da vitamina B6?"
+ },
+ {
+  "titulo": "Qual a função da vitamina B1?",
+  "texto": "Qual a função da vitamina B1?"
+ },
+ {
+  "titulo": "Qual a função da vitamina B2?",
+  "texto": "Qual a função da vitamina B2?"
+ },
+ {
+  "titulo": "Qual a função da vitamina B3?",
+  "texto": "Qual a função da vitamina B3?"
+ },
+ {
+  "titulo": "Qual a função do folato?",
+  "texto": "Qual a função do folato?"
+ },
+ {
+  "titulo": "Frutas são boas fontes de folato?",
+  "texto": "Frutas são boas fontes de folato?"
+ },
+ {
+  "titulo": "Frutas contêm vitamina B12?",
+  "texto": "Frutas contêm vitamina B12?"
+ },
+ {
+  "titulo": "O armazenamento altera as vitaminas do complexo B?",
+  "texto": "O armazenamento altera as vitaminas do complexo B?"
+ },
+ {
+  "titulo": "Por que a vitamina B6 é importante para quem pratica exercícios?",
+  "texto": "Por que a vitamina B6 é importante para quem pratica exercícios?"
+ },
+ {
+  "titulo": "O teor de vitaminas do complexo B é igual em todas as variedades de uma fruta?",
+  "texto": "O teor de vitaminas do complexo B é igual em todas as variedades de uma fruta?"
+ },
+ {
+  "titulo": "Qual é a função da vitamina E?",
+  "texto": "Qual é a função da vitamina E?"
+ },
+ {
+  "titulo": "Por que o abacate apresenta vitamina E?",
+  "texto": "Por que o abacate apresenta vitamina E?"
+ },
+ {
+  "titulo": "Qual a função da vitamina K?",
+  "texto": "Qual a função da vitamina K?"
+ },
+ {
+  "titulo": "O kiwi contém vitamina K?",
+  "texto": "O kiwi contém vitamina K?"
+ },
+ {
+  "titulo": "O calor altera todas as vitaminas da mesma maneira?",
+  "texto": "O calor altera todas as vitaminas da mesma maneira?"
+ },
+ {
+  "titulo": "Qual a diferença entre vitaminas hidrossolúveis e lipossolúveis?",
+  "texto": "Qual a diferença entre vitaminas hidrossolúveis e lipossolúveis?"
+ },
+ {
+  "titulo": "Por que frutas podem perder vitaminas durante o processamento?",
+  "texto": "Por que frutas podem perder vitaminas durante o processamento?"
+ },
+ {
+  "titulo": "A casca das frutas concentra vitaminas?",
+  "texto": "A casca das frutas concentra vitaminas?"
+ },
+ {
+  "titulo": "Qual a importância da matriz alimentar?",
+  "texto": "Qual a importância da matriz alimentar?"
+ },
+ {
+  "titulo": "Como a variedade genética interfere na composição vitamínica?",
+  "texto": "Como a variedade genética interfere na composição vitamínica?"
+ },
+ {
+  "titulo": "Qual a função do potássio?",
+  "texto": "Qual a função do potássio?"
+ },
+ {
+  "titulo": "Quais frutas são fontes de potássio?",
+  "texto": "Quais frutas são fontes de potássio?"
+ },
+ {
+  "titulo": "Qual a função do magnésio?",
+  "texto": "Qual a função do magnésio?"
+ },
+ {
+  "titulo": "Frutas são boas fontes de magnésio?",
+  "texto": "Frutas são boas fontes de magnésio?"
+ },
+ {
+  "titulo": "Qual a função do cálcio?",
+  "texto": "Qual a função do cálcio?"
+ },
+ {
+  "titulo": "Frutas são fontes importantes de cálcio?",
+  "texto": "Frutas são fontes importantes de cálcio?"
+ },
+ {
+  "titulo": "O ferro das frutas é absorvido pelo organismo?",
+  "texto": "O ferro das frutas é absorvido pelo organismo?"
+ },
+ {
+  "titulo": "O potássio das frutas pode ser importante para atletas?",
+  "texto": "O potássio das frutas pode ser importante para atletas?"
+ },
+ {
+  "titulo": "O solo interfere na concentração mineral das frutas?",
+  "texto": "O solo interfere na concentração mineral das frutas?"
+ },
+ {
+  "titulo": "A adubação modifica o valor nutricional das frutas?",
+  "texto": "A adubação modifica o valor nutricional das frutas?"
+ },
+ {
+  "titulo": "Qual a diferença entre fibras solúveis e insolúveis?",
+  "texto": "Qual a diferença entre fibras solúveis e insolúveis?"
+ },
+ {
+  "titulo": "Quais frutas são fontes de pectina?",
+  "texto": "Quais frutas são fontes de pectina?"
+ },
+ {
+  "titulo": "Qual a função da pectina?",
+  "texto": "Qual a função da pectina?"
+ },
+ {
+  "titulo": "Como as fibras influenciam a microbiota intestinal?",
+  "texto": "Como as fibras influenciam a microbiota intestinal?"
+ },
+ {
+  "titulo": "Frutas verdes e maduras possuem a mesma composição de fibras?",
+  "texto": "Frutas verdes e maduras possuem a mesma composição de fibras?"
+ },
+ {
+  "titulo": "A maturação reduz a firmeza das frutas?",
+  "texto": "A maturação reduz a firmeza das frutas?"
+ },
+ {
+  "titulo": "Qual a relação entre fibras e saciedade?",
+  "texto": "Qual a relação entre fibras e saciedade?"
+ },
+ {
+  "titulo": "O suco possui a mesma quantidade de fibras da fruta inteira?",
+  "texto": "O suco possui a mesma quantidade de fibras da fruta inteira?"
+ },
+ {
+  "titulo": "O congelamento modifica as fibras?",
+  "texto": "O congelamento modifica as fibras?"
+ },
+ {
+  "titulo": "Frutas podem fornecer fibras prebióticas?",
+  "texto": "Frutas podem fornecer fibras prebióticas?"
+ },
+ {
+  "titulo": "O que são compostos fenólicos?",
+  "texto": "O que são compostos fenólicos?"
+ },
+ {
+  "titulo": "O que são antocianinas?",
+  "texto": "O que são antocianinas?"
+ },
+ {
+  "titulo": "Quais frutas apresentam antocianinas?",
+  "texto": "Quais frutas apresentam antocianinas?"
+ },
+ {
+  "titulo": "O que é resveratrol?",
+  "texto": "O que é resveratrol?"
+ },
+ {
+  "titulo": "O que são flavonoides?",
+  "texto": "O que são flavonoides?"
+ },
+ {
+  "titulo": "Qual a função dos carotenoides além da vitamina A?",
+  "texto": "Qual a função dos carotenoides além da vitamina A?"
+ },
+ {
+  "titulo": "O teor de antioxidantes muda durante a maturação?",
+  "texto": "O teor de antioxidantes muda durante a maturação?"
+ },
+ {
+  "titulo": "A casca da jabuticaba possui compostos bioativos?",
+  "texto": "A casca da jabuticaba possui compostos bioativos?"
+ },
+ {
+  "titulo": "O processamento térmico destrói todos os antioxidantes?",
+  "texto": "O processamento térmico destrói todos os antioxidantes?"
+ },
+ {
+  "titulo": "O valor antioxidante de uma fruta pode ser medido por um único teste?",
+  "texto": "O valor antioxidante de uma fruta pode ser medido por um único teste?"
+ },
+ {
+  "titulo": "Quais são os principais açúcares presentes nas frutas?",
+  "texto": "Quais são os principais açúcares presentes nas frutas?"
+ },
+ {
+  "titulo": "Como ocorre a conversão do amido em açúcar durante a maturação?",
+  "texto": "Como ocorre a conversão do amido em açúcar durante a maturação?"
+ },
+ {
+  "titulo": "Todas as frutas apresentam o mesmo índice glicêmico?",
+  "texto": "Todas as frutas apresentam o mesmo índice glicêmico?"
+ },
+ {
+  "titulo": "O que é carga glicêmica?",
+  "texto": "O que é carga glicêmica?"
+ },
+ {
+  "titulo": "Como a maturação altera o teor de carboidratos?",
+  "texto": "Como a maturação altera o teor de carboidratos?"
+ },
+ {
+  "titulo": "Qual a diferença entre carboidratos totais e carboidratos disponíveis?",
+  "texto": "Qual a diferença entre carboidratos totais e carboidratos disponíveis?"
+ },
+ {
+  "titulo": "A água influencia a concentração nutricional por 100 g?",
+  "texto": "A água influencia a concentração nutricional por 100 g?"
+ },
+ {
+  "titulo": "Por que frutas desidratadas apresentam mais calorias por 100 g?",
+  "texto": "Por que frutas desidratadas apresentam mais calorias por 100 g?"
+ },
+ {
+  "titulo": "Como a variedade altera a composição de açúcares?",
+  "texto": "Como a variedade altera a composição de açúcares?"
+ },
+ {
+  "titulo": "Por que duas frutas visualmente iguais podem ter valores nutricionais diferentes?",
+  "texto": "Por que duas frutas visualmente iguais podem ter valores nutricionais diferentes?"
+ },
+ {
+  "titulo": "O que é biodisponibilidade de um nutriente?",
+  "texto": "O que é biodisponibilidade de um nutriente?"
+ },
+ {
+  "titulo": "Qual a diferença entre quantidade de nutriente e biodisponibilidade?",
+  "texto": "Qual a diferença entre quantidade de nutriente e biodisponibilidade?"
+ },
+ {
+  "titulo": "A presença de gordura melhora a absorção de vitaminas?",
+  "texto": "A presença de gordura melhora a absorção de vitaminas?"
+ },
+ {
+  "titulo": "A vitamina C melhora a absorção de todos os minerais?",
+  "texto": "A vitamina C melhora a absorção de todos os minerais?"
+ },
+ {
+  "titulo": "O cozimento pode aumentar a disponibilidade de nutrientes?",
+  "texto": "O cozimento pode aumentar a disponibilidade de nutrientes?"
+ },
+ {
+  "titulo": "A mastigação influencia a digestão das frutas?",
+  "texto": "A mastigação influencia a digestão das frutas?"
+ },
+ {
+  "titulo": "A forma líquida altera a velocidade de consumo das frutas?",
+  "texto": "A forma líquida altera a velocidade de consumo das frutas?"
+ },
+ {
+  "titulo": "A matriz da fruta interfere na absorção dos nutrientes?",
+  "texto": "A matriz da fruta interfere na absorção dos nutrientes?"
+ },
+ {
+  "titulo": "O armazenamento pode alterar a biodisponibilidade?",
+  "texto": "O armazenamento pode alterar a biodisponibilidade?"
+ },
+ {
+  "titulo": "A absorção dos nutrientes é igual em todas as pessoas?",
+  "texto": "A absorção dos nutrientes é igual em todas as pessoas?"
+ },
+ {
+  "titulo": "Qual o papel dos carboidratos das frutas no exercício?",
+  "texto": "Qual o papel dos carboidratos das frutas no exercício?"
+ },
+ {
+  "titulo": "A frutose pode ser utilizada como fonte de energia durante o exercício?",
+  "texto": "A frutose pode ser utilizada como fonte de energia durante o exercício?"
+ },
+ {
+  "titulo": "A banana é uma fonte de energia para o exercício?",
+  "texto": "A banana é uma fonte de energia para o exercício?"
+ },
+ {
+  "titulo": "O potássio participa da contração muscular?",
+  "texto": "O potássio participa da contração muscular?"
+ },
+ {
+  "titulo": "As vitaminas das frutas aumentam diretamente a hipertrofia?",
+  "texto": "As vitaminas das frutas aumentam diretamente a hipertrofia?"
+ },
+ {
+  "titulo": "A vitamina C pode influenciar a recuperação do exercício?",
+  "texto": "A vitamina C pode influenciar a recuperação do exercício?"
+ },
+ {
+  "titulo": "Os antioxidantes das frutas melhoram o desempenho esportivo?",
+  "texto": "Os antioxidantes das frutas melhoram o desempenho esportivo?"
+ },
+ {
+  "titulo": "Frutas podem contribuir para a hidratação durante o exercício?",
+  "texto": "Frutas podem contribuir para a hidratação durante o exercício?"
+ },
+ {
+  "titulo": "O consumo de frutas pode contribuir para a reposição de glicogênio?",
+  "texto": "O consumo de frutas pode contribuir para a reposição de glicogênio?"
+ },
+ {
+  "titulo": "Qual a importância das frutas na alimentação de praticantes de musculação?",
+  "texto": "Qual a importância das frutas na alimentação de praticantes de musculação?"
+ },
+ {
+  "titulo": "Abacate: identidade e nomes",
+  "texto": "Abacate: identidade e nomes"
+ },
+ {
+  "titulo": "Abacate: principais cultivares e grupos",
+  "texto": "Abacate: principais cultivares e grupos"
+ },
+ {
+  "titulo": "Abacate: sazonalidade",
+  "texto": "Abacate: sazonalidade"
+ },
+ {
+  "titulo": "Abacate: maturidade e amadurecimento",
+  "texto": "Abacate: maturidade e amadurecimento"
+ },
+ {
+  "titulo": "Abacate: clima, solo e cultivo",
+  "texto": "Abacate: clima, solo e cultivo"
+ },
+ {
+  "titulo": "Abacate: água e manejo",
+  "texto": "Abacate: água e manejo"
+ },
+ {
+  "titulo": "Abacate: colheita e pós-colheita",
+  "texto": "Abacate: colheita e pós-colheita"
+ },
+ {
+  "titulo": "Abacate: congelamento e processamento",
+  "texto": "Abacate: congelamento e processamento"
+ },
+ {
+  "titulo": "Abacate: composição nutricional e variação",
+  "texto": "Abacate: composição nutricional e variação"
+ },
+ {
+  "titulo": "Abacaxi: identidade e nomes",
+  "texto": "Abacaxi: identidade e nomes"
+ },
+ {
+  "titulo": "Abacaxi: cultivares",
+  "texto": "Abacaxi: cultivares"
+ },
+ {
+  "titulo": "Abacaxi: sazonalidade e maturidade",
+  "texto": "Abacaxi: sazonalidade e maturidade"
+ },
+ {
+  "titulo": "Abacaxi: clima, solo e cultivo",
+  "texto": "Abacaxi: clima, solo e cultivo"
+ },
+ {
+  "titulo": "Abacaxi: irrigação e manejo",
+  "texto": "Abacaxi: irrigação e manejo"
+ },
+ {
+  "titulo": "Abacaxi: colheita e pós-colheita",
+  "texto": "Abacaxi: colheita e pós-colheita"
+ },
+ {
+  "titulo": "Abacaxi: congelamento e processamento",
+  "texto": "Abacaxi: congelamento e processamento"
+ },
+ {
+  "titulo": "Abacaxi: composição nutricional e variação",
+  "texto": "Abacaxi: composição nutricional e variação"
+ },
+ {
+  "titulo": "Açaí: identidade e nomes",
+  "texto": "Açaí: identidade e nomes"
+ },
+ {
+  "titulo": "Açaí: variedades, ecossistemas e safra",
+  "texto": "Açaí: variedades, ecossistemas e safra"
+ },
+ {
+  "titulo": "Açaí: maturação e colheita",
+  "texto": "Açaí: maturação e colheita"
+ },
+ {
+  "titulo": "Açaí: clima, solo e manejo",
+  "texto": "Açaí: clima, solo e manejo"
+ },
+ {
+  "titulo": "Açaí: pós-colheita, conservação e segurança",
+  "texto": "Açaí: pós-colheita, conservação e segurança"
+ },
+ {
+  "titulo": "Açaí: congelamento e processamento",
+  "texto": "Açaí: congelamento e processamento"
+ },
+ {
+  "titulo": "Açaí: composição nutricional e variação",
+  "texto": "Açaí: composição nutricional e variação"
+ },
+ {
+  "titulo": "Acerola: identidade e nomes",
+  "texto": "Acerola: identidade e nomes"
+ },
+ {
+  "titulo": "Acerola: cultivares e usos",
+  "texto": "Acerola: cultivares e usos"
+ },
+ {
+  "titulo": "Acerola: sazonalidade e maturidade",
+  "texto": "Acerola: sazonalidade e maturidade"
+ },
+ {
+  "titulo": "Acerola: clima, solo e cultivo",
+  "texto": "Acerola: clima, solo e cultivo"
+ },
+ {
+  "titulo": "Acerola: irrigação e manejo",
+  "texto": "Acerola: irrigação e manejo"
+ },
+ {
+  "titulo": "Acerola: colheita e pós-colheita",
+  "texto": "Acerola: colheita e pós-colheita"
+ },
+ {
+  "titulo": "Acerola: congelamento e processamento",
+  "texto": "Acerola: congelamento e processamento"
+ },
+ {
+  "titulo": "Acerola: composição nutricional e variação",
+  "texto": "Acerola: composição nutricional e variação"
+ },
+ {
+  "titulo": "Ameixa: identidade e nomes",
+  "texto": "Ameixa: identidade e nomes"
+ },
+ {
+  "titulo": "Ameixa: cultivares e safras",
+  "texto": "Ameixa: cultivares e safras"
+ },
+ {
+  "titulo": "Ameixa: maturidade",
+  "texto": "Ameixa: maturidade"
+ },
+ {
+  "titulo": "Ameixa: clima, solo e cultivo",
+  "texto": "Ameixa: clima, solo e cultivo"
+ },
+ {
+  "titulo": "Ameixa: irrigação e manejo",
+  "texto": "Ameixa: irrigação e manejo"
+ },
+ {
+  "titulo": "Ameixa: colheita, refrigeração e armazenamento",
+  "texto": "Ameixa: colheita, refrigeração e armazenamento"
+ },
+ {
+  "titulo": "Ameixa: congelamento e processamento",
+  "texto": "Ameixa: congelamento e processamento"
+ },
+ {
+  "titulo": "Ameixa: composição nutricional e variação",
+  "texto": "Ameixa: composição nutricional e variação"
+ },
+ {
+  "titulo": "Caju: identidade, partes e variedades",
+  "texto": "Caju: identidade, partes e variedades"
+ },
+ {
+  "titulo": "Caju: safra, maturidade e produção",
+  "texto": "Caju: safra, maturidade e produção"
+ },
+ {
+  "titulo": "Caju: clima, solo, água e manejo",
+  "texto": "Caju: clima, solo, água e manejo"
+ },
+ {
+  "titulo": "Caju: colheita, pós-colheita, armazenamento e processamento",
+  "texto": "Caju: colheita, pós-colheita, armazenamento e processamento"
+ },
+ {
+  "titulo": "Caju: composição nutricional e variação",
+  "texto": "Caju: composição nutricional e variação"
+ },
+ {
+  "titulo": "Caqui: identidade e grupos comerciais",
+  "texto": "Caqui: identidade e grupos comerciais"
+ },
+ {
+  "titulo": "Caqui: safra, maturidade e cultivo",
+  "texto": "Caqui: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Caqui: pós-colheita, armazenamento e processamento",
+  "texto": "Caqui: pós-colheita, armazenamento e processamento"
+ },
+ {
+  "titulo": "Caqui: composição nutricional e variação",
+  "texto": "Caqui: composição nutricional e variação"
+ },
+ {
+  "titulo": "Carambola: identidade, variedades e alerta de segurança",
+  "texto": "Carambola: identidade, variedades e alerta de segurança"
+ },
+ {
+  "titulo": "Carambola: safra, maturidade e cultivo",
+  "texto": "Carambola: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Carambola: pós-colheita, conservação e processamento",
+  "texto": "Carambola: pós-colheita, conservação e processamento"
+ },
+ {
+  "titulo": "Carambola: composição nutricional e variação",
+  "texto": "Carambola: composição nutricional e variação"
+ },
+ {
+  "titulo": "Cereja: identidade e tipos",
+  "texto": "Cereja: identidade e tipos"
+ },
+ {
+  "titulo": "Cereja: sazonalidade, clima e cultivo",
+  "texto": "Cereja: sazonalidade, clima e cultivo"
+ },
+ {
+  "titulo": "Cereja: maturidade, colheita e pós-colheita",
+  "texto": "Cereja: maturidade, colheita e pós-colheita"
+ },
+ {
+  "titulo": "Cereja: composição nutricional e variação",
+  "texto": "Cereja: composição nutricional e variação"
+ },
+ {
+  "titulo": "Coco: identidade, partes e grupos",
+  "texto": "Coco: identidade, partes e grupos"
+ },
+ {
+  "titulo": "Coco: safra, maturidade e cultivo",
+  "texto": "Coco: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Coco: irrigação, colheita e conservação",
+  "texto": "Coco: irrigação, colheita e conservação"
+ },
+ {
+  "titulo": "Coco: composição nutricional e variação",
+  "texto": "Coco: composição nutricional e variação"
+ },
+ {
+  "titulo": "Cupuaçu: identidade, partes e grupos",
+  "texto": "Cupuaçu: identidade, partes e grupos"
+ },
+ {
+  "titulo": "Cupuaçu: safra, maturidade e cultivo",
+  "texto": "Cupuaçu: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Cupuaçu: colheita, pós-colheita, refrigeração e processamento",
+  "texto": "Cupuaçu: colheita, pós-colheita, refrigeração e processamento"
+ },
+ {
+  "titulo": "Cupuaçu: composição nutricional e variação",
+  "texto": "Cupuaçu: composição nutricional e variação"
+ },
+ {
+  "titulo": "Figo: identidade e cultivares",
+  "texto": "Figo: identidade e cultivares"
+ },
+ {
+  "titulo": "Figo: safra, maturidade e manejo",
+  "texto": "Figo: safra, maturidade e manejo"
+ },
+ {
+  "titulo": "Figo: colheita, pós-colheita e usos",
+  "texto": "Figo: colheita, pós-colheita e usos"
+ },
+ {
+  "titulo": "Figo: composição nutricional e variação",
+  "texto": "Figo: composição nutricional e variação"
+ },
+ {
+  "titulo": "Framboesa: identidade, tipos e cultivares",
+  "texto": "Framboesa: identidade, tipos e cultivares"
+ },
+ {
+  "titulo": "Framboesa: sazonalidade, clima e produção",
+  "texto": "Framboesa: sazonalidade, clima e produção"
+ },
+ {
+  "titulo": "Framboesa: maturidade, colheita e armazenamento",
+  "texto": "Framboesa: maturidade, colheita e armazenamento"
+ },
+ {
+  "titulo": "Framboesa: composição nutricional e variação",
+  "texto": "Framboesa: composição nutricional e variação"
+ },
+ {
+  "titulo": "Goiaba: identidade, cultivares e partes",
+  "texto": "Goiaba: identidade, cultivares e partes"
+ },
+ {
+  "titulo": "Goiaba: safra, maturidade e cultivo",
+  "texto": "Goiaba: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Goiaba: colheita, pós-colheita e processamento",
+  "texto": "Goiaba: colheita, pós-colheita e processamento"
+ },
+ {
+  "titulo": "Goiaba: composição nutricional e variação",
+  "texto": "Goiaba: composição nutricional e variação"
+ },
+ {
+  "titulo": "Graviola: identidade e variedades",
+  "texto": "Graviola: identidade e variedades"
+ },
+ {
+  "titulo": "Graviola: safra, maturidade e cultivo",
+  "texto": "Graviola: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Graviola: pós-colheita, conservação e processamento",
+  "texto": "Graviola: pós-colheita, conservação e processamento"
+ },
+ {
+  "titulo": "Graviola: composição nutricional e variação",
+  "texto": "Graviola: composição nutricional e variação"
+ },
+ {
+  "titulo": "Jabuticaba: identidade e variedades",
+  "texto": "Jabuticaba: identidade e variedades"
+ },
+ {
+  "titulo": "Jabuticaba: safra, maturidade e produção",
+  "texto": "Jabuticaba: safra, maturidade e produção"
+ },
+ {
+  "titulo": "Jabuticaba: colheita, armazenamento e processamento",
+  "texto": "Jabuticaba: colheita, armazenamento e processamento"
+ },
+ {
+  "titulo": "Jabuticaba: composição nutricional e variação",
+  "texto": "Jabuticaba: composição nutricional e variação"
+ },
+ {
+  "titulo": "Jaca: identidade, partes e tipos",
+  "texto": "Jaca: identidade, partes e tipos"
+ },
+ {
+  "titulo": "Jaca: safra, maturação e cultivo",
+  "texto": "Jaca: safra, maturação e cultivo"
+ },
+ {
+  "titulo": "Jaca: colheita, pós-colheita e preparo",
+  "texto": "Jaca: colheita, pós-colheita e preparo"
+ },
+ {
+  "titulo": "Jaca: composição nutricional e variação",
+  "texto": "Jaca: composição nutricional e variação"
+ },
+ {
+  "titulo": "Kiwi: identidade e grupos de mercado",
+  "texto": "Kiwi: identidade e grupos de mercado"
+ },
+ {
+  "titulo": "Kiwi: sazonalidade, clima e produção",
+  "texto": "Kiwi: sazonalidade, clima e produção"
+ },
+ {
+  "titulo": "Kiwi: maturidade, colheita e armazenamento",
+  "texto": "Kiwi: maturidade, colheita e armazenamento"
+ },
+ {
+  "titulo": "Kiwi: composição nutricional e variação",
+  "texto": "Kiwi: composição nutricional e variação"
+ },
+ {
+  "titulo": "Limão: identidade e grupos comerciais",
+  "texto": "Limão: identidade e grupos comerciais"
+ },
+ {
+  "titulo": "Limão: sazonalidade, maturidade e produção",
+  "texto": "Limão: sazonalidade, maturidade e produção"
+ },
+ {
+  "titulo": "Limão: colheita e conservação",
+  "texto": "Limão: colheita e conservação"
+ },
+ {
+  "titulo": "Limão: composição nutricional e variação",
+  "texto": "Limão: composição nutricional e variação"
+ },
+ {
+  "titulo": "Manga: identidade e cultivares",
+  "texto": "Manga: identidade e cultivares"
+ },
+ {
+  "titulo": "Manga: sazonalidade, maturidade e produção",
+  "texto": "Manga: sazonalidade, maturidade e produção"
+ },
+ {
+  "titulo": "Manga: pós-colheita, refrigeração e processamento",
+  "texto": "Manga: pós-colheita, refrigeração e processamento"
+ },
+ {
+  "titulo": "Manga: composição nutricional e variação",
+  "texto": "Manga: composição nutricional e variação"
+ },
+ {
+  "titulo": "Maracujá: identidade e espécies de uso alimentar",
+  "texto": "Maracujá: identidade e espécies de uso alimentar"
+ },
+ {
+  "titulo": "Maracujá: safra, maturidade e cultivo",
+  "texto": "Maracujá: safra, maturidade e cultivo"
+ },
+ {
+  "titulo": "Maracujá: colheita, pós-colheita e processamento",
+  "texto": "Maracujá: colheita, pós-colheita e processamento"
+ },
+ {
+  "titulo": "Maracujá: composição nutricional e variação",
+  "texto": "Maracujá: composição nutricional e variação"
+ },
+ {
+  "titulo": "Melancia: identidade e variedades",
+  "texto": "Melancia: identidade e variedades"
+ },
+ {
+  "titulo": "Melancia: sazonalidade, maturidade e cultivo",
+  "texto": "Melancia: sazonalidade, maturidade e cultivo"
+ },
+ {
+  "titulo": "Melancia: conservação e uso",
+  "texto": "Melancia: conservação e uso"
+ },
+ {
+  "titulo": "Melancia: composição nutricional e variação",
+  "texto": "Melancia: composição nutricional e variação"
+ },
+ {
+  "titulo": "Melão: identidade e tipos",
+  "texto": "Melão: identidade e tipos"
+ },
+ {
+  "titulo": "Melão: sazonalidade, maturidade e cultivo",
+  "texto": "Melão: sazonalidade, maturidade e cultivo"
+ },
+ {
+  "titulo": "Melão: pós-colheita e processamento",
+  "texto": "Melão: pós-colheita e processamento"
+ },
+ {
+  "titulo": "Melão: composição nutricional e variação",
+  "texto": "Melão: composição nutricional e variação"
+ },
+ {
+  "titulo": "Morango: identidade, cultivares e produção",
+  "texto": "Morango: identidade, cultivares e produção"
+ },
+ {
+  "titulo": "Morango: maturidade, colheita e conservação",
+  "texto": "Morango: maturidade, colheita e conservação"
+ },
+ {
+  "titulo": "Morango: composição nutricional e variação",
+  "texto": "Morango: composição nutricional e variação"
+ },
+ {
+  "titulo": "Pêssego: identidade, tipos e cultivares",
+  "texto": "Pêssego: identidade, tipos e cultivares"
+ },
+ {
+  "titulo": "Pêssego: safra e cultivo",
+  "texto": "Pêssego: safra e cultivo"
+ },
+ {
+  "titulo": "Pêssego: maturidade e pós-colheita",
+  "texto": "Pêssego: maturidade e pós-colheita"
+ },
+ {
+  "titulo": "Pêssego: composição nutricional e variação",
+  "texto": "Pêssego: composição nutricional e variação"
+ },
+ {
+  "titulo": "Uva: identidade e grupos comerciais",
+  "texto": "Uva: identidade e grupos comerciais"
+ },
+ {
+  "titulo": "Uva: sazonalidade, manejo e maturidade",
+  "texto": "Uva: sazonalidade, manejo e maturidade"
+ },
+ {
+  "titulo": "Uva: pós-colheita, armazenamento e uso",
+  "texto": "Uva: pós-colheita, armazenamento e uso"
+ },
+ {
+  "titulo": "Uva: composição nutricional e variação",
+  "texto": "Uva: composição nutricional e variação"
+ },
+ {
+  "titulo": "Abóbora: identidade, tipos e nomes",
+  "texto": "Abóbora: identidade, tipos e nomes"
+ },
+ {
+  "titulo": "Abóbora: sazonalidade, maturidade e produção",
+  "texto": "Abóbora: sazonalidade, maturidade e produção"
+ },
+ {
+  "titulo": "Abóbora: conservação e uso culinário",
+  "texto": "Abóbora: conservação e uso culinário"
+ },
+ {
+  "titulo": "Abóbora: composição nutricional e variação",
+  "texto": "Abóbora: composição nutricional e variação"
+ },
+ {
+  "titulo": "Abobrinha: identidade e variedades",
+  "texto": "Abobrinha: identidade e variedades"
+ },
+ {
+  "titulo": "Abobrinha: produção e ponto de colheita",
+  "texto": "Abobrinha: produção e ponto de colheita"
+ },
+ {
+  "titulo": "Abobrinha: pós-colheita e preparo",
+  "texto": "Abobrinha: pós-colheita e preparo"
+ },
+ {
+  "titulo": "Abobrinha: composição nutricional e variação",
+  "texto": "Abobrinha: composição nutricional e variação"
+ },
+ {
+  "titulo": "Acelga: identidade, variedades e parte usada",
+  "texto": "Acelga: identidade, variedades e parte usada"
+ },
+ {
+  "titulo": "Acelga: clima, solo e manejo",
+  "texto": "Acelga: clima, solo e manejo"
+ },
+ {
+  "titulo": "Acelga: pós-colheita e usos",
+  "texto": "Acelga: pós-colheita e usos"
+ },
+ {
+  "titulo": "Acelga: composição nutricional e variação",
+  "texto": "Acelga: composição nutricional e variação"
+ },
+ {
+  "titulo": "Alface: identidade e tipos",
+  "texto": "Alface: identidade e tipos"
+ },
+ {
+  "titulo": "Alface: produção, clima e colheita",
+  "texto": "Alface: produção, clima e colheita"
+ },
+ {
+  "titulo": "Alface: pós-colheita e segurança de uso",
+  "texto": "Alface: pós-colheita e segurança de uso"
+ },
+ {
+  "titulo": "Alface: composição nutricional e variação",
+  "texto": "Alface: composição nutricional e variação"
+ },
+ {
+  "titulo": "Alho: identidade, grupos e cultivares",
+  "texto": "Alho: identidade, grupos e cultivares"
+ },
+ {
+  "titulo": "Alho: clima, solo e cultivo",
+  "texto": "Alho: clima, solo e cultivo"
+ },
+ {
+  "titulo": "Alho: colheita, cura e conservação",
+  "texto": "Alho: colheita, cura e conservação"
+ },
+ {
+  "titulo": "Alho: composição nutricional e variação",
+  "texto": "Alho: composição nutricional e variação"
+ },
+ {
+  "titulo": "Alho-poró: identidade, tipos e sazonalidade",
+  "texto": "Alho-poró: identidade, tipos e sazonalidade"
+ },
+ {
+  "titulo": "Alho-poró: cultivo e colheita",
+  "texto": "Alho-poró: cultivo e colheita"
+ },
+ {
+  "titulo": "Alho-poró: conservação e processamento",
+  "texto": "Alho-poró: conservação e processamento"
+ },
+ {
+  "titulo": "Alho-poró: composição nutricional e variação",
+  "texto": "Alho-poró: composição nutricional e variação"
+ },
+ {
+  "titulo": "Berinjela: identidade e variedades",
+  "texto": "Berinjela: identidade e variedades"
+ },
+ {
+  "titulo": "Berinjela: clima, manejo e maturidade",
+  "texto": "Berinjela: clima, manejo e maturidade"
+ },
+ {
+  "titulo": "Berinjela: pós-colheita e preparo",
+  "texto": "Berinjela: pós-colheita e preparo"
+ },
+ {
+  "titulo": "Berinjela: composição nutricional e variação",
+  "texto": "Berinjela: composição nutricional e variação"
+ },
+ {
+  "titulo": "Beterraba: identidade, partes e tipos",
+  "texto": "Beterraba: identidade, partes e tipos"
+ },
+ {
+  "titulo": "Beterraba: cultivo e colheita",
+  "texto": "Beterraba: cultivo e colheita"
+ },
+ {
+  "titulo": "Beterraba: pós-colheita e uso",
+  "texto": "Beterraba: pós-colheita e uso"
+ },
+ {
+  "titulo": "Beterraba: composição nutricional e variação",
+  "texto": "Beterraba: composição nutricional e variação"
+ },
+ {
+  "titulo": "Brócolis: identidade, tipos e estação",
+  "texto": "Brócolis: identidade, tipos e estação"
+ },
+ {
+  "titulo": "Brócolis: cultivo e colheita",
+  "texto": "Brócolis: cultivo e colheita"
+ },
+ {
+  "titulo": "Brócolis: conservação e processamento",
+  "texto": "Brócolis: conservação e processamento"
+ },
+ {
+  "titulo": "Brócolis: composição nutricional e variação",
+  "texto": "Brócolis: composição nutricional e variação"
+ },
+ {
+  "titulo": "Cebola: identidade, tipos e variedades",
+  "texto": "Cebola: identidade, tipos e variedades"
+ },
+ {
+  "titulo": "Cebola: clima, manejo e colheita",
+  "texto": "Cebola: clima, manejo e colheita"
+ },
+ {
+  "titulo": "Cebola: cura, armazenamento e usos",
+  "texto": "Cebola: cura, armazenamento e usos"
+ },
+ {
+  "titulo": "Cebola: composição nutricional e variação",
+  "texto": "Cebola: composição nutricional e variação"
+ },
+ {
+  "titulo": "Cenoura: identidade e variedades",
+  "texto": "Cenoura: identidade e variedades"
+ },
+ {
+  "titulo": "Cenoura: produção e maturidade",
+  "texto": "Cenoura: produção e maturidade"
+ },
+ {
+  "titulo": "Cenoura: pós-colheita e uso",
+  "texto": "Cenoura: pós-colheita e uso"
+ },
+ {
+  "titulo": "Cenoura: composição nutricional e variação",
+  "texto": "Cenoura: composição nutricional e variação"
+ },
+ {
+  "titulo": "Chuchu: identidade e tipos",
+  "texto": "Chuchu: identidade e tipos"
+ },
+ {
+  "titulo": "Chuchu: cultivo, época e colheita",
+  "texto": "Chuchu: cultivo, época e colheita"
+ },
+ {
+  "titulo": "Chuchu: conservação e preparo",
+  "texto": "Chuchu: conservação e preparo"
+ },
+ {
+  "titulo": "Chuchu: composição nutricional e variação",
+  "texto": "Chuchu: composição nutricional e variação"
+ },
+ {
+  "titulo": "Couve: identidade, grupos e parte consumida",
+  "texto": "Couve: identidade, grupos e parte consumida"
+ },
+ {
+  "titulo": "Couve: cultivo e colheita",
+  "texto": "Couve: cultivo e colheita"
+ },
+ {
+  "titulo": "Couve: pós-colheita e uso",
+  "texto": "Couve: pós-colheita e uso"
+ },
+ {
+  "titulo": "Couve: composição nutricional e variação",
+  "texto": "Couve: composição nutricional e variação"
+ },
+ {
+  "titulo": "Couve-flor: identidade e variedades",
+  "texto": "Couve-flor: identidade e variedades"
+ },
+ {
+  "titulo": "Couve-flor: produção e maturidade",
+  "texto": "Couve-flor: produção e maturidade"
+ },
+ {
+  "titulo": "Couve-flor: conservação e uso",
+  "texto": "Couve-flor: conservação e uso"
+ },
+ {
+  "titulo": "Couve-flor: composição nutricional e variação",
+  "texto": "Couve-flor: composição nutricional e variação"
+ },
+ {
+  "titulo": "Espinafre: identidade e nomes ambíguos",
+  "texto": "Espinafre: identidade e nomes ambíguos"
+ },
+ {
+  "titulo": "Espinafre: cultivo e colheita",
+  "texto": "Espinafre: cultivo e colheita"
+ },
+ {
+  "titulo": "Espinafre: pós-colheita e preparo",
+  "texto": "Espinafre: pós-colheita e preparo"
+ },
+ {
+  "titulo": "Espinafre: composição nutricional e variação",
+  "texto": "Espinafre: composição nutricional e variação"
+ },
+ {
+  "titulo": "Jiló: identidade, tipos e cultivo",
+  "texto": "Jiló: identidade, tipos e cultivo"
+ },
+ {
+  "titulo": "Jiló: conservação e nutrição",
+  "texto": "Jiló: conservação e nutrição"
+ },
+ {
+  "titulo": "Pepino: identidade e tipos",
+  "texto": "Pepino: identidade e tipos"
+ },
+ {
+  "titulo": "Pepino: produção e colheita",
+  "texto": "Pepino: produção e colheita"
+ },
+ {
+  "titulo": "Pepino: conservação e uso",
+  "texto": "Pepino: conservação e uso"
+ },
+ {
+  "titulo": "Pepino: composição nutricional e variação",
+  "texto": "Pepino: composição nutricional e variação"
+ },
+ {
+  "titulo": "Pimentão: identidade, cores e maturidade",
+  "texto": "Pimentão: identidade, cores e maturidade"
+ },
+ {
+  "titulo": "Pimentão: cultivo e colheita",
+  "texto": "Pimentão: cultivo e colheita"
+ },
+ {
+  "titulo": "Pimentão: pós-colheita e uso",
+  "texto": "Pimentão: pós-colheita e uso"
+ },
+ {
+  "titulo": "Pimentão: composição nutricional e variação",
+  "texto": "Pimentão: composição nutricional e variação"
+ },
+ {
+  "titulo": "Repolho: identidade e tipos",
+  "texto": "Repolho: identidade e tipos"
+ },
+ {
+  "titulo": "Repolho: cultivo e colheita",
+  "texto": "Repolho: cultivo e colheita"
+ },
+ {
+  "titulo": "Repolho: conservação e processamento",
+  "texto": "Repolho: conservação e processamento"
+ },
+ {
+  "titulo": "Repolho: composição nutricional e variação",
+  "texto": "Repolho: composição nutricional e variação"
+ },
+ {
+  "titulo": "Tomate: identidade, grupos e maturidade",
+  "texto": "Tomate: identidade, grupos e maturidade"
+ },
+ {
+  "titulo": "Tomate: cultivo e colheita",
+  "texto": "Tomate: cultivo e colheita"
+ },
+ {
+  "titulo": "Tomate: pós-colheita e uso",
+  "texto": "Tomate: pós-colheita e uso"
+ },
+ {
+  "titulo": "Tomate: composição nutricional e variação",
+  "texto": "Tomate: composição nutricional e variação"
+ },
+ {
+  "titulo": "Amendoim: identidade",
+  "texto": "Amendoim: identidade"
+ },
+ {
+  "titulo": "Amendoim: cultivo e sazonalidade",
+  "texto": "Amendoim: cultivo e sazonalidade"
+ },
+ {
+  "titulo": "Amendoim: pós-colheita e uso",
+  "texto": "Amendoim: pós-colheita e uso"
+ },
+ {
+  "titulo": "Amendoim: nutrição",
+  "texto": "Amendoim: nutrição"
+ },
+ {
+  "titulo": "Ervilha: identidade",
+  "texto": "Ervilha: identidade"
+ },
+ {
+  "titulo": "Ervilha: cultivo",
+  "texto": "Ervilha: cultivo"
+ },
+ {
+  "titulo": "Ervilha: conservação e preparo",
+  "texto": "Ervilha: conservação e preparo"
+ },
+ {
+  "titulo": "Ervilha: nutrição",
+  "texto": "Ervilha: nutrição"
+ },
+ {
+  "titulo": "Fava: identidade",
+  "texto": "Fava: identidade"
+ },
+ {
+  "titulo": "Fava: cultivo",
+  "texto": "Fava: cultivo"
+ },
+ {
+  "titulo": "Fava: pós-colheita, uso e segurança",
+  "texto": "Fava: pós-colheita, uso e segurança"
+ },
+ {
+  "titulo": "Fava: nutrição",
+  "texto": "Fava: nutrição"
+ },
+ {
+  "titulo": "Feijão-amarelo: identidade",
+  "texto": "Feijão-amarelo: identidade"
+ },
+ {
+  "titulo": "Feijão-amarelo: cultivo e armazenamento",
+  "texto": "Feijão-amarelo: cultivo e armazenamento"
+ },
+ {
+  "titulo": "Feijão-amarelo: nutrição",
+  "texto": "Feijão-amarelo: nutrição"
+ },
+ {
+  "titulo": "Feijões branco, carioca e preto: identidade comum e distinções",
+  "texto": "Feijões branco, carioca e preto: identidade comum e distinções"
+ },
+ {
+  "titulo": "Feijões branco, carioca e preto: cultivo, safra, maturidade e manejo",
+  "texto": "Feijões branco, carioca e preto: cultivo, safra, maturidade e manejo"
+ },
+ {
+  "titulo": "Feijões branco, carioca e preto: armazenamento, preparo e nutrição",
+  "texto": "Feijões branco, carioca e preto: armazenamento, preparo e nutrição"
+ },
+ {
+  "titulo": "Grão-de-bico: identidade",
+  "texto": "Grão-de-bico: identidade"
+ },
+ {
+  "titulo": "Grão-de-bico: cultivo",
+  "texto": "Grão-de-bico: cultivo"
+ },
+ {
+  "titulo": "Grão-de-bico: conservação e preparo",
+  "texto": "Grão-de-bico: conservação e preparo"
+ },
+ {
+  "titulo": "Grão-de-bico: nutrição",
+  "texto": "Grão-de-bico: nutrição"
+ },
+ {
+  "titulo": "Lentilha: identidade",
+  "texto": "Lentilha: identidade"
+ },
+ {
+  "titulo": "Lentilha: cultivo",
+  "texto": "Lentilha: cultivo"
+ },
+ {
+  "titulo": "Lentilha: conservação e preparo",
+  "texto": "Lentilha: conservação e preparo"
+ },
+ {
+  "titulo": "Lentilha: nutrição",
+  "texto": "Lentilha: nutrição"
+ },
+ {
+  "titulo": "Soja: identidade",
+  "texto": "Soja: identidade"
+ },
+ {
+  "titulo": "Soja: cultivo e safra",
+  "texto": "Soja: cultivo e safra"
+ },
+ {
+  "titulo": "Soja: pós-colheita e processamento",
+  "texto": "Soja: pós-colheita e processamento"
+ },
+ {
+  "titulo": "Soja: nutrição",
+  "texto": "Soja: nutrição"
+ },
+ {
+  "titulo": "Amaranto: identidade",
+  "texto": "Amaranto: identidade"
+ },
+ {
+  "titulo": "Amaranto: produção",
+  "texto": "Amaranto: produção"
+ },
+ {
+  "titulo": "Amaranto: uso e armazenamento",
+  "texto": "Amaranto: uso e armazenamento"
+ },
+ {
+  "titulo": "Amaranto: nutrição",
+  "texto": "Amaranto: nutrição"
+ },
+ {
+  "titulo": "Arroz: identidade comum",
+  "texto": "Arroz: identidade comum"
+ },
+ {
+  "titulo": "Arroz: cultivo, sazonalidade e colheita",
+  "texto": "Arroz: cultivo, sazonalidade e colheita"
+ },
+ {
+  "titulo": "Arroz-arbóreo",
+  "texto": "Arroz-arbóreo"
+ },
+ {
+  "titulo": "Arroz-bragançano",
+  "texto": "Arroz-bragançano"
+ },
+ {
+  "titulo": "Arroz-integral",
+  "texto": "Arroz-integral"
+ },
+ {
+  "titulo": "Arroz-negro",
+  "texto": "Arroz-negro"
+ },
+ {
+  "titulo": "Arroz-selvagem",
+  "texto": "Arroz-selvagem"
+ },
+ {
+  "titulo": "Arroz-vermelho",
+  "texto": "Arroz-vermelho"
+ },
+ {
+  "titulo": "Aveia-em-grão: identidade e cultivo",
+  "texto": "Aveia-em-grão: identidade e cultivo"
+ },
+ {
+  "titulo": "Aveia-em-grão: nutrição e uso",
+  "texto": "Aveia-em-grão: nutrição e uso"
+ },
+ {
+  "titulo": "Aveia-em-flocos",
+  "texto": "Aveia-em-flocos"
+ },
+ {
+  "titulo": "Cevada: identidade",
+  "texto": "Cevada: identidade"
+ },
+ {
+  "titulo": "Cevada: cultivo e colheita",
+  "texto": "Cevada: cultivo e colheita"
+ },
+ {
+  "titulo": "Cevada: armazenamento e nutrição",
+  "texto": "Cevada: armazenamento e nutrição"
+ },
+ {
+  "titulo": "Centeio: identidade",
+  "texto": "Centeio: identidade"
+ },
+ {
+  "titulo": "Centeio: cultivo",
+  "texto": "Centeio: cultivo"
+ },
+ {
+  "titulo": "Centeio: uso, conservação e nutrição",
+  "texto": "Centeio: uso, conservação e nutrição"
+ },
+ {
+  "titulo": "Chia-em-grão: identidade",
+  "texto": "Chia-em-grão: identidade"
+ },
+ {
+  "titulo": "Chia-em-grão: cultivo",
+  "texto": "Chia-em-grão: cultivo"
+ },
+ {
+  "titulo": "Chia-em-grão: conservação e uso",
+  "texto": "Chia-em-grão: conservação e uso"
+ },
+ {
+  "titulo": "Chia-em-grão: nutrição",
+  "texto": "Chia-em-grão: nutrição"
+ },
+ {
+  "titulo": "Farro: identidade",
+  "texto": "Farro: identidade"
+ },
+ {
+  "titulo": "Farro: cultivo e preparo",
+  "texto": "Farro: cultivo e preparo"
+ },
+ {
+  "titulo": "Farro: nutrição",
+  "texto": "Farro: nutrição"
+ },
+ {
+  "titulo": "Trigo-sarraceno: identidade",
+  "texto": "Trigo-sarraceno: identidade"
+ },
+ {
+  "titulo": "Trigo-sarraceno: cultivo",
+  "texto": "Trigo-sarraceno: cultivo"
+ },
+ {
+  "titulo": "Trigo-sarraceno: conservação e uso",
+  "texto": "Trigo-sarraceno: conservação e uso"
+ },
+ {
+  "titulo": "Milho-de-pipoca: identidade",
+  "texto": "Milho-de-pipoca: identidade"
+ },
+ {
+  "titulo": "Milho-de-pipoca: cultivo e colheita",
+  "texto": "Milho-de-pipoca: cultivo e colheita"
+ },
+ {
+  "titulo": "Milho-de-pipoca: conservação e uso",
+  "texto": "Milho-de-pipoca: conservação e uso"
+ },
+ {
+  "titulo": "Milho-verde: identidade e tipos",
+  "texto": "Milho-verde: identidade e tipos"
+ },
+ {
+  "titulo": "Milho-verde: cultivo e colheita",
+  "texto": "Milho-verde: cultivo e colheita"
+ },
+ {
+  "titulo": "Milho-verde: pós-colheita e nutrição",
+  "texto": "Milho-verde: pós-colheita e nutrição"
+ },
+ {
+  "titulo": "Painço: identidade",
+  "texto": "Painço: identidade"
+ },
+ {
+  "titulo": "Painço: cultivo",
+  "texto": "Painço: cultivo"
+ },
+ {
+  "titulo": "Painço: nutrição e uso",
+  "texto": "Painço: nutrição e uso"
+ },
+ {
+  "titulo": "Quinua: identidade",
+  "texto": "Quinua: identidade"
+ },
+ {
+  "titulo": "Quinua: cultivo",
+  "texto": "Quinua: cultivo"
+ },
+ {
+  "titulo": "Quinua: pós-colheita e nutrição",
+  "texto": "Quinua: pós-colheita e nutrição"
+ },
+ {
+  "titulo": "Sorgo: identidade",
+  "texto": "Sorgo: identidade"
+ },
+ {
+  "titulo": "Sorgo: cultivo",
+  "texto": "Sorgo: cultivo"
+ },
+ {
+  "titulo": "Sorgo: uso e nutrição",
+  "texto": "Sorgo: uso e nutrição"
+ },
+ {
+  "titulo": "Trigo-em-grão: identidade",
+  "texto": "Trigo-em-grão: identidade"
+ },
+ {
+  "titulo": "Trigo-em-grão: produção no Brasil",
+  "texto": "Trigo-em-grão: produção no Brasil"
+ },
+ {
+  "titulo": "Trigo-em-grão: armazenamento, uso e nutrição",
+  "texto": "Trigo-em-grão: armazenamento, uso e nutrição"
+ },
+ {
+  "titulo": "Semente de abóbora: identidade e variedades",
+  "texto": "Semente de abóbora: identidade e variedades"
+ },
+ {
+  "titulo": "Semente de abóbora: produção e colheita",
+  "texto": "Semente de abóbora: produção e colheita"
+ },
+ {
+  "titulo": "Semente de abóbora: conservação e uso",
+  "texto": "Semente de abóbora: conservação e uso"
+ },
+ {
+  "titulo": "Semente de abóbora: nutrição",
+  "texto": "Semente de abóbora: nutrição"
+ },
+ {
+  "titulo": "Semente de alpiste: identidade e risco de confusão",
+  "texto": "Semente de alpiste: identidade e risco de confusão"
+ },
+ {
+  "titulo": "Semente de alpiste: produção, conservação e uso",
+  "texto": "Semente de alpiste: produção, conservação e uso"
+ },
+ {
+  "titulo": "Semente de alpiste: nutrição",
+  "texto": "Semente de alpiste: nutrição"
+ },
+ {
+  "titulo": "Semente de amêndoa: identidade",
+  "texto": "Semente de amêndoa: identidade"
+ },
+ {
+  "titulo": "Semente de amêndoa: cultivo e safra",
+  "texto": "Semente de amêndoa: cultivo e safra"
+ },
+ {
+  "titulo": "Semente de amêndoa: armazenamento e nutrição",
+  "texto": "Semente de amêndoa: armazenamento e nutrição"
+ },
+ {
+  "titulo": "Gergelim-branco: identidade",
+  "texto": "Gergelim-branco: identidade"
+ },
+ {
+  "titulo": "Gergelim-branco: cultivo",
+  "texto": "Gergelim-branco: cultivo"
+ },
+ {
+  "titulo": "Gergelim-branco: conservação e composição",
+  "texto": "Gergelim-branco: conservação e composição"
+ },
+ {
+  "titulo": "Gergelim-preto: identidade e distinção",
+  "texto": "Gergelim-preto: identidade e distinção"
+ },
+ {
+  "titulo": "Gergelim-preto: cultivo, conservação e uso",
+  "texto": "Gergelim-preto: cultivo, conservação e uso"
+ },
+ {
+  "titulo": "Gergelim-preto: nutrição",
+  "texto": "Gergelim-preto: nutrição"
+ },
+ {
+  "titulo": "Semente de girassol: identidade",
+  "texto": "Semente de girassol: identidade"
+ },
+ {
+  "titulo": "Semente de girassol: produção",
+  "texto": "Semente de girassol: produção"
+ },
+ {
+  "titulo": "Semente de girassol: armazenamento e nutrição",
+  "texto": "Semente de girassol: armazenamento e nutrição"
+ },
+ {
+  "titulo": "Linhaça dourada e marrom: identidade comum",
+  "texto": "Linhaça dourada e marrom: identidade comum"
+ },
+ {
+  "titulo": "Linhaça dourada e marrom: cultivo",
+  "texto": "Linhaça dourada e marrom: cultivo"
+ },
+ {
+  "titulo": "Linhaça dourada e marrom: conservação e preparo",
+  "texto": "Linhaça dourada e marrom: conservação e preparo"
+ },
+ {
+  "titulo": "Linhaça dourada e marrom: nutrição e registros",
+  "texto": "Linhaça dourada e marrom: nutrição e registros"
+ },
+ {
+  "titulo": "Semente de papoula: identidade",
+  "texto": "Semente de papoula: identidade"
+ },
+ {
+  "titulo": "Semente de papoula: cultivo e pós-colheita",
+  "texto": "Semente de papoula: cultivo e pós-colheita"
+ },
+ {
+  "titulo": "Semente de papoula: nutrição",
+  "texto": "Semente de papoula: nutrição"
+ },
+ {
+  "titulo": "Semente de cânhamo: identidade",
+  "texto": "Semente de cânhamo: identidade"
+ },
+ {
+  "titulo": "Semente de cânhamo: cultivo e regulação",
+  "texto": "Semente de cânhamo: cultivo e regulação"
+ },
+ {
+  "titulo": "Semente de cânhamo: armazenamento e nutrição",
+  "texto": "Semente de cânhamo: armazenamento e nutrição"
+ },
+ {
+  "titulo": "Semente de mostarda: identidade",
+  "texto": "Semente de mostarda: identidade"
+ },
+ {
+  "titulo": "Semente de mostarda: cultivo",
+  "texto": "Semente de mostarda: cultivo"
+ },
+ {
+  "titulo": "Semente de mostarda: conservação, preparo e nutrição",
+  "texto": "Semente de mostarda: conservação, preparo e nutrição"
+ },
+ {
+  "titulo": "Semente de cominho: identidade",
+  "texto": "Semente de cominho: identidade"
+ },
+ {
+  "titulo": "Semente de cominho: cultivo",
+  "texto": "Semente de cominho: cultivo"
+ },
+ {
+  "titulo": "Semente de cominho: conservação e nutrição",
+  "texto": "Semente de cominho: conservação e nutrição"
+ },
+ {
+  "titulo": "Semente de coentro: identidade",
+  "texto": "Semente de coentro: identidade"
+ },
+ {
+  "titulo": "Semente de coentro: cultivo",
+  "texto": "Semente de coentro: cultivo"
+ },
+ {
+  "titulo": "Semente de coentro: conservação, uso e nutrição",
+  "texto": "Semente de coentro: conservação, uso e nutrição"
+ },
+ {
+  "titulo": "Semente de erva-doce: identidade",
+  "texto": "Semente de erva-doce: identidade"
+ },
+ {
+  "titulo": "Semente de erva-doce: cultivo",
+  "texto": "Semente de erva-doce: cultivo"
+ },
+ {
+  "titulo": "Semente de erva-doce: nutrição",
+  "texto": "Semente de erva-doce: nutrição"
+ },
+ {
+  "titulo": "Semente de cardamomo: identidade",
+  "texto": "Semente de cardamomo: identidade"
+ },
+ {
+  "titulo": "Semente de cardamomo: produção",
+  "texto": "Semente de cardamomo: produção"
+ },
+ {
+  "titulo": "Semente de cardamomo: conservação, uso e nutrição",
+  "texto": "Semente de cardamomo: conservação, uso e nutrição"
+ },
+ {
+  "titulo": "Semente de melancia: identidade",
+  "texto": "Semente de melancia: identidade"
+ },
+ {
+  "titulo": "Semente de melancia: cultivo e colheita",
+  "texto": "Semente de melancia: cultivo e colheita"
+ },
+ {
+  "titulo": "Semente de melancia: conservação e nutrição",
+  "texto": "Semente de melancia: conservação e nutrição"
+ },
+ {
+  "titulo": "Semente de pinha: identidade",
+  "texto": "Semente de pinha: identidade"
+ },
+ {
+  "titulo": "Semente de pinha: segurança e uso",
+  "texto": "Semente de pinha: segurança e uso"
+ },
+ {
+  "titulo": "Semente de pinha: nutrição",
+  "texto": "Semente de pinha: nutrição"
+ },
+ {
+  "titulo": "Semente de baru: identidade",
+  "texto": "Semente de baru: identidade"
+ },
+ {
+  "titulo": "Semente de baru: produção e colheita",
+  "texto": "Semente de baru: produção e colheita"
+ },
+ {
+  "titulo": "Semente de baru: conservação e uso",
+  "texto": "Semente de baru: conservação e uso"
+ },
+ {
+  "titulo": "Semente de baru: nutrição",
+  "texto": "Semente de baru: nutrição"
+ },
+ {
+  "titulo": "Semente de pistache: identidade",
+  "texto": "Semente de pistache: identidade"
+ },
+ {
+  "titulo": "Semente de pistache: cultivo e colheita",
+  "texto": "Semente de pistache: cultivo e colheita"
+ },
+ {
+  "titulo": "Semente de pistache: conservação e uso",
+  "texto": "Semente de pistache: conservação e uso"
+ },
+ {
+  "titulo": "Banana: identidade e grupos comerciais",
+  "texto": "Banana: identidade e grupos comerciais"
+ },
+ {
+  "titulo": "Banana: safra e disponibilidade",
+  "texto": "Banana: safra e disponibilidade"
+ },
+ {
+  "titulo": "Banana: maturidade e qualidade",
+  "texto": "Banana: maturidade e qualidade"
+ },
+ {
+  "titulo": "Banana: clima, solo e cultivo",
+  "texto": "Banana: clima, solo e cultivo"
+ },
+ {
+  "titulo": "Banana: irrigação e manejo",
+  "texto": "Banana: irrigação e manejo"
+ },
+ {
+  "titulo": "Banana: colheita, transporte e pós-colheita",
+  "texto": "Banana: colheita, transporte e pós-colheita"
+ },
+ {
+  "titulo": "Banana: congelamento e processamento",
+  "texto": "Banana: congelamento e processamento"
+ },
+ {
+  "titulo": "Banana: composição nutricional de referência",
+  "texto": "Banana: composição nutricional de referência"
+ },
+ {
+  "titulo": "Energia dos alimentos",
+  "texto": "Energia dos alimentos"
+ },
+ {
+  "titulo": "Porção também importa",
+  "texto": "Porção também importa"
+ },
+ {
+  "titulo": "Volume e calorias",
+  "texto": "Volume e calorias"
+ },
+ {
+  "titulo": "Calorias não contam a história toda",
+  "texto": "Calorias não contam a história toda"
+ },
+ {
+  "titulo": "Energia ao longo do dia",
+  "texto": "Energia ao longo do dia"
+ },
+ {
+  "titulo": "Metabolismo está sempre ativo",
+  "texto": "Metabolismo está sempre ativo"
+ },
+ {
+  "titulo": "Construir e renovar",
+  "texto": "Construir e renovar"
+ },
+ {
+  "titulo": "Não é só velocidade para emagrecer",
+  "texto": "Não é só velocidade para emagrecer"
+ },
+ {
+  "titulo": "Movimento faz parte do gasto",
+  "texto": "Movimento faz parte do gasto"
+ },
+ {
+  "titulo": "Rotina consistente",
+  "texto": "Rotina consistente"
+ },
+ {
+  "titulo": "Três grandes grupos",
+  "texto": "Três grandes grupos"
+ },
+ {
+  "titulo": "Carboidratos dão energia",
+  "texto": "Carboidratos dão energia"
+ },
+ {
+  "titulo": "Proteínas ajudam a construir",
+  "texto": "Proteínas ajudam a construir"
+ },
+ {
+  "titulo": "Gorduras também são necessárias",
+  "texto": "Gorduras também são necessárias"
+ },
+ {
+  "titulo": "Variedade no prato",
+  "texto": "Variedade no prato"
+ },
+ {
+  "titulo": "Pequenas quantidades, grandes funções",
+  "texto": "Pequenas quantidades, grandes funções"
+ },
+ {
+  "titulo": "Ferro e transporte de oxigênio",
+  "texto": "Ferro e transporte de oxigênio"
+ },
+ {
+  "titulo": "Cálcio além dos ossos",
+  "texto": "Cálcio além dos ossos"
+ },
+ {
+  "titulo": "Vitamina C no dia a dia",
+  "texto": "Vitamina C no dia a dia"
+ },
+ {
+  "titulo": "Diversidade de alimentos",
+  "texto": "Diversidade de alimentos"
+ },
+ {
+  "titulo": "O que é densidade calórica?",
+  "texto": "O que é densidade calórica?"
+ },
+ {
+  "titulo": "Água aumenta o volume",
+  "texto": "Água aumenta o volume"
+ },
+ {
+  "titulo": "Gordura concentra energia",
+  "texto": "Gordura concentra energia"
+ },
+ {
+  "titulo": "Porções fazem diferença",
+  "texto": "Porções fazem diferença"
+ },
+ {
+  "titulo": "Compare com contexto",
+  "texto": "Compare com contexto"
+ },
+ {
+  "titulo": "Mais nutrientes por porção",
+  "texto": "Mais nutrientes por porção"
+ },
+ {
+  "titulo": "Vegetais contam",
+  "texto": "Vegetais contam"
+ },
+ {
+  "titulo": "Leguminosas são versáteis",
+  "texto": "Leguminosas são versáteis"
+ },
+ {
+  "titulo": "Qualidade além do número",
+  "texto": "Qualidade além do número"
+ },
+ {
+  "titulo": "Monte um prato variado",
+  "texto": "Monte um prato variado"
+ },
+ {
+  "titulo": "Nem tudo é absorvido da mesma forma",
+  "texto": "Nem tudo é absorvido da mesma forma"
+ },
+ {
+  "titulo": "Vitamina C e ferro vegetal",
+  "texto": "Vitamina C e ferro vegetal"
+ },
+ {
+  "titulo": "Preparo também influencia",
+  "texto": "Preparo também influencia"
+ },
+ {
+  "titulo": "Variedade ajuda a complementar",
+  "texto": "Variedade ajuda a complementar"
+ },
+ {
+  "titulo": "A combinação importa",
+  "texto": "A combinação importa"
+ },
+ {
+  "titulo": "A digestão começa na boca",
+  "texto": "A digestão começa na boca"
+ },
+ {
+  "titulo": "O estômago participa",
+  "texto": "O estômago participa"
+ },
+ {
+  "titulo": "Intestino delgado em ação",
+  "texto": "Intestino delgado em ação"
+ },
+ {
+  "titulo": "Mastigue com atenção",
+  "texto": "Mastigue com atenção"
+ },
+ {
+  "titulo": "Cada nutriente segue etapas",
+  "texto": "Cada nutriente segue etapas"
+ },
+ {
+  "titulo": "Onde os nutrientes entram no corpo",
+  "texto": "Onde os nutrientes entram no corpo"
+ },
+ {
+  "titulo": "O intestino também absorve água",
+  "texto": "O intestino também absorve água"
+ },
+ {
+  "titulo": "Fibras e intestino grosso",
+  "texto": "Fibras e intestino grosso"
+ },
+ {
+  "titulo": "Cuide do padrão alimentar",
+  "texto": "Cuide do padrão alimentar"
+ },
+ {
+  "titulo": "Sintomas persistentes merecem atenção",
+  "texto": "Sintomas persistentes merecem atenção"
+ },
+ {
+  "titulo": "Inclua fibras diariamente",
+  "texto": "Inclua fibras diariamente"
+ },
+ {
+  "titulo": "Fibras e saciedade",
+  "texto": "Fibras e saciedade"
+ },
+ {
+  "titulo": "Intestino em equilíbrio",
+  "texto": "Intestino em equilíbrio"
+ },
+ {
+  "titulo": "Prefira a fruta inteira",
+  "texto": "Prefira a fruta inteira"
+ },
+ {
+  "titulo": "Aumente aos poucos",
+  "texto": "Aumente aos poucos"
+ },
+ {
+  "titulo": "Proteína em diferentes refeições",
+  "texto": "Proteína em diferentes refeições"
+ },
+ {
+  "titulo": "Proteína e renovação dos tecidos",
+  "texto": "Proteína e renovação dos tecidos"
+ },
+ {
+  "titulo": "Varie as fontes",
+  "texto": "Varie as fontes"
+ },
+ {
+  "titulo": "Não é só para quem treina",
+  "texto": "Não é só para quem treina"
+ },
+ {
+  "titulo": "Considere o dia inteiro",
+  "texto": "Considere o dia inteiro"
+ },
+ {
+  "titulo": "Proteínas são feitas de aminoácidos",
+  "texto": "Proteínas são feitas de aminoácidos"
+ },
+ {
+  "titulo": "Aminoácidos essenciais",
+  "texto": "Aminoácidos essenciais"
+ },
+ {
+  "titulo": "Diversifique as fontes vegetais",
+  "texto": "Diversifique as fontes vegetais"
+ },
+ {
+  "titulo": "Soja é uma fonte completa",
+  "texto": "Soja é uma fonte completa"
+ },
+ {
+  "titulo": "Qualidade e quantidade",
+  "texto": "Qualidade e quantidade"
+ },
+ {
+  "titulo": "Leucina e músculo",
+  "texto": "Leucina e músculo"
+ },
+ {
+  "titulo": "Fontes alimentares",
+  "texto": "Fontes alimentares"
+ },
+ {
+  "titulo": "Não age sozinha",
+  "texto": "Não age sozinha"
+ },
+ {
+  "titulo": "Treino e alimentação trabalham juntos",
+  "texto": "Treino e alimentação trabalham juntos"
+ },
+ {
+  "titulo": "Suplemento não substitui refeição",
+  "texto": "Suplemento não substitui refeição"
+ },
+ {
+  "titulo": "Carboidrato é combustível",
+  "texto": "Carboidrato é combustível"
+ },
+ {
+  "titulo": "Não precisa eliminar",
+  "texto": "Não precisa eliminar"
+ },
+ {
+  "titulo": "Escolha fontes variadas",
+  "texto": "Escolha fontes variadas"
+ },
+ {
+  "titulo": "Carboidrato e treino",
+  "texto": "Carboidrato e treino"
+ },
+ {
+  "titulo": "Observe o grau de processamento",
+  "texto": "Observe o grau de processamento"
+ },
+ {
+  "titulo": "O que é glicose?",
+  "texto": "O que é glicose?"
+ },
+ {
+  "titulo": "O corpo regula a glicemia",
+  "texto": "O corpo regula a glicemia"
+ },
+ {
+  "titulo": "Carboidratos e glicose",
+  "texto": "Carboidratos e glicose"
+ },
+ {
+  "titulo": "Energia para as células",
+  "texto": "Energia para as células"
+ },
+ {
+  "titulo": "Não tire conclusões por um alimento",
+  "texto": "Não tire conclusões por um alimento"
+ },
+ {
+  "titulo": "O que mede o índice glicêmico?",
+  "texto": "O que mede o índice glicêmico?"
+ },
+ {
+  "titulo": "Índice não é porção",
+  "texto": "Índice não é porção"
+ },
+ {
+  "titulo": "Combine alimentos",
+  "texto": "Combine alimentos"
+ },
+ {
+  "titulo": "Preparo pode mudar a resposta",
+  "texto": "Preparo pode mudar a resposta"
+ },
+ {
+  "titulo": "Não é uma lista de proibidos",
+  "texto": "Não é uma lista de proibidos"
+ },
+ {
+  "titulo": "Porção também conta",
+  "texto": "Porção também conta"
+ },
+ {
+  "titulo": "Mesmo alimento, porções diferentes",
+  "texto": "Mesmo alimento, porções diferentes"
+ },
+ {
+  "titulo": "Olhe a refeição completa",
+  "texto": "Olhe a refeição completa"
+ },
+ {
+  "titulo": "Não confunda com qualidade geral",
+  "texto": "Não confunda com qualidade geral"
+ },
+ {
+  "titulo": "Equilíbrio nas escolhas",
+  "texto": "Equilíbrio nas escolhas"
+ },
+ {
+  "titulo": "Gordura tem funções essenciais",
+  "texto": "Gordura tem funções essenciais"
+ },
+ {
+  "titulo": "Inclua fontes variadas",
+  "texto": "Inclua fontes variadas"
+ },
+ {
+  "titulo": "Gordura não é vilã",
+  "texto": "Gordura não é vilã"
+ },
+ {
+  "titulo": "Vitaminas que dependem de gordura",
+  "texto": "Vitaminas que dependem de gordura"
+ },
+ {
+  "titulo": "Atenção às porções",
+  "texto": "Atenção às porções"
+ },
+ {
+  "titulo": "Tipos diferentes de gordura",
+  "texto": "Tipos diferentes de gordura"
+ },
+ {
+  "titulo": "Priorize fontes insaturadas",
+  "texto": "Priorize fontes insaturadas"
+ },
+ {
+  "titulo": "Faça substituições inteligentes",
+  "texto": "Faça substituições inteligentes"
+ },
+ {
+  "titulo": "Observe o conjunto",
+  "texto": "Observe o conjunto"
+ },
+ {
+  "titulo": "Leia os rótulos",
+  "texto": "Leia os rótulos"
+ },
+ {
+  "titulo": "Ômega-3 é uma família",
+  "texto": "Ômega-3 é uma família"
+ },
+ {
+  "titulo": "Chia e linhaça",
+  "texto": "Chia e linhaça"
+ },
+ {
+  "titulo": "Peixes fornecem EPA e DHA",
+  "texto": "Peixes fornecem EPA e DHA"
+ },
+ {
+  "titulo": "Conversão limitada",
+  "texto": "Conversão limitada"
+ },
+ {
+  "titulo": "Variedade é o caminho",
+  "texto": "Variedade é o caminho"
+ },
+ {
+  "titulo": "Energia que entra e sai",
+  "texto": "Energia que entra e sai"
+ },
+ {
+  "titulo": "Observe tendências",
+  "texto": "Observe tendências"
+ },
+ {
+  "titulo": "Atividade diária conta",
+  "texto": "Atividade diária conta"
+ },
+ {
+  "titulo": "Não é só exercício",
+  "texto": "Não é só exercício"
+ },
+ {
+  "titulo": "Consistência importa",
+  "texto": "Consistência importa"
+ },
+ {
+  "titulo": "Não precisa passar fome",
+  "texto": "Não precisa passar fome"
+ },
+ {
+  "titulo": "Preserve a qualidade da dieta",
+  "texto": "Preserve a qualidade da dieta"
+ },
+ {
+  "titulo": "Ritmo individual",
+  "texto": "Ritmo individual"
+ },
+ {
+  "titulo": "Evite compensações extremas",
+  "texto": "Evite compensações extremas"
+ },
+ {
+  "titulo": "O que é superávit?",
+  "texto": "O que é superávit?"
+ },
+ {
+  "titulo": "Ganhar peso não é ganhar só músculo",
+  "texto": "Ganhar peso não é ganhar só músculo"
+ },
+ {
+  "titulo": "Mais comida não significa mais músculo",
+  "texto": "Mais comida não significa mais músculo"
+ },
+ {
+  "titulo": "Treino é parte do processo",
+  "texto": "Treino é parte do processo"
+ },
+ {
+  "titulo": "Acompanhe a evolução",
+  "texto": "Acompanhe a evolução"
+ },
+ {
+  "titulo": "Energia em repouso",
+  "texto": "Energia em repouso"
+ },
+ {
+  "titulo": "Não é o gasto do dia inteiro",
+  "texto": "Não é o gasto do dia inteiro"
+ },
+ {
+  "titulo": "Composição corporal influencia",
+  "texto": "Composição corporal influencia"
+ },
+ {
+  "titulo": "Não existe valor igual para todos",
+  "texto": "Não existe valor igual para todos"
+ },
+ {
+  "titulo": "Repouso também exige energia",
+  "texto": "Repouso também exige energia"
+ },
+ {
+  "titulo": "O gasto vai além do treino",
+  "texto": "O gasto vai além do treino"
+ },
+ {
+  "titulo": "Movimente-se ao longo do dia",
+  "texto": "Movimente-se ao longo do dia"
+ },
+ {
+  "titulo": "Dias diferentes, gastos diferentes",
+  "texto": "Dias diferentes, gastos diferentes"
+ },
+ {
+  "titulo": "Treino não é o único fator",
+  "texto": "Treino não é o único fator"
+ },
+ {
+  "titulo": "Estimativas são aproximações",
+  "texto": "Estimativas são aproximações"
+ },
+ {
+  "titulo": "O corpo produz calor",
+  "texto": "O corpo produz calor"
+ },
+ {
+  "titulo": "Frio exige adaptação",
+  "texto": "Frio exige adaptação"
+ },
+ {
+  "titulo": "Alimentos não fazem milagres",
+  "texto": "Alimentos não fazem milagres"
+ },
+ {
+  "titulo": "Comer também gera calor",
+  "texto": "Comer também gera calor"
+ },
+ {
+  "titulo": "Desconfie de promessas",
+  "texto": "Desconfie de promessas"
+ },
+ {
+  "titulo": "Digestão também gasta energia",
+  "texto": "Digestão também gasta energia"
+ },
+ {
+  "titulo": "Proteínas têm maior efeito térmico",
+  "texto": "Proteínas têm maior efeito térmico"
+ },
+ {
+  "titulo": "Não anula as calorias",
+  "texto": "Não anula as calorias"
+ },
+ {
+  "titulo": "Parte do gasto diário",
+  "texto": "Parte do gasto diário"
+ },
+ {
+  "titulo": "Priorize o conjunto",
+  "texto": "Priorize o conjunto"
+ },
+ {
+  "titulo": "Usar gordura como energia",
+  "texto": "Usar gordura como energia"
+ },
+ {
+  "titulo": "Queimar gordura no treino não é tudo",
+  "texto": "Queimar gordura no treino não é tudo"
+ },
+ {
+  "titulo": "O corpo alterna combustíveis",
+  "texto": "O corpo alterna combustíveis"
+ },
+ {
+  "titulo": "Consistência ao longo do tempo",
+  "texto": "Consistência ao longo do tempo"
+ },
+ {
+  "titulo": "Treine com estratégia",
+  "texto": "Treine com estratégia"
+ },
+ {
+  "titulo": "O que é lipólise?",
+  "texto": "O que é lipólise?"
+ },
+ {
+  "titulo": "Mobilizar não é perder",
+  "texto": "Mobilizar não é perder"
+ },
+ {
+  "titulo": "Processo natural",
+  "texto": "Processo natural"
+ },
+ {
+  "titulo": "Não existe redução localizada",
+  "texto": "Não existe redução localizada"
+ },
+ {
+  "titulo": "Olhe o resultado global",
+  "texto": "Olhe o resultado global"
+ },
+ {
+  "titulo": "Peso não conta tudo",
+  "texto": "Peso não conta tudo"
+ },
+ {
+  "titulo": "Treinamento de força",
+  "texto": "Treinamento de força"
+ },
+ {
+  "titulo": "Proteína e recuperação",
+  "texto": "Proteína e recuperação"
+ },
+ {
+  "titulo": "Acompanhe mais indicadores",
+  "texto": "Acompanhe mais indicadores"
+ },
+ {
+  "titulo": "Paciência com o processo",
+  "texto": "Paciência com o processo"
+ },
+ {
+  "titulo": "Proteína e saciedade",
+  "texto": "Proteína e saciedade"
+ },
+ {
+  "titulo": "Fibras ajudam a sustentar",
+  "texto": "Fibras ajudam a sustentar"
+ },
+ {
+  "titulo": "Coma com atenção",
+  "texto": "Coma com atenção"
+ },
+ {
+  "titulo": "Volume no prato",
+  "texto": "Volume no prato"
+ },
+ {
+  "titulo": "Saciedade é individual",
+  "texto": "Saciedade é individual"
+ },
+ {
+  "titulo": "Aprenda a reconhecer a fome",
+  "texto": "Aprenda a reconhecer a fome"
+ },
+ {
+  "titulo": "Horários não são regras rígidas",
+  "texto": "Horários não são regras rígidas"
+ },
+ {
+  "titulo": "Evite ignorar sinais constantemente",
+  "texto": "Evite ignorar sinais constantemente"
+ },
+ {
+  "titulo": "Fome não é falta de disciplina",
+  "texto": "Fome não é falta de disciplina"
+ },
+ {
+  "titulo": "Observe o contexto",
+  "texto": "Observe o contexto"
+ },
+ {
+  "titulo": "Fome e vontade de comer são diferentes",
+  "texto": "Fome e vontade de comer são diferentes"
+ },
+ {
+  "titulo": "Comida também envolve prazer",
+  "texto": "Comida também envolve prazer"
+ },
+ {
+  "titulo": "Ambiente influencia escolhas",
+  "texto": "Ambiente influencia escolhas"
+ },
+ {
+  "titulo": "Perceba os gatilhos",
+  "texto": "Perceba os gatilhos"
+ },
+ {
+  "titulo": "Flexibilidade é importante",
+  "texto": "Flexibilidade é importante"
+ },
+ {
+  "titulo": "Água participa de tudo",
+  "texto": "Água participa de tudo"
+ },
+ {
+  "titulo": "Calor aumenta a atenção",
+  "texto": "Calor aumenta a atenção"
+ },
+ {
+  "titulo": "Treino exige cuidado",
+  "texto": "Treino exige cuidado"
+ },
+ {
+  "titulo": "Alimentos também hidratam",
+  "texto": "Alimentos também hidratam"
+ },
+ {
+  "titulo": "Necessidades são individuais",
+  "texto": "Necessidades são individuais"
+ },
+ {
+  "titulo": "Deixe água por perto",
+  "texto": "Deixe água por perto"
+ },
+ {
+  "titulo": "Crie lembretes úteis",
+  "texto": "Crie lembretes úteis"
+ },
+ {
+  "titulo": "Observe a sede",
+  "texto": "Observe a sede"
+ },
+ {
+  "titulo": "Atenção ao exercício",
+  "texto": "Atenção ao exercício"
+ },
+ {
+  "titulo": "Não existe número universal",
+  "texto": "Não existe número universal"
+ },
+ {
+  "titulo": "Reconheça os ultraprocessados",
+  "texto": "Reconheça os ultraprocessados"
+ },
+ {
+  "titulo": "Embalagem não define tudo",
+  "texto": "Embalagem não define tudo"
+ },
+ {
+  "titulo": "Leia a lista de ingredientes",
+  "texto": "Leia a lista de ingredientes"
+ },
+ {
+  "titulo": "Deixe espaço para comida de verdade",
+  "texto": "Deixe espaço para comida de verdade"
+ },
+ {
+  "titulo": "Reduza sem radicalismo",
+  "texto": "Reduza sem radicalismo"
+ },
+ {
+  "titulo": "Baseie-se em alimentos naturais",
+  "texto": "Baseie-se em alimentos naturais"
+ },
+ {
+  "titulo": "Varie as cores",
+  "texto": "Varie as cores"
+ },
+ {
+  "titulo": "Feijão é aliado",
+  "texto": "Feijão é aliado"
+ },
+ {
+  "titulo": "Cozinhar pode simplificar",
+  "texto": "Cozinhar pode simplificar"
+ },
+ {
+  "titulo": "Comece pelo possível",
+  "texto": "Comece pelo possível"
+ },
+ {
+  "titulo": "Planeje antes da semana",
+  "texto": "Planeje antes da semana"
+ },
+ {
+  "titulo": "Tenha opções práticas",
+  "texto": "Tenha opções práticas"
+ },
+ {
+  "titulo": "Organize o ambiente",
+  "texto": "Organize o ambiente"
+ },
+ {
+  "titulo": "Planejamento flexível",
+  "texto": "Planejamento flexível"
+ },
+ {
+  "titulo": "Considere seu orçamento",
+  "texto": "Considere seu orçamento"
+ },
+ {
+  "titulo": "Mudanças pequenas contam",
+  "texto": "Mudanças pequenas contam"
+ },
+ {
+  "titulo": "Aprenda a montar refeições",
+  "texto": "Aprenda a montar refeições"
+ },
+ {
+  "titulo": "Não precisa proibir alimentos",
+  "texto": "Não precisa proibir alimentos"
+ },
+ {
+  "titulo": "Consistência supera perfeição",
+  "texto": "Consistência supera perfeição"
+ },
+ {
+  "titulo": "Conhecimento ajuda nas escolhas",
+  "texto": "Conhecimento ajuda nas escolhas"
+ },
+ {
+  "titulo": "O plano precisa caber na vida",
+  "texto": "O plano precisa caber na vida"
+ },
+ {
+  "titulo": "Identifique obstáculos",
+  "texto": "Identifique obstáculos"
+ },
+ {
+  "titulo": "Tenha alternativas",
+  "texto": "Tenha alternativas"
+ },
+ {
+  "titulo": "Evite o tudo ou nada",
+  "texto": "Evite o tudo ou nada"
+ },
+ {
+  "titulo": "Ajustar também é progredir",
+  "texto": "Ajustar também é progredir"
+ },
+ {
+  "titulo": "Músculos estão em renovação",
+  "texto": "Músculos estão em renovação"
+ },
+ {
+  "titulo": "Treino estimula adaptação",
+  "texto": "Treino estimula adaptação"
+ },
+ {
+  "titulo": "Proteína fornece matéria-prima",
+  "texto": "Proteína fornece matéria-prima"
+ },
+ {
+  "titulo": "Recuperação faz parte",
+  "texto": "Recuperação faz parte"
+ },
+ {
+  "titulo": "Consistência é essencial",
+  "texto": "Consistência é essencial"
+ },
+ {
+  "titulo": "O músculo também quebra proteínas",
+  "texto": "O músculo também quebra proteínas"
+ },
+ {
+  "titulo": "Construção e renovação coexistem",
+  "texto": "Construção e renovação coexistem"
+ },
+ {
+  "titulo": "Não confunda processo normal com perda muscular",
+  "texto": "Não confunda processo normal com perda muscular"
+ },
+ {
+  "titulo": "Alimentação adequada importa",
+  "texto": "Alimentação adequada importa"
+ },
+ {
+  "titulo": "Recuperação é parte do treino",
+  "texto": "Recuperação é parte do treino"
+ },
+ {
+  "titulo": "Equilíbrio entre construir e degradar",
+  "texto": "Equilíbrio entre construir e degradar"
+ },
+ {
+  "titulo": "O crescimento é acumulativo",
+  "texto": "O crescimento é acumulativo"
+ },
+ {
+  "titulo": "Treino e proteína se complementam",
+  "texto": "Treino e proteína se complementam"
+ },
+ {
+  "titulo": "Energia também importa",
+  "texto": "Energia também importa"
+ },
+ {
+  "titulo": "Não dependa de uma refeição",
+  "texto": "Não dependa de uma refeição"
+ },
+ {
+  "titulo": "Músculo cresce com estímulo",
+  "texto": "Músculo cresce com estímulo"
+ },
+ {
+  "titulo": "Progressão bem planejada",
+  "texto": "Progressão bem planejada"
+ },
+ {
+  "titulo": "Comida apoia o crescimento",
+  "texto": "Comida apoia o crescimento"
+ },
+ {
+  "titulo": "Sono também participa",
+  "texto": "Sono também participa"
+ },
+ {
+  "titulo": "Resultados levam tempo",
+  "texto": "Resultados levam tempo"
+ },
+ {
+  "titulo": "Distribua fontes proteicas",
+  "texto": "Distribua fontes proteicas"
+ },
+ {
+  "titulo": "Café da manhã também conta",
+  "texto": "Café da manhã também conta"
+ },
+ {
+  "titulo": "Não existe dose única",
+  "texto": "Não existe dose única"
+ },
+ {
+  "titulo": "Combine praticidade e variedade",
+  "texto": "Combine praticidade e variedade"
+ },
+ {
+  "titulo": "Olhe o total do dia",
+  "texto": "Olhe o total do dia"
+ },
+ {
+  "titulo": "Horário não é tudo",
+  "texto": "Horário não é tudo"
+ },
+ {
+  "titulo": "Organize a refeição ao redor do treino",
+  "texto": "Organize a refeição ao redor do treino"
+ },
+ {
+  "titulo": "Não existe cronômetro obrigatório",
+  "texto": "Não existe cronômetro obrigatório"
+ },
+ {
+  "titulo": "Considere sua próxima sessão",
+  "texto": "Considere sua próxima sessão"
+ },
+ {
+  "titulo": "Respeite sua tolerância",
+  "texto": "Respeite sua tolerância"
+ },
+ {
+  "titulo": "Chegue ao treino alimentado",
+  "texto": "Chegue ao treino alimentado"
+ },
+ {
+  "titulo": "Carboidratos podem ajudar",
+  "texto": "Carboidratos podem ajudar"
+ },
+ {
+  "titulo": "Ajuste o tamanho ao horário",
+  "texto": "Ajuste o tamanho ao horário"
+ },
+ {
+  "titulo": "Teste sua tolerância",
+  "texto": "Teste sua tolerância"
+ },
+ {
+  "titulo": "Hidratação também conta",
+  "texto": "Hidratação também conta"
+ },
+ {
+  "titulo": "Recuperação começa com o conjunto",
+  "texto": "Recuperação começa com o conjunto"
+ },
+ {
+  "titulo": "Proteína fornece aminoácidos",
+  "texto": "Proteína fornece aminoácidos"
+ },
+ {
+  "titulo": "Carboidratos repõem energia",
+  "texto": "Carboidratos repõem energia"
+ },
+ {
+  "titulo": "Não precisa correr para comer",
+  "texto": "Não precisa correr para comer"
+ },
+ {
+  "titulo": "Refeição simples funciona",
+  "texto": "Refeição simples funciona"
+ },
+ {
+  "titulo": "Reserva de carboidrato",
+  "texto": "Reserva de carboidrato"
+ },
+ {
+  "titulo": "Treinos exigentes utilizam glicogênio",
+  "texto": "Treinos exigentes utilizam glicogênio"
+ },
+ {
+  "titulo": "Carboidratos ajudam a repor",
+  "texto": "Carboidratos ajudam a repor"
+ },
+ {
+  "titulo": "Recuperação depende da rotina",
+  "texto": "Recuperação depende da rotina"
+ },
+ {
+  "titulo": "Não elimine carboidratos sem motivo",
+  "texto": "Não elimine carboidratos sem motivo"
+ },
+ {
+  "titulo": "Descanso faz parte do resultado",
+  "texto": "Descanso faz parte do resultado"
+ },
+ {
+  "titulo": "Sono e músculo",
+  "texto": "Sono e músculo"
+ },
+ {
+  "titulo": "Hidratação após o exercício",
+  "texto": "Hidratação após o exercício"
+ },
+ {
+  "titulo": "Dor não mede resultado",
+  "texto": "Dor não mede resultado"
+ },
+ {
+  "titulo": "Respeite o intervalo entre sessões",
+  "texto": "Respeite o intervalo entre sessões"
  }
 ];
