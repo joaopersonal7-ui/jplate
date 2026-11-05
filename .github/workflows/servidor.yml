@@ -57,6 +57,11 @@ jobs:
         if: steps.segredos.outputs.pronto == 'sim'
         run: |
           npx wrangler deploy 2>&1 | tee deploy.log
+          if grep -q '^workers_dev = false' wrangler.toml; then
+            # Sem endereço público: o servidor só responde ao site protegido (/api). Nada mais a fazer aqui.
+            echo "## Servidor publicado só para o site protegido (sem endereço público)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           if [ -z "$url" ]; then echo "::error::Não achei o endereço do servidor. Abra Workers e Pages no painel da Cloudflare uma vez para criar o subdomínio workers.dev."; exit 1; fi
           echo "URL=$url" >> "$GITHUB_ENV"
@@ -65,11 +70,11 @@ jobs:
           curl -s -X POST "$url/entender" -H 'Content-Type: application/json' -d '{"aluno":"publicacao-github","pergunta":"O que são calorias?"}' && echo
           echo "## Servidor publicado: $url" >> "$GITHUB_STEP_SUMMARY"
       - name: Ligar o app ao servidor
-        if: steps.segredos.outputs.pronto == 'sim'
+        if: steps.segredos.outputs.pronto == 'sim' && env.URL != ''
         working-directory: .
         run: |
-          if grep -q "SERVIDOR = '$URL'" src/config.js; then echo "O app já aponta para $URL."; exit 0; fi
-          sed -i "s|^export const SERVIDOR = .*|export const SERVIDOR = '$URL';|" src/config.js
+          if grep -q "SERVIDOR_EXTERNO = '$URL'" src/config.js; then echo "O app já aponta para $URL."; exit 0; fi
+          sed -i "s|^export const SERVIDOR_EXTERNO = .*|export const SERVIDOR_EXTERNO = '$URL';|" src/config.js
           # Versão nova do app, para os celulares baixarem o config.js novo.
           n=$(grep -oE "jplate-v[0-9]+" sw.js | head -1 | grep -oE "[0-9]+")
           sed -i "s/jplate-v$n'/jplate-v$((n + 1))'/" sw.js

@@ -4,6 +4,11 @@ name = "jplate-servidor"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
+# Endereço público (jplate-servidor.….workers.dev). Fica ligado só enquanto a cópia antiga do app
+# (GitHub Pages) existir. Depois da mudança (docs/PRIVACIDADE.md, passo 6) vira false: o servidor
+# só responde ao site protegido, pela ligação interna /api.
+workers_dev = true
+
 [[d1_databases]]
 binding = "DB"
 database_name = "jplate"
