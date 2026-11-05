@@ -10,6 +10,7 @@ import { KB_CONCEITOS } from './kb-conceitos.js';
 import { KB_NEURAL, KB_NEURAL_FROM } from './kb-neural.js';
 import { KB_FRUTAS } from './kb-frutas.js';
 import { KB_ALIMENTOS } from './kb-alimentos.js';
+import { KB_DICAS } from './kb-dicas.js';
 import { KB_CANETAS, CANETAS_FECHO } from './kb-canetas.js';
 import { healthTopic, TEAM_CLOSE } from './saude.js';
 import { CONVERSA, CONTINUAR, CONTINUAR_FALAS, CONTINUAR_SEM, OBJETIVO_FALAS, NAO_ENCONTREI, QUIS_DIZER, CONFLITO } from './conversa.js';
@@ -64,6 +65,9 @@ const DOCS = [
   // Fichas técnicas: o título é "Alimento: seção" (ex.: "Caju: composição nutricional e variação").
   ...KB_ALIMENTOS.map((k) => ({ title: k.pergunta, text: k.resposta, from: `Fichas técnicas de alimentos · ${k.alimento}`, refs: k.referencias,
     keys: [...k.palavras_chave, ...FICHA_TOPICOS.filter(([re]) => re.test(k.pergunta)).map(([, w]) => w)], autoKeys: true, titleOnly: true, id: k.id })),
+  // Dicas nutricionais (250, tiradas dos 50 conceitos): textos curtos com título de dica, não de pergunta.
+  // Pesam um pouco menos, para a pergunta do aluno cair primeiro na resposta completa do conceito ou do banco de perguntas.
+  ...KB_DICAS.map((k) => ({ title: k.titulo, text: k.dica, from: `Dicas nutricionais da SÁ · ${k.conceito}`, keys: [k.conceito], autoKeys: true, weight: 0.85, id: k.id })),
 ];
 // Medicamentos para emagrecimento: só respondem quando a pergunta fala de remédio/caneta (ex.: "Preciso tomar whey?" aqui é no contexto da caneta).
 const MED_DOCS = [
@@ -170,7 +174,7 @@ export function searchDocs(q, pool = DOCS) {
     // Duas perguntas que só diferem em "a", "o", "todos"...: fica a escrita igual à do aluno.
     if (raw === norm(d.title).replace(/[,.?]/g, '').trim()) score += 2;
     if (glossary && (/^O que é /.test(d.title) || d.concept)) score *= 1.6;
-    return { d, score: score / Math.sqrt(qw.length) };
+    return { d, score: (score * (d.weight ?? 1)) / Math.sqrt(qw.length) };
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
 }
 
